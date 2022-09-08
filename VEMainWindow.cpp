@@ -12,7 +12,7 @@ VEMainWindow::VEMainWindow(QWidget *parent)
     connect(ui->btnExit, &QPushButton::clicked, this, &VEMainWindow::ExitApp);
     connect(ui->btnOpenVideo, &QPushButton::clicked, this, &VEMainWindow::OpenVideo);
 
-    theFFMPEG = new FFMPEG("c:\\Program Files\\ffmpeg\\bin\\ffmpeg.exe");
+    theFFMPEG = new FFMPEG("c:\\Program Files\\ffmpeg\\bin\\ffmpeg.exe", this);
     theMarks.Reset(0);
 
     theVideoPresets.clear();

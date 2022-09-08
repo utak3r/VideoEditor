@@ -1,4 +1,5 @@
 #include "ffmpeg.h"
+#include "ProcessRunnerDialog.h"
 #include <QStringConverter>
 #include <QDebug>
 
@@ -116,8 +117,12 @@ void FFMPEG::Convert(QString inFile, QString codecArgs, TimelineMarks* marks, QS
         {
             theState = Starting;
             theProcess = new QProcess(this);
+
+            ProcessRunnerDialog* dlg = new ProcessRunnerDialog(qobject_cast<QWidget*>(this->parent()));
+
             connect(theProcess, &QProcess::started, this, [=]() {
                 theState = Running;
+                emit ffmpegStarted();
             });
             connect(theProcess, &QProcess::errorOccurred, this, [=](QProcess::ProcessError error) {
                 //
@@ -155,20 +160,25 @@ void FFMPEG::Convert(QString inFile, QString codecArgs, TimelineMarks* marks, QS
             // I'm using the "native args" feature.
             // If one would want to make it working on MacOS or Linux,
             // it'd have to be changed!
-
             QString nativeArgs = "-i \"" + inFile + "\"" +
                     " -y";
-
             if (marks->IsTrimmed())
             {
                 nativeArgs += " -ss " + marks->TimecodeStart();
                 nativeArgs += " -t " + marks->DurationTimecode();
             }
-
             nativeArgs += " " + codecArgs +
                     " \"" + outFile + "\"";
-
             theProcess->setNativeArguments(nativeArgs);
+
+            connect(this, &FFMPEG::ffmpegRead, dlg, &ProcessRunnerDialog::logAdded);
+            connect(this, &FFMPEG::ffmpegStarted, dlg, &ProcessRunnerDialog::processStarted);
+            connect(this, &FFMPEG::ffmpegFinished, dlg, &ProcessRunnerDialog::processFinished);
+            connect(dlg, &ProcessRunnerDialog::Cancel, this, [=]() {
+                theProcess->kill();
+            });
+            dlg->setModal(true);
+            dlg->show();
             theProcess->start(binPath());
         }
     }

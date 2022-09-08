@@ -52,6 +52,7 @@ signals:
     void ffmpegBinVersionChanged();
     void ffmpegStateChanged(FFMPEG::State newState);
     void ffmpegRead(QString data);
+    void ffmpegStarted();
     void ffmpegFinished();
 
 private:

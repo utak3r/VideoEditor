@@ -30,6 +30,9 @@ set(PROJECT_SOURCES
         VideoSlider.h
         ffmpeg.cpp
         ffmpeg.h
+        ProcessRunnerDialog.cpp
+        ProcessRunnerDialog.h
+        ProcessRunnerDialog.ui
         ${TS_FILES}
 )
 
@@ -42,7 +45,7 @@ qt_create_translation(QM_FILES ${CMAKE_SOURCE_DIR} ${TS_FILES})
 target_link_libraries(VideoEditor PRIVATE Qt6::Widgets Qt6::Multimedia Qt6::MultimediaWidgets)
 
 set_target_properties(VideoEditor PROPERTIES
-    MACOSX_BUNDLE_GUI_IDENTIFIER my.example.com
+    MACOSX_BUNDLE_GUI_IDENTIFIER VideoEditor.utak3r.pl
     MACOSX_BUNDLE_BUNDLE_VERSION ${PROJECT_VERSION}
     MACOSX_BUNDLE_SHORT_VERSION_STRING ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}
     MACOSX_BUNDLE TRUE
