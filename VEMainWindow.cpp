@@ -154,7 +154,7 @@ void VEMainWindow::Convert()
                                                                        tr("Video files (*.mp4 *.mov *.avi)"));
                     if (!outFilename.isEmpty())
                     {
-                        theFFMPEG->Run(currentVideoFile.absoluteFilePath(), codec.CommandLine, &theMarks, outFilename);
+                        theFFMPEG->Convert(currentVideoFile.absoluteFilePath(), codec.CommandLine, &theMarks, outFilename);
                     }
                 }
             }

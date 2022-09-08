@@ -2,6 +2,9 @@
 #include <QStringConverter>
 #include <QDebug>
 
+/*!
+ * \brief FFMPEG::FFMPEG default constructor
+ */
 FFMPEG::FFMPEG(QObject *parent)
     : QObject{parent}
     , theProcess(nullptr)
@@ -11,22 +14,36 @@ FFMPEG::FFMPEG(QObject *parent)
     theBinVersion = tr("unknown version");
 }
 
+/*!
+ * \brief FFMPEG::FFMPEG constructor initializing the ffmpeg's binary path
+ */
 FFMPEG::FFMPEG(QString path, QObject *parent)
     : FFMPEG(parent)
 {
     setBinPath(path);
 }
 
+/*!
+ * \brief FFMPEG::state returns current state as FFMPEG::State enum
+ */
 FFMPEG::State FFMPEG::state()
 {
     return theState;
 }
 
+/*!
+ * \brief FFMPEG::binPath returns ffmpeg's binary path currently set
+ */
 QString FFMPEG::binPath()
 {
     return theBinPath;
 }
 
+/*!
+ * \brief FFMPEG::setBinPath sets ffmpeg's binary path.
+ * Before setting the path, it runs a test if given path
+ * allows you to run it.
+ */
 void FFMPEG::setBinPath(QString path)
 {
     theBinVersion = "";
@@ -38,11 +55,21 @@ void FFMPEG::setBinPath(QString path)
     }
 }
 
+/*!
+ * \brief FFMPEG::binVersion returns currently used ffmpeg's version.
+ * The version is being checked during setting its path.
+ */
 QString FFMPEG::binVersion()
 {
     return theBinVersion;
 }
 
+/*!
+ * \brief FFMPEG::isBinaryAvailable checks if a given path leads to an existing binary
+ * \param binPath given binary path
+ * \param binVersion is being set to ffmpeg's version
+ * \return
+ */
 bool FFMPEG::isBinaryAvailable(QString binPath, QString &binVersion)
 {
     bool ret = false;
@@ -74,7 +101,14 @@ bool FFMPEG::isBinaryAvailable(QString binPath, QString &binVersion)
     return ret;
 }
 
-void FFMPEG::Run(QString inFile, QString codecArgs, TimelineMarks* marks, QString outFile)
+/*!
+ * \brief FFMPEG::Convert converts given video using a set of params
+ * \param inFile input video
+ * \param codecArgs codec settings for conversion
+ * \param marks video trimming marks (if any)
+ * \param outFile output video file name
+ */
+void FFMPEG::Convert(QString inFile, QString codecArgs, TimelineMarks* marks, QString outFile)
 {
     if (!binPath().isEmpty())
     {
@@ -116,6 +150,11 @@ void FFMPEG::Run(QString inFile, QString codecArgs, TimelineMarks* marks, QStrin
                 theState = Available;
                 emit ffmpegFinished();
             });
+
+            // Due to ffmpeg's complex args semantics,
+            // I'm using the "native args" feature.
+            // If one would want to make it working on MacOS or Linux,
+            // it'd have to be changed!
 
             QString nativeArgs = "-i \"" + inFile + "\"" +
                     " -y";

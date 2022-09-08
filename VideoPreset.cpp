@@ -1,5 +1,8 @@
 #include "VideoPreset.h"
 
+/*!
+ * \brief VideoPreset::VideoPreset default constructor
+ */
 VideoPreset::VideoPreset()
 {
     Name = "";
@@ -7,6 +10,12 @@ VideoPreset::VideoPreset()
     CommandLine = "";
 }
 
+/*!
+ * \brief VideoPreset::VideoPreset constructor initializing all data at once
+ * \param name name of the preset
+ * \param ext file extension to be used
+ * \param cmd ffnpeg arguments to be used during conversion
+ */
 VideoPreset::VideoPreset(QString name, QString ext, QString cmd)
     : VideoPreset()
 {
@@ -15,6 +24,9 @@ VideoPreset::VideoPreset(QString name, QString ext, QString cmd)
     CommandLine = cmd;
 }
 
+/*!
+ * \brief VideoPreset::asVariant packs current object into QVariant for storing as UserData
+ */
 QVariant VideoPreset::asVariant()
 {
     return QVariant::fromValue(*this);

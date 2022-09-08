@@ -5,11 +5,27 @@
 #include <QProcess>
 #include <TimelineMarks.h>
 
+/*!
+ * \class FFMPEG
+ * \brief FFMPEG serves for any ffmpeg related actions
+ */
 class FFMPEG : public QObject
 {
     Q_OBJECT
+    /*!
+     * \property FFMPEG::binPath
+     * \brief holds ffmpeg's binary path
+     */
     Q_PROPERTY(QString binPath READ binPath WRITE setBinPath NOTIFY ffmpegBinPathChanged)
+    /*!
+     * \property FFMPEG::binVersion
+     * \brief holds ffmpeg's version
+     */
     Q_PROPERTY(QString binVersion READ binVersion NOTIFY ffmpegBinVersionChanged)
+    /*!
+     * \property FFMPEG::state
+     * \brief holds current state
+     */
     Q_PROPERTY(FFMPEG::State state READ state NOTIFY ffmpegStateChanged)
 
 public:
@@ -29,7 +45,7 @@ public:
     void setBinPath(QString path);
     QString binVersion();
     FFMPEG::State state();
-    void Run(QString inFile, QString codecArgs, TimelineMarks* marks, QString outFile);
+    void Convert(QString inFile, QString codecArgs, TimelineMarks* marks, QString outFile);
 
 signals:
     void ffmpegBinPathChanged();

@@ -1,6 +1,9 @@
 #include "TimelineMarks.h"
 #include <QtMath>
 
+/*!
+ * \brief TimelineMarks::TimelineMarks: default constructor
+ */
 TimelineMarks::TimelineMarks()
     : MarkIn(-1)
     , MarkOut(-1)

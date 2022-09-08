@@ -5,6 +5,10 @@
 #include <QVariant>
 #include <QString>
 
+/*!
+ * \class VideoPreset
+ * \brief The VideoPreset class holds video conversion data
+ */
 class VideoPreset
 {
 public:
