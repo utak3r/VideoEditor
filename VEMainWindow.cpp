@@ -66,6 +66,7 @@ void VEMainWindow::ReloadSettings()
 {
     theSettings.ReadSettings();
     theFFMPEG = new FFMPEG(theSettings.ffmpeg(), this);
+    ui->statusbar->showMessage(theFFMPEG->binVersion());
 
     theVideoPresets.clear();
     theVideoPresets.append((*theSettings.videoPresets()));

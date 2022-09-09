@@ -54,6 +54,7 @@ void SettingsDialog::SearchForFFMPEGBinary()
                                                    tr("Executable files (*.exe)"));
     if (!binPath.isEmpty())
     {
+        ui->txtFFMPEGBinPath->setText(binPath);
         theSettings->setffmpeg(binPath);
         theSettings->WriteSettings();
     }

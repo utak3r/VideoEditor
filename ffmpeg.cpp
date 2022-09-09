@@ -12,7 +12,7 @@ FFMPEG::FFMPEG(QObject *parent)
     , theBinPath("ffmpeg.exe")
 {
     theState = Undefined;
-    theBinVersion = tr("unknown version");
+    theBinVersion = tr("unknown FFMPEG version");
 }
 
 /*!
@@ -74,7 +74,7 @@ QString FFMPEG::binVersion()
 bool FFMPEG::isBinaryAvailable(QString binPath, QString &binVersion)
 {
     bool ret = false;
-    binVersion = tr("unknown version");
+    binVersion = tr("unknown FFMPEG version");
     if (theState == Undefined || theState == Available)
     {
         QProcess *ffmpeg = new QProcess(this);
