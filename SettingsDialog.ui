@@ -13,13 +13,13 @@
   <property name="windowTitle">
    <string>Dialog</string>
   </property>
-  <layout class="QVBoxLayout" name="verticalLayout_2">
+  <layout class="QHBoxLayout" name="horizontalLayout_3">
    <item>
     <layout class="QVBoxLayout" name="verticalLayout">
      <item>
       <widget class="QTabWidget" name="tabWidget">
        <property name="currentIndex">
-        <number>1</number>
+        <number>0</number>
        </property>
        <widget class="QWidget" name="tabGeneral">
         <attribute name="title">
@@ -85,25 +85,84 @@
         <attribute name="title">
          <string>Video presets</string>
         </attribute>
-        <layout class="QVBoxLayout" name="verticalLayout_4">
+        <layout class="QVBoxLayout" name="verticalLayout_2">
          <item>
-          <widget class="QTableWidget" name="tableVideoPresets">
-           <column>
-            <property name="text">
-             <string>Name</string>
-            </property>
-           </column>
-           <column>
-            <property name="text">
-             <string>Extension</string>
-            </property>
-           </column>
-           <column>
-            <property name="text">
-             <string>Codec arguments</string>
-            </property>
-           </column>
-          </widget>
+          <layout class="QHBoxLayout" name="horizontalLayout_4">
+           <item>
+            <widget class="QTableWidget" name="tableVideoPresets">
+             <column>
+              <property name="text">
+               <string>Name</string>
+              </property>
+             </column>
+             <column>
+              <property name="text">
+               <string>Extension</string>
+              </property>
+             </column>
+             <column>
+              <property name="text">
+               <string>Codec arguments</string>
+              </property>
+             </column>
+            </widget>
+           </item>
+           <item>
+            <layout class="QVBoxLayout" name="verticalLayout_4">
+             <item>
+              <widget class="QPushButton" name="btnAddPreset">
+               <property name="minimumSize">
+                <size>
+                 <width>160</width>
+                 <height>0</height>
+                </size>
+               </property>
+               <property name="maximumSize">
+                <size>
+                 <width>160</width>
+                 <height>16777215</height>
+                </size>
+               </property>
+               <property name="text">
+                <string>&amp;Add preset </string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QPushButton" name="btnRemovePreset">
+               <property name="minimumSize">
+                <size>
+                 <width>160</width>
+                 <height>0</height>
+                </size>
+               </property>
+               <property name="maximumSize">
+                <size>
+                 <width>160</width>
+                 <height>16777215</height>
+                </size>
+               </property>
+               <property name="text">
+                <string>&amp;Remove preset</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <spacer name="verticalSpacer_2">
+               <property name="orientation">
+                <enum>Qt::Vertical</enum>
+               </property>
+               <property name="sizeHint" stdset="0">
+                <size>
+                 <width>20</width>
+                 <height>40</height>
+                </size>
+               </property>
+              </spacer>
+             </item>
+            </layout>
+           </item>
+          </layout>
          </item>
         </layout>
        </widget>

@@ -19,6 +19,8 @@ public:
 private slots:
     void SearchForFFMPEGBinary();
     void VideoPresetChanged(int row, int column);
+    void AddVideoPreset();
+    void RemoveVideoPreset();
 
 private:
     void ReadSettings();

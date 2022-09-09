@@ -13,6 +13,8 @@ SettingsDialog::SettingsDialog(Settings *settings, QWidget *parent)
 
     connect(ui->btnClose, &QPushButton::clicked, this, [=]() { setResult(QDialog::Accepted); accept(); });
     connect(ui->btnFFMPEGBinPath, &QPushButton::clicked, this, &SettingsDialog::SearchForFFMPEGBinary);
+    connect(ui->btnAddPreset, &QPushButton::clicked, this, &SettingsDialog::AddVideoPreset);
+    connect(ui->btnRemovePreset, &QPushButton::clicked, this, &SettingsDialog::RemoveVideoPreset);
     ReadSettings();
 }
 
@@ -83,3 +85,22 @@ void SettingsDialog::VideoPresetChanged(int row, int column)
     }
     theSettings->WriteSettings();
 }
+
+void SettingsDialog::AddVideoPreset()
+{
+    ui->tableVideoPresets->insertRow(ui->tableVideoPresets->columnCount());
+    theSettings->videoPresets()->append(VideoPreset("", "", ""));
+    theSettings->WriteSettings();
+}
+
+void SettingsDialog::RemoveVideoPreset()
+{
+    int toRemove = ui->tableVideoPresets->currentRow();
+    if (toRemove > -1)
+    {
+        theSettings->videoPresets()->remove(toRemove);
+        ui->tableVideoPresets->removeRow(toRemove);
+        theSettings->WriteSettings();
+    }
+}
+
