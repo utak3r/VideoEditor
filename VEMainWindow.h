@@ -32,6 +32,7 @@ private slots:
     void PlaybackSliderMoved(int value);
     void SetMarkIn();
     void SetMarkOut();
+    void ResetMarks();
 
 private:
     Ui::VEMainWindow *ui;

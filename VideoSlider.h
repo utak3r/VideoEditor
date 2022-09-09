@@ -16,6 +16,7 @@ public:
     void setMarkIn(int mark);
     int MarkOut();
     void setMarkOut(int mark);
+    void resetMarks();
 
 signals:
     void MarkInChanged(int newMark);

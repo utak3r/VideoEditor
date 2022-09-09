@@ -40,6 +40,13 @@ void VideoSlider::setMarkOut(int mark)
     repaint();
 }
 
+void VideoSlider::resetMarks()
+{
+    theMarkIn = -1;
+    theMarkOut = -1;
+    repaint();
+}
+
 int VideoSlider::MarkInToPixels(int width)
 {
     int video_length = maximum() - minimum();
