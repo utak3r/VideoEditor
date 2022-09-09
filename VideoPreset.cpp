@@ -25,6 +25,15 @@ VideoPreset::VideoPreset(QString name, QString ext, QString cmd)
 }
 
 /*!
+ * \brief VideoPreset::asString encodes values as \r\n separated string
+ */
+QString VideoPreset::asString()
+{
+    QString str = Name + "\r\n" + Extension + "\r\n" + CommandLine;
+    return str;
+}
+
+/*!
  * \brief VideoPreset::asVariant packs current object into QVariant for storing as UserData
  */
 QVariant VideoPreset::asVariant()

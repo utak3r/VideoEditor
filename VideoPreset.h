@@ -15,6 +15,7 @@ public:
     VideoPreset();
     VideoPreset(QString name, QString ext, QString cmd);
     QVariant asVariant();
+    QString asString();
 
 public:
     QString Name;

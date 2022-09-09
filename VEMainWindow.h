@@ -2,6 +2,7 @@
 #define VEMAINWINDOW_H
 
 #include <QMainWindow>
+#include <Settings.h>
 #include <QFileInfo>
 #include <ffmpeg.h>
 #include <QMediaPlayer>
@@ -25,6 +26,7 @@ private slots:
     void ExitApp();
     void OpenVideo();
     void Convert();
+    void ShowSettings();
     void VideoDurationChanged(qint64 duration);
     void VideoPlaybackStateChanged(QMediaPlayer::PlaybackState newState);
     void PlayPause();
@@ -36,8 +38,10 @@ private slots:
 
 private:
     Ui::VEMainWindow *ui;
+    Settings theSettings;
     QFileInfo currentVideoFile;
     FFMPEG* theFFMPEG;
+    QString theLastDir;
     QMediaPlayer* theMediaPlayer;
     TimelineMarks theMarks;
     QList<VideoPreset> theVideoPresets;

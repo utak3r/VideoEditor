@@ -30,9 +30,14 @@ set(PROJECT_SOURCES
         VideoSlider.h
         ffmpeg.cpp
         ffmpeg.h
+        Settings.cpp
+        Settings.h
         ProcessRunnerDialog.cpp
         ProcessRunnerDialog.h
         ProcessRunnerDialog.ui
+        SettingsDialog.cpp
+        SettingsDialog.h
+        SettingsDialog.ui
         ${TS_FILES}
 )
 
