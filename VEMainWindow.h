@@ -24,6 +24,7 @@ public:
 
 private slots:
     void ExitApp();
+    void ReloadSettings();
     void OpenVideo();
     void Convert();
     void ShowSettings();

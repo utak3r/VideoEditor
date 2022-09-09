@@ -8,11 +8,12 @@ SettingsDialog::SettingsDialog(Settings *settings, QWidget *parent)
     , theSettings(settings)
 {
     ui->setupUi(this);
+    ui->tableVideoPresets->horizontalHeader()->setStretchLastSection(true);
+    ui->tabWidget->setCurrentIndex(0);
 
     connect(ui->btnClose, &QPushButton::clicked, this, [=]() { setResult(QDialog::Accepted); accept(); });
     connect(ui->btnFFMPEGBinPath, &QPushButton::clicked, this, &SettingsDialog::SearchForFFMPEGBinary);
     ReadSettings();
-
 }
 
 SettingsDialog::~SettingsDialog()
@@ -26,12 +27,12 @@ void SettingsDialog::ReadSettings()
     ui->txtFFMPEGBinPath->setText(theSettings->ffmpeg());
 
     disconnect(ui->tableVideoPresets);
-    int presetsCount = theSettings->videoPresets().count();
+    int presetsCount = theSettings->videoPresets()->count();
     if (presetsCount > 0)
     {
         ui->tableVideoPresets->setRowCount(presetsCount);
         int i = 0;
-        foreach (VideoPreset preset, theSettings->videoPresets())
+        foreach (VideoPreset preset, (*theSettings->videoPresets()))
         {
             QTableWidgetItem *item1 = new QTableWidgetItem(preset.Name);
             ui->tableVideoPresets->setItem(i, 0, item1);
@@ -60,5 +61,24 @@ void SettingsDialog::SearchForFFMPEGBinary()
 
 void SettingsDialog::VideoPresetChanged(int row, int column)
 {
-
+    QString newValue = ui->tableVideoPresets->item(row, column)->text();
+    switch (column)
+    {
+    case 0:
+        {
+        (*theSettings->videoPresets())[row].Name = newValue;
+        break;
+        }
+    case 1:
+        {
+        (*theSettings->videoPresets())[row].Extension = newValue;
+        break;
+        }
+    case 2:
+        {
+        (*theSettings->videoPresets())[row].CommandLine = newValue;
+        break;
+        }
+    }
+    theSettings->WriteSettings();
 }

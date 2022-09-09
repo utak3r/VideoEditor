@@ -96,9 +96,9 @@ void Settings::setMainWndGeometry(QRect rect)
     theMainWndGeometry = rect;
 }
 
-QList<VideoPreset> Settings::videoPresets()
+QList<VideoPreset>* Settings::videoPresets()
 {
-    return theVideoPresets;
+    return &theVideoPresets;
 }
 
 void Settings::setVideoPresets(QList<VideoPreset>& list)

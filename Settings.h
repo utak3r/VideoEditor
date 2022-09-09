@@ -23,7 +23,7 @@ public:
     void setLastDir(QString dir);
     QRect mainWndGeometry();
     void setMainWndGeometry(QRect rect);
-    QList<VideoPreset> videoPresets();
+    QList<VideoPreset>* videoPresets();
     void setVideoPresets(QList<VideoPreset>& list);
 
 private:

@@ -12,40 +12,18 @@ VEMainWindow::VEMainWindow(QWidget *parent)
 {
     ui->setupUi(this);
 
-    theSettings.ReadSettings();
+    ReloadSettings();
     theLastDir = theSettings.lastDir();
     this->setGeometry(theSettings.mainWndGeometry());
+    theMarks.Reset(0);
 
     connect(ui->btnExit, &QPushButton::clicked, this, &VEMainWindow::ExitApp);
     connect(ui->btnOpenVideo, &QPushButton::clicked, this, &VEMainWindow::OpenVideo);
-
-    //theFFMPEG = new FFMPEG("c:\\Program Files\\ffmpeg\\bin\\ffmpeg.exe", this);
-    theFFMPEG = new FFMPEG(theSettings.ffmpeg(), this);
-    theMarks.Reset(0);
-
-    theVideoPresets.clear();
-    theVideoPresets.append(theSettings.videoPresets());
-    /*
-    theVideoPresets.append(VideoPreset("H.264 AAC", ".mp4", "-c:v libx264 -preset medium -tune film -c:a aac"));
-    theVideoPresets.append(VideoPreset("DNxHD 185Mbps PCM s24LE", ".mov", "-c:v dnxhd -b:v 185M -c:a pcm_s24le"));
-    theVideoPresets.append(VideoPreset("ProRes YUV422", ".mov", "-c:v prores_ks -profile:v 3 -vendor ap10 -pix_fmt yuv422p10le"));
-    theVideoPresets.append(VideoPreset("H.264 720p AAC", ".mp4", "-vf scale=-1:720:flags=lanczos -c:v libx264 -preset medium -tune film -c:a aac"));
-    theVideoPresets.append(VideoPreset("H.264 no audio", ".mp4", "-c:v libx264 -preset medium -tune film -an"));
-    theVideoPresets.append(VideoPreset("Crop & GIF", ".gif", "-filter_complex \"[0:v] fps=10,crop=305:203:42:660,scale=240:-1,split [a][b];[a] palettegen [p];[b][p] paletteuse\""));
-    */
-
-    ui->cbxPresets->clear();
-    foreach (VideoPreset preset, theVideoPresets)
-    {
-        ui->cbxPresets->addItem(preset.Name, preset.asVariant());
-    }
-
 
     theMediaPlayer = new QMediaPlayer(this);
     theMediaPlayer->setLoops(QMediaPlayer::Infinite);
     theMediaPlayer->setVideoOutput(ui->videoPlayer);
     ui->videoPlayer->show();
-
 
     connect(ui->btnMarkIn, &QPushButton::clicked, this, &VEMainWindow::SetMarkIn);
     connect(ui->btnMarkOut, &QPushButton::clicked, this, &VEMainWindow::SetMarkOut);
@@ -62,7 +40,6 @@ VEMainWindow::VEMainWindow(QWidget *parent)
     theMediaPlayer->setSource(QUrl::fromLocalFile("d:\\devel\\sandbox\\VideoEditor\\flip.mp4"));
     currentVideoFile = QFileInfo("d:\\devel\\sandbox\\VideoEditor\\flip.mp4");
     theMediaPlayer->play();
-
 }
 
 VEMainWindow::~VEMainWindow()
@@ -85,6 +62,20 @@ void VEMainWindow::ExitApp()
     close();
 }
 
+void VEMainWindow::ReloadSettings()
+{
+    theSettings.ReadSettings();
+    theFFMPEG = new FFMPEG(theSettings.ffmpeg(), this);
+
+    theVideoPresets.clear();
+    theVideoPresets.append((*theSettings.videoPresets()));
+    ui->cbxPresets->clear();
+    foreach (VideoPreset preset, theVideoPresets)
+    {
+        ui->cbxPresets->addItem(preset.Name, preset.asVariant());
+    }
+}
+
 void VEMainWindow::OpenVideo()
 {
     QString filename = QFileDialog::getOpenFileName(this,
@@ -105,7 +96,8 @@ void VEMainWindow::ShowSettings()
 {
     SettingsDialog* dlg = new SettingsDialog(&theSettings, this);
     dlg->setModal(true);
-    dlg->show();
+    dlg->exec();
+    ReloadSettings();
 }
 
 void VEMainWindow::VideoDurationChanged(qint64 duration)
