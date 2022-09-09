@@ -13,6 +13,10 @@
   <property name="windowTitle">
    <string>Video Editor</string>
   </property>
+  <property name="windowIcon">
+   <iconset resource="VideoEditor.qrc">
+    <normaloff>:/main/VideoEditor.ico</normaloff>:/main/VideoEditor.ico</iconset>
+  </property>
   <widget class="QWidget" name="centralwidget">
    <layout class="QVBoxLayout" name="verticalLayout_3">
     <item>
@@ -211,6 +215,8 @@
    <header>VideoSlider.h</header>
   </customwidget>
  </customwidgets>
- <resources/>
+ <resources>
+  <include location="VideoEditor.qrc"/>
+ </resources>
  <connections/>
 </ui>

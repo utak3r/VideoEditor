@@ -17,6 +17,7 @@ set(TS_FILES VideoEditor_pl_PL.ts)
 
 set(PROJECT_SOURCES
         main.cpp
+        VideoEditor.qrc
         VEMainWindow.cpp
         VEMainWindow.h
         VEMainWindow.ui
@@ -41,9 +42,12 @@ set(PROJECT_SOURCES
         ${TS_FILES}
 )
 
+set(app_icon_resource_windows "${CMAKE_SOURCE_DIR}/VideoEditor.rc")
+
 qt_add_executable(VideoEditor
     MANUAL_FINALIZATION
     ${PROJECT_SOURCES}
+    ${app_icon_resource_windows}
 )
 qt_create_translation(QM_FILES ${CMAKE_SOURCE_DIR} ${TS_FILES})
 
