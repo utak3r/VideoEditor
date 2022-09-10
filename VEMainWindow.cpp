@@ -149,14 +149,14 @@ void VEMainWindow::PlaybackSliderMoved(int value)
 
 void VEMainWindow::SetMarkIn()
 {
-    theMarks.MarkIn = theMediaPlayer->position();
-    ui->videoPosSlider->setMarkIn((int)theMarks.MarkIn);
+    theMarks.setMarkIn(theMediaPlayer->position());
+    ui->videoPosSlider->setMarkIn((int)theMarks.MarkIn());
 }
 
 void VEMainWindow::SetMarkOut()
 {
-    theMarks.MarkOut = theMediaPlayer->position();
-    ui->videoPosSlider->setMarkOut((int)theMarks.MarkOut);
+    theMarks.setMarkOut(theMediaPlayer->position());
+    ui->videoPosSlider->setMarkOut((int)theMarks.MarkOut());
 }
 
 void VEMainWindow::ResetMarks()

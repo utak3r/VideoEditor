@@ -11,11 +11,15 @@ class TimelineMarks
 {
 public:
     TimelineMarks();
+    int MarkIn();
+    void setMarkIn(int mark);
+    int MarkOut();
+    void setMarkOut(int mark);
 
 public:
     QString AsString();
     int Duration();
-    void Reset(int duration);
+    void Reset(int duration = 0);
     QString MillisecondsToTimecode(int time);
     QString TimecodeStart();
     QString TimecodeEnd();
@@ -23,10 +27,10 @@ public:
     QString CurrentRange();
     bool IsTrimmed();
 
-public:
-    int MarkIn;
-    int MarkOut;
-    int VideoDuration;
+private:
+    int theMarkIn;
+    int theMarkOut;
+    int theVideoDuration;
 };
 
 #endif // TIMELINEMARKS_H

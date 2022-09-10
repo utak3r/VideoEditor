@@ -5,11 +5,45 @@
  * \brief TimelineMarks::TimelineMarks: default constructor
  */
 TimelineMarks::TimelineMarks()
-    : MarkIn(-1)
-    , MarkOut(-1)
-    , VideoDuration(0)
+    : theMarkIn(-1)
+    , theMarkOut(-1)
+    , theVideoDuration(0)
 {
 
+}
+
+/*!
+ * \brief TimelineMarks::MarkIn
+ */
+int TimelineMarks::MarkIn()
+{
+    return theMarkIn;
+}
+
+/*!
+ * \brief TimelineMarks::setMarkIn
+ */
+void TimelineMarks::setMarkIn(int mark)
+{
+    if (mark < theMarkOut || theMarkOut == -1)
+        theMarkIn = mark;
+}
+
+/*!
+ * \brief TimelineMarks::MarkOut
+ */
+int TimelineMarks::MarkOut()
+{
+    return theMarkOut;
+}
+
+/*!
+ * \brief TimelineMarks::setMarkOut
+ */
+void TimelineMarks::setMarkOut(int mark)
+{
+    if (mark > theMarkIn || theMarkIn == -1)
+        theMarkOut = mark;
 }
 
 /*!
@@ -27,11 +61,11 @@ int TimelineMarks::Duration()
 {
     int duration = 0;
     int start = 0;
-    int end = VideoDuration;
-    if (MarkIn > -1)
-        start = MarkIn;
-    if (MarkOut > -1)
-        end = MarkOut;
+    int end = theVideoDuration;
+    if (theMarkIn > -1)
+        start = theMarkIn;
+    if (theMarkOut > -1)
+        end = theMarkOut;
     duration = end - start;
     return duration;
 }
@@ -41,9 +75,9 @@ int TimelineMarks::Duration()
  */
 void TimelineMarks::Reset(int duration)
 {
-    MarkIn = -1;
-    MarkOut = -1;
-    VideoDuration = duration;
+    theMarkIn = -1;
+    theMarkOut = -1;
+    theVideoDuration = duration;
 }
 
 /*!
@@ -73,8 +107,8 @@ QString TimelineMarks::MillisecondsToTimecode(int time)
 QString TimelineMarks::TimecodeStart()
 {
     int start = 0;
-    if (MarkIn > -1)
-        start = MarkIn;
+    if (theMarkIn > -1)
+        start = theMarkIn;
     return MillisecondsToTimecode(start);
 }
 
@@ -83,9 +117,9 @@ QString TimelineMarks::TimecodeStart()
  */
 QString TimelineMarks::TimecodeEnd()
 {
-    int end = VideoDuration;
-    if (MarkOut > -1)
-        end = MarkOut;
+    int end = theVideoDuration;
+    if (theMarkOut > -1)
+        end = theMarkOut;
     return MillisecondsToTimecode(end);
 }
 
@@ -115,7 +149,7 @@ QString TimelineMarks::CurrentRange()
 bool TimelineMarks::IsTrimmed()
 {
     bool trimmed = false;
-    if (MarkIn > -1 || MarkOut > -1)
+    if (theMarkIn > -1 || theMarkOut > -1)
         trimmed = true;
     return trimmed;
 }
