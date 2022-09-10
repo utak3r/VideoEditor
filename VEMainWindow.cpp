@@ -36,10 +36,11 @@ VEMainWindow::VEMainWindow(QWidget *parent)
     connect(ui->btnConvert, &QPushButton::clicked, this, &VEMainWindow::Convert);
     connect(ui->btnSettings, &QPushButton::clicked, this, &VEMainWindow::ShowSettings);
 
-    // for debug
+#ifdef QT_DEBUG
     theMediaPlayer->setSource(QUrl::fromLocalFile("d:\\devel\\sandbox\\VideoEditor\\flip.mp4"));
     currentVideoFile = QFileInfo("d:\\devel\\sandbox\\VideoEditor\\flip.mp4");
     theMediaPlayer->play();
+#endif
 }
 
 VEMainWindow::~VEMainWindow()
