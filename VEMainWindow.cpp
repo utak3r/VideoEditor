@@ -2,6 +2,7 @@
 #include "./ui_VEMainWindow.h"
 #include <QFileDialog>
 #include <SettingsDialog.h>
+#include <version.h>
 
 VEMainWindow::VEMainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -11,6 +12,7 @@ VEMainWindow::VEMainWindow(QWidget *parent)
     , theMediaPlayer(nullptr)
 {
     ui->setupUi(this);
+    setWindowTitle(PROJECT_VERSION_STRING_SHORT);
 
     ReloadSettings();
     theLastDir = theSettings.lastDir();
