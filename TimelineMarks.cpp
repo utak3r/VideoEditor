@@ -58,7 +58,7 @@ QString TimelineMarks::MillisecondsToTimecode(int time)
         int minutes = qFloor(time / 60000) - hours*60;
         int seconds = qFloor(time / 1000) - hours*3600 - minutes*60;
         int milliseconds = time - hours*3600000 - minutes*60000 - seconds*1000;
-        timecode = QString("%1:%2:3.%4").
+        timecode = QString("%1:%2:%3.%4").
                 arg(hours, 2, 10, QLatin1Char('0')).
                 arg(minutes, 2, 10, QLatin1Char('0')).
                 arg(seconds, 2, 10, QLatin1Char('0')).
