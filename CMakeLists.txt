@@ -15,30 +15,33 @@ find_package(Qt6 REQUIRED COMPONENTS Widgets LinguistTools Multimedia Multimedia
 
 set(TS_FILES VideoEditor_pl_PL.ts)
 
+set(PROJECT_ADDITIONAL_SOURCES
+    VEMainWindow.cpp
+    VEMainWindow.h
+    VEMainWindow.ui
+    TimelineMarks.cpp
+    TimelineMarks.h
+    VideoPreset.cpp
+    VideoPreset.h
+    VideoPlayer.cpp
+    VideoPlayer.h
+    VideoSlider.cpp
+    VideoSlider.h
+    ffmpeg.cpp
+    ffmpeg.h
+    Settings.cpp
+    Settings.h
+    ProcessRunnerDialog.cpp
+    ProcessRunnerDialog.h
+    ProcessRunnerDialog.ui
+    SettingsDialog.cpp
+    SettingsDialog.h
+    SettingsDialog.ui
+)
 set(PROJECT_SOURCES
         main.cpp
         VideoEditor.qrc
-        VEMainWindow.cpp
-        VEMainWindow.h
-        VEMainWindow.ui
-        TimelineMarks.cpp
-        TimelineMarks.h
-        VideoPreset.cpp
-        VideoPreset.h
-        VideoPlayer.cpp
-        VideoPlayer.h
-        VideoSlider.cpp
-        VideoSlider.h
-        ffmpeg.cpp
-        ffmpeg.h
-        Settings.cpp
-        Settings.h
-        ProcessRunnerDialog.cpp
-        ProcessRunnerDialog.h
-        ProcessRunnerDialog.ui
-        SettingsDialog.cpp
-        SettingsDialog.h
-        SettingsDialog.ui
+        ${PROJECT_ADDITIONAL_SOURCES}
         ${TS_FILES}
 )
 
@@ -60,6 +63,14 @@ set_target_properties(VideoEditor PROPERTIES
     MACOSX_BUNDLE TRUE
     WIN32_EXECUTABLE TRUE
 )
+qt_finalize_executable(VideoEditor)
+
+# this library serves for linking against unit tests
+qt_add_library(VideoEditor_lib STATIC ${PROJECT_ADDITIONAL_SOURCES})
+target_link_libraries(VideoEditor_lib PRIVATE Qt6::Widgets Qt6::Multimedia Qt6::MultimediaWidgets)
+
+
+add_subdirectory(test)
 
 set(INSTALL_DESTDIR "${PROJECT_SOURCE_DIR}/../distrib")
 install (TARGETS VideoEditor
@@ -101,6 +112,3 @@ install(FILES
     "${CMAKE_PREFIX_PATH}/plugins/imageformats/qwebp.dll"
     DESTINATION "${INSTALL_DESTDIR}/imageformats"
     )
-
-qt_finalize_executable(VideoEditor)
-
