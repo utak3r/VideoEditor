@@ -71,6 +71,21 @@ int VideoSlider::MarkOutToPixels(int width)
     return pg;
 }
 
+void VideoSlider::mousePressEvent(QMouseEvent *ev)
+{
+    if (ev->button() == Qt::LeftButton)
+    {
+        if (orientation() == Qt::Horizontal)
+        {
+            int newVal = minimum() + ((maximum()-minimum()) * ev->position().x()) / width();
+            setValue(newVal);
+            emit sliderMoved(newVal);
+            ev->accept();
+        }
+    }
+    QSlider::mousePressEvent(ev);
+}
+
 void VideoSlider::paintEvent(QPaintEvent *ev)
 {
     QStyleOptionSlider opt;
@@ -152,7 +167,6 @@ void VideoSlider::paintEvent(QPaintEvent *ev)
         int y1 = y;
         int y2 = y+he-1;
 
-        Qt::Orientation orient = slider->orientation;
         bool tickAbove = slider->tickPosition == QSlider::TicksAbove;
         bool tickBelow = slider->tickPosition == QSlider::TicksBelow;
 

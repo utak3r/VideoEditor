@@ -2,6 +2,7 @@
 #define VIDEOSLIDER_H
 
 #include <QSlider>
+#include <QMouseEvent>
 
 class VideoSlider : public QSlider
 {
@@ -25,6 +26,7 @@ signals:
 
 protected:
     virtual void paintEvent(QPaintEvent *ev) override;
+    virtual void mousePressEvent(QMouseEvent *ev) override;
 
 private:
     int MarkInToPixels(int width);
