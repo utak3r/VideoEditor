@@ -3,6 +3,7 @@
 
 #include <QObject>
 #include <QProcess>
+#include <tuple>
 #include <TimelineMarks.h>
 
 /*!
@@ -45,7 +46,8 @@ public:
     void setBinPath(QString path);
     QString binVersion();
     FFMPEG::State state();
-    void Convert(QString inFile, QString codecArgs, TimelineMarks* marks, QString outFile);
+    void Convert(QString inFile, QString codecArgs, TimelineMarks* marks, std::tuple<bool, int, int, QString> scaling, QString outFile);
+    static std::tuple<bool, int, int, QString> getScalingTuple(bool enabled, int width, int height, int filter);
 
 signals:
     void ffmpegBinPathChanged();

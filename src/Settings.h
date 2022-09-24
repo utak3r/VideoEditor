@@ -25,6 +25,14 @@ public:
     void setMainWndGeometry(QRect rect);
     QList<VideoPreset>* videoPresets();
     void setVideoPresets(QList<VideoPreset>& list);
+    bool scalingEnabled();
+    void setScalingEnabled(bool enabled);
+    int scalingWidth();
+    void setScalingWidth(int width);
+    int scalingHeight();
+    void setScalingHeight(int height);
+    int scalingFilter();
+    void setScalingFilter(int filter);
 
 private:
     QSettings* theSettings;
@@ -32,6 +40,10 @@ private:
     QString theLastDir;
     QRect theMainWndGeometry;
     QList<VideoPreset> theVideoPresets;
+    bool theScalingEnabled;
+    int theScalingWidth;
+    int theScalingHeight;
+    int theScalingFilter;
 };
 
 #endif // SETTINGS_H

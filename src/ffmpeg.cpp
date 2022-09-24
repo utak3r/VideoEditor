@@ -103,13 +103,51 @@ bool FFMPEG::isBinaryAvailable(QString binPath, QString &binVersion)
 }
 
 /*!
+ * \brief FFMPEG::getScalingTuple constructs a tuple containing scaling params
+ */
+std::tuple<bool, int, int, QString> FFMPEG::getScalingTuple(bool enabled, int width, int height, int filter)
+{
+    QString filterStr = "lanczos";
+    switch (filter)
+    {
+    case 0:
+        {
+        filterStr = "fast_bilinear";
+        break;
+        }
+    case 1:
+        {
+        filterStr = "bilinear";
+        break;
+        }
+    case 2:
+        {
+        filterStr = "bicubic";
+        break;
+        }
+    case 3:
+        {
+        filterStr = "area";
+        break;
+        }
+    case 4:
+        {
+        filterStr = "lanczos";
+        break;
+        }
+    }
+    std::tuple<bool, int, int, QString> value(enabled, width, height, filterStr);
+    return value;
+}
+
+/*!
  * \brief FFMPEG::Convert converts given video using a set of params
  * \param inFile input video
  * \param codecArgs codec settings for conversion
  * \param marks video trimming marks (if any)
  * \param outFile output video file name
  */
-void FFMPEG::Convert(QString inFile, QString codecArgs, TimelineMarks* marks, QString outFile)
+void FFMPEG::Convert(QString inFile, QString codecArgs, TimelineMarks* marks, std::tuple<bool, int, int, QString> scaling, QString outFile)
 {
     if (!binPath().isEmpty())
     {
@@ -167,9 +205,19 @@ void FFMPEG::Convert(QString inFile, QString codecArgs, TimelineMarks* marks, QS
                 nativeArgs += " -ss " + marks->TimecodeStart();
                 nativeArgs += " -t " + marks->DurationTimecode();
             }
+
+            if (std::get<0>(scaling))
+            {
+                nativeArgs += QString(" -vf scale=%1:%2:flags=%3")
+                        .arg(std::get<1>(scaling))
+                        .arg(std::get<2>(scaling))
+                        .arg(std::get<3>(scaling));
+            }
+
             nativeArgs += " " + codecArgs +
                     " \"" + outFile + "\"";
             theProcess->setNativeArguments(nativeArgs);
+            qDebug() << "FFMPEG args: " << nativeArgs;
 
             connect(this, &FFMPEG::ffmpegRead, dlg, &ProcessRunnerDialog::logAdded);
             connect(this, &FFMPEG::ffmpegStarted, dlg, &ProcessRunnerDialog::processStarted);

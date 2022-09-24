@@ -14,13 +14,13 @@
    <string>Video Editor</string>
   </property>
   <property name="windowIcon">
-   <iconset resource="VideoEditor.qrc">
+   <iconset resource="../VideoEditor.qrc">
     <normaloff>:/main/VideoEditor.ico</normaloff>:/main/VideoEditor.ico</iconset>
   </property>
   <widget class="QWidget" name="centralwidget">
-   <layout class="QVBoxLayout" name="verticalLayout_3">
+   <layout class="QVBoxLayout" name="verticalLayout_4">
     <item>
-     <layout class="QHBoxLayout" name="horizontalLayout_2">
+     <layout class="QHBoxLayout" name="horizontalLayout_3">
       <item>
        <layout class="QVBoxLayout" name="verticalLayout_2">
         <item>
@@ -88,7 +88,7 @@
        </layout>
       </item>
       <item>
-       <layout class="QVBoxLayout" name="verticalLayout">
+       <layout class="QVBoxLayout" name="verticalLayout_3">
         <item>
          <widget class="QPushButton" name="btnOpenVideo">
           <property name="minimumSize">
@@ -122,6 +122,100 @@
             <height>16777215</height>
            </size>
           </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QGroupBox" name="grpScaling">
+          <property name="title">
+           <string>Scaling</string>
+          </property>
+          <property name="checkable">
+           <bool>true</bool>
+          </property>
+          <property name="checked">
+           <bool>true</bool>
+          </property>
+          <layout class="QVBoxLayout" name="verticalLayout">
+           <item>
+            <layout class="QHBoxLayout" name="horizontalLayout_2">
+             <item>
+              <widget class="QSpinBox" name="valScaleWidth">
+               <property name="minimum">
+                <number>-1</number>
+               </property>
+               <property name="maximum">
+                <number>7680</number>
+               </property>
+               <property name="value">
+                <number>-1</number>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QLabel" name="label_2">
+               <property name="text">
+                <string>X</string>
+               </property>
+               <property name="alignment">
+                <set>Qt::AlignCenter</set>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QSpinBox" name="valScaleHeight">
+               <property name="minimum">
+                <number>-1</number>
+               </property>
+               <property name="maximum">
+                <number>4320</number>
+               </property>
+               <property name="value">
+                <number>720</number>
+               </property>
+              </widget>
+             </item>
+            </layout>
+           </item>
+           <item>
+            <widget class="QLabel" name="label">
+             <property name="text">
+              <string>Filtering</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QComboBox" name="cbxScalingFlags">
+             <property name="currentIndex">
+              <number>4</number>
+             </property>
+             <item>
+              <property name="text">
+               <string>Fast bilinear</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>Bilinear</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>Bicubic</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>Averaging area</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>Lanczos</string>
+              </property>
+             </item>
+            </widget>
+           </item>
+          </layout>
          </widget>
         </item>
         <item>
@@ -216,7 +310,7 @@
   </customwidget>
  </customwidgets>
  <resources>
-  <include location="VideoEditor.qrc"/>
+  <include location="../VideoEditor.qrc"/>
  </resources>
  <connections/>
 </ui>

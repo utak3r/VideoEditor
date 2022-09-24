@@ -54,6 +54,10 @@ VEMainWindow::~VEMainWindow()
     theSettings.setLastDir(theLastDir);
     theSettings.setMainWndGeometry(this->geometry());
     theSettings.setVideoPresets(theVideoPresets);
+    theSettings.setScalingEnabled(ui->grpScaling->isChecked());
+    theSettings.setScalingWidth(ui->valScaleWidth->value());
+    theSettings.setScalingHeight(ui->valScaleHeight->value());
+    theSettings.setScalingFilter(ui->cbxScalingFlags->currentIndex());
     theSettings.WriteSettings();
     delete theMediaPlayer;
     delete theFFMPEG;
@@ -78,6 +82,11 @@ void VEMainWindow::ReloadSettings()
     {
         ui->cbxPresets->addItem(preset.Name, preset.asVariant());
     }
+
+    ui->grpScaling->setChecked(theSettings.scalingEnabled());
+    ui->valScaleWidth->setValue(theSettings.scalingWidth());
+    ui->valScaleHeight->setValue(theSettings.scalingHeight());
+    ui->cbxScalingFlags->setCurrentIndex(theSettings.scalingFilter());
 }
 
 void VEMainWindow::OpenVideo()
@@ -183,7 +192,8 @@ void VEMainWindow::Convert()
                                                                        tr("Video files (*.mp4 *.mov *.avi)"));
                     if (!outFilename.isEmpty())
                     {
-                        theFFMPEG->Convert(currentVideoFile.absoluteFilePath(), codec.CommandLine, &theMarks, outFilename);
+                        std::tuple<bool, int, int, QString> scaling = FFMPEG::getScalingTuple(ui->grpScaling->isChecked(), ui->valScaleWidth->value(), ui->valScaleHeight->value(), ui->cbxScalingFlags->currentIndex());
+                        theFFMPEG->Convert(currentVideoFile.absoluteFilePath(), codec.CommandLine, &theMarks, scaling, outFilename);
                     }
                 }
             }
