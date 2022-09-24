@@ -1,7 +1,7 @@
 
 #include <gtest/gtest.h>
 #include <gmock/gmock-matchers.h>
-#include "TimelineMarks.h"
+#include "../src/TimelineMarks.h"
 
 QT_BEGIN_NAMESPACE
 inline void PrintTo(const QString &qString, ::std::ostream *os)

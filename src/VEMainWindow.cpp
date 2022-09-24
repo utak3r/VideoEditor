@@ -2,7 +2,7 @@
 #include "./ui_VEMainWindow.h"
 #include <QFileDialog>
 #include <SettingsDialog.h>
-#include <version.h>
+#include <../version.h>
 
 VEMainWindow::VEMainWindow(QWidget *parent)
     : QMainWindow(parent)
