@@ -30,6 +30,7 @@ private slots:
     void ShowSettings();
     void VideoDurationChanged(qint64 duration);
     void VideoPlaybackStateChanged(QMediaPlayer::PlaybackState newState);
+    void VideoSizeChanged(QSizeF videoSize);
     void PlayPause();
     void PlaybackPositionChanged(qint64 position);
     void PlaybackSliderMoved(int value);

@@ -24,7 +24,7 @@ VEMainWindow::VEMainWindow(QWidget *parent)
 
     theMediaPlayer = new QMediaPlayer(this);
     theMediaPlayer->setLoops(QMediaPlayer::Infinite);
-    theMediaPlayer->setVideoOutput(ui->videoPlayer);
+    theMediaPlayer->setVideoOutput(ui->videoPlayer->getVideoOutput());
     ui->videoPlayer->show();
 
     connect(ui->btnMarkIn, &QPushButton::clicked, this, &VEMainWindow::SetMarkIn);
@@ -37,6 +37,7 @@ VEMainWindow::VEMainWindow(QWidget *parent)
     connect(ui->btnPlayPause, &QPushButton::clicked, this, &VEMainWindow::PlayPause);
     connect(ui->btnConvert, &QPushButton::clicked, this, &VEMainWindow::Convert);
     connect(ui->btnSettings, &QPushButton::clicked, this, &VEMainWindow::ShowSettings);
+    connect(ui->videoPlayer, &VideoPlayer::VideoSizeChanged, this, &VEMainWindow::VideoSizeChanged);
 
 #ifdef QT_DEBUG
     theMediaPlayer->setSource(QUrl::fromLocalFile("d:\\devel\\sandbox\\VideoEditor\\flip.mp4"));
@@ -132,6 +133,12 @@ void VEMainWindow::VideoPlaybackStateChanged(QMediaPlayer::PlaybackState newStat
     {
         ui->btnPlayPause->setText(tr("Pause"));
     }
+}
+
+void VEMainWindow::VideoSizeChanged(QSizeF videoSize)
+{
+    ui->valScaleWidth->setValue(videoSize.width());
+    ui->valScaleHeight->setValue(videoSize.height());
 }
 
 void VEMainWindow::PlayPause()
