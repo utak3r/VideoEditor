@@ -19,6 +19,10 @@ public:
     QObject* getVideoOutput();
     bool getCropEnabled();
     void setCropEnabled(bool enabled);
+    QPointF mapToVideo(QPointF point);
+    QPointF mapFromVideo(QPointF point);
+
+    QSize sizeHint() const override;
 
 signals:
     void CropEnabledChanged(bool enabled);
@@ -29,6 +33,7 @@ protected:
     void paintEvent(QPaintEvent *event) override;
 
 private:
+    QRectF calculateVideoViewRect();
     void paintCrop(QPainter *painter, QRect rect);
     void paintCropRectangle(QPainter *painter, QRect rect);
     void paintCropHandles(QPainter *painter, QRect rect);
@@ -36,6 +41,7 @@ private:
     QGraphicsScene* theScene;
     QGraphicsVideoItem* theVideoItem;
     QSizeF theVideoSize;
+    QRectF theVideoViewRectF;
 
     bool theCropEnabled;
     QColor theCropColor;

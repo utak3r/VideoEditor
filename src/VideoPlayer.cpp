@@ -1,6 +1,7 @@
 #include "VideoPlayer.h"
 #include <QGraphicsScene>
 #include <QGraphicsVideoItem>
+#include <QVideoSink>
 #include <QPainter>
 
 VideoPlayer::VideoPlayer(QWidget *parent)
@@ -18,6 +19,8 @@ VideoPlayer::VideoPlayer(QWidget *parent)
 
     setScene(theScene);
     theScene->addItem(theVideoItem);
+    setAlignment(Qt::AlignCenter);
+    theVideoViewRectF = QRectF(0, 0, size().width(), size().height());
 }
 
 VideoPlayer::~VideoPlayer()
@@ -42,35 +45,78 @@ void VideoPlayer::setCropEnabled(bool enabled)
     emit CropEnabledChanged(theCropEnabled);
 }
 
+QSize VideoPlayer::sizeHint() const
+{
+    auto size = theVideoItem->videoSink()->videoSize();
+    if (size.isValid())
+        return size;
+
+    return QWidget::sizeHint();
+}
+
+/*!
+ * \brief VideoPlayer::calculateVideoViewRect rectangle where the video frame is being rendered.
+ *
+ * In general we should get this info from theScene->itemsBoundingRect()
+ * But after using fitInView() somehow it becomes incorrect.
+ * Thus, we have to calculate this rectangle for ourselves.
+ *
+ * \return Rectangle inside which the video frame is being rendered.
+ */
+QRectF VideoPlayer::calculateVideoViewRect()
+{
+    QSizeF videoViewSize = theVideoItem->nativeSize();
+    videoViewSize.scale(size(), Qt::KeepAspectRatio);
+    QRectF videoViewRectF = QRectF(0, 0, videoViewSize.width(), videoViewSize.height());
+    videoViewRectF.moveCenter(this->rect().center());
+    return videoViewRectF;
+}
+
+/*!
+ * \brief VideoPlayer::mapToVideo map a point from the widget's coordinates to video's coordinates
+ * \param point
+ * \return mapped point in video's coordinates
+ */
+QPointF VideoPlayer::mapToVideo(QPointF point)
+{
+    QPointF mappedPoint = point;
+    QRectF viewRect = calculateVideoViewRect();
+    double scale = theVideoItem->nativeSize().width() / viewRect.width();
+    mappedPoint -= viewRect.topLeft();
+    mappedPoint *= scale;
+    return mappedPoint;
+}
+
+/*!
+ * \brief VideoPlayer::mapToVideo map a point from the video's coordinates to widget's coordinates
+ * \param point
+ * \return mapped point in widget's coordinates
+ */
+QPointF VideoPlayer::mapFromVideo(QPointF point)
+{
+    QPointF mappedPoint = point;
+    QRectF viewRect = calculateVideoViewRect();
+    double scale = theVideoItem->nativeSize().width() / viewRect.width();
+    mappedPoint /= scale;
+    mappedPoint += viewRect.topLeft();
+    return mappedPoint;
+}
+
 void VideoPlayer::resizeEvent(QResizeEvent *event)
 {
     if (theVideoItem)
     {
-        // There's still an issue, when resizing the window.
-        // The rendered video frame can become not centered,
-        // despite the itemsBoundingRect() is proper.
-        // If we use fitInView without setSize, it works,
-        // but itemsBoundingRect will return 0
-        // we need it for proper cropping tool drawing.
-
         theVideoSize = theVideoItem->nativeSize();
-        theVideoItem->setSize(size());
+        theVideoItem->setOffset(QPointF(0, 0));
         fitInView(theScene->itemsBoundingRect(), Qt::KeepAspectRatio);
-        centerOn(theVideoItem);
     }
 }
 
 void VideoPlayer::paintEvent(QPaintEvent *event)
 {
     QGraphicsView::paintEvent(event);
-    QPainter painter(this->viewport());
+
     QSizeF videoSize = theVideoItem->nativeSize();
-
-    qDebug() << "paintEvent: itemsBoundingRect: " << theScene->itemsBoundingRect();
-    QRectF videoViewRectF = theScene->itemsBoundingRect();
-    QRect videoViewRect = QRect(videoViewRectF.x(), videoViewRectF.y(),
-                                videoViewRectF.width(), videoViewRectF.height());
-
     if (videoSize != theVideoSize)
     {
         theVideoSize = videoSize;
@@ -79,7 +125,11 @@ void VideoPlayer::paintEvent(QPaintEvent *event)
 
     if (theCropEnabled)
     {
-        paintCrop(&painter, videoViewRect);
+        QPainter painter(this->viewport());
+        theVideoViewRectF = calculateVideoViewRect();
+        paintCrop(&painter, theVideoViewRectF.toRect());
+
+        qDebug() << "Crop: " << mapToVideo(theVideoViewRectF.topLeft()) << ", " << mapToVideo(theVideoViewRectF.bottomRight());
     }
 }
 
