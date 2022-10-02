@@ -7,6 +7,15 @@
 class QGraphicsScene;
 class QGraphicsVideoItem;
 
+enum VideoPlayerCropHandle
+{
+    VPCropHandle_None,
+    VPCropHandle_TopLeft,
+    VPCropHandle_TopRight,
+    VPCropHandle_BottomLeft,
+    VPCropHandle_BottomRight
+};
+
 class VideoPlayer : public QGraphicsView
 {
     Q_OBJECT
@@ -31,17 +40,25 @@ signals:
 protected:
     void resizeEvent(QResizeEvent *event) override;
     void paintEvent(QPaintEvent *event) override;
+    void mouseMoveEvent(QMouseEvent *event) override;
 
 private:
     QRectF calculateVideoViewRect();
-    void paintCrop(QPainter *painter, QRect rect);
-    void paintCropRectangle(QPainter *painter, QRect rect);
-    void paintCropHandles(QPainter *painter, QRect rect);
+    void paintCrop(QPainter *painter);
+    void paintCropRectangle(QPainter *painter);
+    QRect cropHandleTLRect();
+    QRect cropHandleTRRect();
+    QRect cropHandleBLRect();
+    QRect cropHandleBRRect();
+    void paintCropHandles(QPainter *painter);
+    bool isInsideCrop(QPointF point);
+    std::tuple<bool, VideoPlayerCropHandle> isOverCropHandle(QPointF point);
 
     QGraphicsScene* theScene;
     QGraphicsVideoItem* theVideoItem;
     QSizeF theVideoSize;
     QRectF theVideoViewRectF;
+    QRectF theCropRectF;
 
     bool theCropEnabled;
     QColor theCropColor;

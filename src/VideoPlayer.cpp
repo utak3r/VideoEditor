@@ -3,6 +3,7 @@
 #include <QGraphicsVideoItem>
 #include <QVideoSink>
 #include <QPainter>
+#include <QMouseEvent>
 
 VideoPlayer::VideoPlayer(QWidget *parent)
     : QGraphicsView {parent}
@@ -21,6 +22,9 @@ VideoPlayer::VideoPlayer(QWidget *parent)
     theScene->addItem(theVideoItem);
     setAlignment(Qt::AlignCenter);
     theVideoViewRectF = QRectF(0, 0, size().width(), size().height());
+    theCropRectF = theVideoViewRectF;
+
+    setMouseTracking(true);
 }
 
 VideoPlayer::~VideoPlayer()
@@ -127,19 +131,19 @@ void VideoPlayer::paintEvent(QPaintEvent *event)
     {
         QPainter painter(this->viewport());
         theVideoViewRectF = calculateVideoViewRect();
-        paintCrop(&painter, theVideoViewRectF.toRect());
-
-        qDebug() << "Crop: " << mapToVideo(theVideoViewRectF.topLeft()) << ", " << mapToVideo(theVideoViewRectF.bottomRight());
+        theCropRectF = theVideoViewRectF;
+        paintCrop(&painter);
     }
 }
 
-void VideoPlayer::paintCrop(QPainter *painter, QRect rect)
+void VideoPlayer::paintCrop(QPainter *painter)
 {
-    paintCropRectangle(painter, rect);
-    paintCropHandles(painter, rect);
+    paintCropRectangle(painter);
+    paintCropHandles(painter);
+    //qDebug() << "Crop: " << mapToVideo(rect.topLeft()) << ", " << mapToVideo(rect.bottomRight());
 }
 
-void VideoPlayer::paintCropRectangle(QPainter *painter, QRect rect)
+void VideoPlayer::paintCropRectangle(QPainter *painter)
 {
     QPen linePen;
     linePen.setColor(theCropColor);
@@ -147,10 +151,45 @@ void VideoPlayer::paintCropRectangle(QPainter *painter, QRect rect)
     linePen.setWidth(2);
 
     painter->setPen(linePen);
-    painter->drawRect(rect);
+    painter->drawRect(theCropRectF);
 }
 
-void VideoPlayer::paintCropHandles(QPainter *painter, QRect rect)
+QRect VideoPlayer::cropHandleTLRect()
+{
+    return QRect(theCropRectF.x()-theCropHandleSize/2,
+                 theCropRectF.y()-theCropHandleSize/2,
+                 theCropHandleSize,
+                 theCropHandleSize);
+}
+
+QRect VideoPlayer::cropHandleTRRect()
+{
+    return QRect(theCropRectF.x()+theCropRectF.width()-theCropHandleSize/2,
+                 theCropRectF.y()-theCropHandleSize/2,
+                 theCropHandleSize,
+                 theCropHandleSize
+               );
+}
+
+QRect VideoPlayer::cropHandleBLRect()
+{
+    return QRect(theCropRectF.x()-theCropHandleSize/2,
+                 theCropRectF.y()+theCropRectF.height()-theCropHandleSize/2,
+                 theCropHandleSize,
+                 theCropHandleSize
+               );
+}
+
+QRect VideoPlayer::cropHandleBRRect()
+{
+    return QRect(theCropRectF.x()+theCropRectF.width()-theCropHandleSize/2,
+                 theCropRectF.y()+theCropRectF.height()-theCropHandleSize/2,
+                 theCropHandleSize,
+                 theCropHandleSize
+               );
+}
+
+void VideoPlayer::paintCropHandles(QPainter *painter)
 {
     QPen handlePen;
     handlePen.setColor(theCropColor);
@@ -162,10 +201,88 @@ void VideoPlayer::paintCropHandles(QPainter *painter, QRect rect)
     painter->setPen(handlePen);
     painter->setBrush(handleBrush);
 
-    painter->drawRect(rect.x()-theCropHandleSize/2, rect.y()-theCropHandleSize/2, theCropHandleSize, theCropHandleSize);
-    painter->drawRect(rect.x()+rect.width()-theCropHandleSize/2, rect.y()-theCropHandleSize/2, theCropHandleSize, theCropHandleSize);
-    painter->drawRect(rect.x()-theCropHandleSize/2, rect.y()+rect.height()-theCropHandleSize/2, theCropHandleSize, theCropHandleSize);
-    painter->drawRect(rect.x()+rect.width()-theCropHandleSize/2, rect.y()+rect.height()-theCropHandleSize/2, theCropHandleSize, theCropHandleSize);
+    painter->drawRect(cropHandleTLRect());
+    painter->drawRect(cropHandleTRRect());
+    painter->drawRect(cropHandleBLRect());
+    painter->drawRect(cropHandleBRRect());
+
+}
+
+bool VideoPlayer::isInsideCrop(QPointF point)
+{
+    return theCropRectF.contains(point);
+}
+
+std::tuple<bool, VideoPlayerCropHandle> VideoPlayer::isOverCropHandle(QPointF point)
+{
+    bool isOver = false;
+    VideoPlayerCropHandle which = VPCropHandle_None;
+
+    if (cropHandleTLRect().contains(point.toPoint()))
+    {
+        isOver = true;
+        which = VPCropHandle_TopLeft;
+    }
+    else if (cropHandleTRRect().contains(point.toPoint()))
+    {
+        isOver = true;
+        which = VPCropHandle_TopRight;
+    }
+    else if (cropHandleBLRect().contains(point.toPoint()))
+    {
+        isOver = true;
+        which = VPCropHandle_BottomLeft;
+    }
+    else if (cropHandleBRRect().contains(point.toPoint()))
+    {
+        isOver = true;
+        which = VPCropHandle_BottomRight;
+    }
+
+    return std::make_tuple(isOver, which);
+}
+
+void VideoPlayer::mouseMoveEvent(QMouseEvent *event)
+{
+    if (isInsideCrop(event->pos()) && event->button() == Qt::NoButton)
+    {
+        if (cursor().shape() != Qt::SizeAllCursor)
+            setCursor(Qt::SizeAllCursor);
+    }
+    else
+    {
+        if (cursor().shape() != Qt::ArrowCursor)
+            setCursor(Qt::ArrowCursor);
+    }
+
+    std::tuple<bool, VideoPlayerCropHandle> overHandle = isOverCropHandle(event->pos());
+    if (std::get<0>(overHandle) && event->button() == Qt::NoButton)
+    {
+        if (std::get<1>(overHandle) == VPCropHandle_TopLeft ||
+            std::get<1>(overHandle) == VPCropHandle_BottomRight)
+        {
+            if (cursor().shape() != Qt::SizeFDiagCursor)
+                setCursor(Qt::SizeFDiagCursor);
+        }
+        else
+        {
+            if (cursor().shape() != Qt::SizeBDiagCursor)
+                setCursor(Qt::SizeBDiagCursor);
+        }
+    }
+
+    if (event->button() == Qt::LeftButton)
+    {
+        std::tuple<bool, VideoPlayerCropHandle> overHandle = isOverCropHandle(event->pos());
+        if (std::get<0>(overHandle))
+        {
+            // resizing
+        }
+        else
+        {
+            // moving
+        }
+    }
 
 }
 
