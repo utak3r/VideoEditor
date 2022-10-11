@@ -16,6 +16,17 @@ enum VideoPlayerCropHandle
     VPCropHandle_BottomRight
 };
 
+enum VideoPlayerCropState
+{
+    VPCropState_Inactive,
+    VPCropState_Active,
+    VPCropState_ResizingTL,
+    VPCropState_ResizingTR,
+    VPCropState_ResizingBL,
+    VPCropState_ResizingBR,
+    VPCropState_Translating
+};
+
 class VideoPlayer : public QGraphicsView
 {
     Q_OBJECT
@@ -40,6 +51,8 @@ signals:
 protected:
     void resizeEvent(QResizeEvent *event) override;
     void paintEvent(QPaintEvent *event) override;
+    void mousePressEvent(QMouseEvent *event) override;
+    void mouseReleaseEvent(QMouseEvent *event) override;
     void mouseMoveEvent(QMouseEvent *event) override;
 
 private:
@@ -60,6 +73,7 @@ private:
     QRectF theVideoViewRectF;
     QRectF theCropRectF;
 
+    VideoPlayerCropState theCurrentCropState;
     bool theCropEnabled;
     QColor theCropColor;
     int theCropHandleSize;

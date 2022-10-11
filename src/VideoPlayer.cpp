@@ -8,6 +8,7 @@
 VideoPlayer::VideoPlayer(QWidget *parent)
     : QGraphicsView {parent}
     , theVideoSize(QSizeF(853,480))
+    , theCurrentCropState(VPCropState_Inactive)
     , theCropEnabled(true)
     , theCropColor(QColor(Qt::white))
     , theCropHandleSize(8)
@@ -22,8 +23,9 @@ VideoPlayer::VideoPlayer(QWidget *parent)
     theScene->addItem(theVideoItem);
     setAlignment(Qt::AlignCenter);
     theVideoViewRectF = QRectF(0, 0, size().width(), size().height());
-    theCropRectF = theVideoViewRectF;
+    theCropRectF = QRectF(0, 0, 0, 0);
 
+    theCurrentCropState = (theCropEnabled) ? VPCropState_Active : VPCropState_Inactive;
     setMouseTracking(true);
 }
 
@@ -46,6 +48,12 @@ bool VideoPlayer::getCropEnabled()
 void VideoPlayer::setCropEnabled(bool enabled)
 {
     theCropEnabled = enabled;
+    theCurrentCropState = (theCropEnabled) ? VPCropState_Active : VPCropState_Inactive;
+    if (theCropEnabled)
+    {
+        theCropRectF = calculateVideoViewRect();
+    }
+    repaint();
     emit CropEnabledChanged(theCropEnabled);
 }
 
@@ -118,6 +126,7 @@ void VideoPlayer::resizeEvent(QResizeEvent *event)
 
 void VideoPlayer::paintEvent(QPaintEvent *event)
 {
+    //painter.fillRect(rect(), QBrush(Qt::black, Qt::SolidPattern));
     QGraphicsView::paintEvent(event);
 
     QSizeF videoSize = theVideoItem->nativeSize();
@@ -127,11 +136,10 @@ void VideoPlayer::paintEvent(QPaintEvent *event)
         emit VideoSizeChanged(theVideoSize);
     }
 
+    theVideoViewRectF = calculateVideoViewRect();
     if (theCropEnabled)
     {
         QPainter painter(this->viewport());
-        theVideoViewRectF = calculateVideoViewRect();
-        theCropRectF = theVideoViewRectF;
         paintCrop(&painter);
     }
 }
@@ -242,47 +250,116 @@ std::tuple<bool, VideoPlayerCropHandle> VideoPlayer::isOverCropHandle(QPointF po
     return std::make_tuple(isOver, which);
 }
 
+void VideoPlayer::mousePressEvent(QMouseEvent *event)
+{
+    if (theCurrentCropState == VPCropState_Active && this->rect().contains(event->pos()))
+    {
+        if (event->button() == Qt::LeftButton)
+        {
+            std::tuple<bool, VideoPlayerCropHandle> overHandle = isOverCropHandle(event->pos());
+            if (std::get<0>(overHandle))
+            {
+                if (std::get<1>(overHandle) == VPCropHandle_TopLeft)
+                    theCurrentCropState = VPCropState_ResizingTL;
+                else if (std::get<1>(overHandle) == VPCropHandle_TopRight)
+                    theCurrentCropState = VPCropState_ResizingTR;
+                else if (std::get<1>(overHandle) == VPCropHandle_BottomLeft)
+                    theCurrentCropState = VPCropState_ResizingBL;
+                else if (std::get<1>(overHandle) == VPCropHandle_BottomRight)
+                    theCurrentCropState = VPCropState_ResizingBR;
+                event->accept();
+            }
+            else
+            {
+                theCurrentCropState = VPCropState_Translating;
+                event->accept();
+            }
+        }
+    }
+}
+
+void VideoPlayer::mouseReleaseEvent(QMouseEvent *event)
+{
+    if (event->button() == Qt::LeftButton && this->rect().contains(event->pos()))
+    {
+        if (theCurrentCropState == VPCropState_ResizingTL)
+        {
+            theCurrentCropState = VPCropState_Active;
+            event->accept();
+        }
+        if (theCurrentCropState == VPCropState_ResizingTR)
+        {
+            theCurrentCropState = VPCropState_Active;
+            event->accept();
+        }
+        if (theCurrentCropState == VPCropState_ResizingBL)
+        {
+            theCurrentCropState = VPCropState_Active;
+            event->accept();
+        }
+        if (theCurrentCropState == VPCropState_ResizingBR)
+        {
+            theCurrentCropState = VPCropState_Active;
+            event->accept();
+        }
+        else if (theCurrentCropState == VPCropState_Translating)
+        {
+            theCurrentCropState = VPCropState_Active;
+            event->accept();
+        }
+    }
+}
+
 void VideoPlayer::mouseMoveEvent(QMouseEvent *event)
 {
-    if (isInsideCrop(event->pos()) && event->button() == Qt::NoButton)
+    if (theCurrentCropState == VPCropState_Active && this->rect().contains(event->pos()))
     {
-        if (cursor().shape() != Qt::SizeAllCursor)
-            setCursor(Qt::SizeAllCursor);
-    }
-    else
-    {
-        if (cursor().shape() != Qt::ArrowCursor)
-            setCursor(Qt::ArrowCursor);
-    }
-
-    std::tuple<bool, VideoPlayerCropHandle> overHandle = isOverCropHandle(event->pos());
-    if (std::get<0>(overHandle) && event->button() == Qt::NoButton)
-    {
-        if (std::get<1>(overHandle) == VPCropHandle_TopLeft ||
-            std::get<1>(overHandle) == VPCropHandle_BottomRight)
+        if (isInsideCrop(event->pos()) && event->button() == Qt::NoButton)
         {
-            if (cursor().shape() != Qt::SizeFDiagCursor)
-                setCursor(Qt::SizeFDiagCursor);
+            if (cursor().shape() != Qt::SizeAllCursor)
+                setCursor(Qt::SizeAllCursor);
         }
         else
         {
-            if (cursor().shape() != Qt::SizeBDiagCursor)
-                setCursor(Qt::SizeBDiagCursor);
+            if (cursor().shape() != Qt::ArrowCursor)
+                setCursor(Qt::ArrowCursor);
         }
-    }
 
-    if (event->button() == Qt::LeftButton)
-    {
         std::tuple<bool, VideoPlayerCropHandle> overHandle = isOverCropHandle(event->pos());
-        if (std::get<0>(overHandle))
+        if (std::get<0>(overHandle) && event->button() == Qt::NoButton)
         {
-            // resizing
+            if (std::get<1>(overHandle) == VPCropHandle_TopLeft ||
+                std::get<1>(overHandle) == VPCropHandle_BottomRight)
+            {
+                if (cursor().shape() != Qt::SizeFDiagCursor)
+                    setCursor(Qt::SizeFDiagCursor);
+            }
+            else
+            {
+                if (cursor().shape() != Qt::SizeBDiagCursor)
+                    setCursor(Qt::SizeBDiagCursor);
+            }
         }
-        else
+
+        if (event->button() == Qt::LeftButton)
         {
-            // moving
+            std::tuple<bool, VideoPlayerCropHandle> overHandle = isOverCropHandle(event->pos());
+            if (std::get<0>(overHandle))
+            {
+                // resizing
+            }
+            else
+            {
+                // moving
+            }
         }
     }
-
+    if (theCurrentCropState == VPCropState_ResizingBR && this->rect().contains(event->pos()))
+    {
+        QRectF newCrop = theCropRectF;
+        newCrop.setBottomRight(event->pos());
+        theCropRectF = newCrop;
+        repaint();
+    }
 }
 

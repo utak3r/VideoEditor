@@ -38,6 +38,7 @@ VEMainWindow::VEMainWindow(QWidget *parent)
     connect(ui->btnConvert, &QPushButton::clicked, this, &VEMainWindow::Convert);
     connect(ui->btnSettings, &QPushButton::clicked, this, &VEMainWindow::ShowSettings);
     connect(ui->videoPlayer, &VideoPlayer::VideoSizeChanged, this, &VEMainWindow::VideoSizeChanged);
+    connect(ui->grpCropping, &QGroupBox::toggled, this, [=](bool on) { ui->videoPlayer->setCropEnabled(on); });
 
 #ifdef QT_DEBUG
     theMediaPlayer->setSource(QUrl::fromLocalFile("d:\\devel\\sandbox\\VideoEditor\\flip.mp4"));
@@ -55,7 +56,6 @@ VEMainWindow::~VEMainWindow()
     theSettings.setLastDir(theLastDir);
     theSettings.setMainWndGeometry(this->geometry());
     theSettings.setVideoPresets(theVideoPresets);
-    theSettings.setScalingEnabled(ui->grpScaling->isChecked());
     theSettings.setScalingWidth(ui->valScaleWidth->value());
     theSettings.setScalingHeight(ui->valScaleHeight->value());
     theSettings.setScalingFilter(ui->cbxScalingFlags->currentIndex());
@@ -84,7 +84,6 @@ void VEMainWindow::ReloadSettings()
         ui->cbxPresets->addItem(preset.Name, preset.asVariant());
     }
 
-    ui->grpScaling->setChecked(theSettings.scalingEnabled());
     ui->valScaleWidth->setValue(theSettings.scalingWidth());
     ui->valScaleHeight->setValue(theSettings.scalingHeight());
     ui->cbxScalingFlags->setCurrentIndex(theSettings.scalingFilter());
