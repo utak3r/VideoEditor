@@ -14,6 +14,9 @@ VEMainWindow::VEMainWindow(QWidget *parent)
     ui->setupUi(this);
     setWindowTitle(PROJECT_VERSION_STRING_SHORT);
 
+    // until cropping tool is finished
+    ui->grpCropping->hide();
+
     ReloadSettings();
     theLastDir = theSettings.lastDir();
     this->setGeometry(theSettings.mainWndGeometry());
@@ -24,7 +27,7 @@ VEMainWindow::VEMainWindow(QWidget *parent)
 
     theMediaPlayer = new QMediaPlayer(this);
     theMediaPlayer->setLoops(QMediaPlayer::Infinite);
-    theMediaPlayer->setVideoOutput(ui->videoPlayer);
+    theMediaPlayer->setVideoOutput(ui->videoPlayer->getVideoOutput());
     ui->videoPlayer->show();
 
     connect(ui->btnMarkIn, &QPushButton::clicked, this, &VEMainWindow::SetMarkIn);
@@ -37,6 +40,8 @@ VEMainWindow::VEMainWindow(QWidget *parent)
     connect(ui->btnPlayPause, &QPushButton::clicked, this, &VEMainWindow::PlayPause);
     connect(ui->btnConvert, &QPushButton::clicked, this, &VEMainWindow::Convert);
     connect(ui->btnSettings, &QPushButton::clicked, this, &VEMainWindow::ShowSettings);
+    connect(ui->videoPlayer, &VideoPlayer::VideoSizeChanged, this, &VEMainWindow::VideoSizeChanged);
+    connect(ui->grpCropping, &QGroupBox::toggled, this, [=](bool on) { ui->videoPlayer->setCropEnabled(on); });
 
 #ifdef QT_DEBUG
     theMediaPlayer->setSource(QUrl::fromLocalFile("d:\\devel\\sandbox\\VideoEditor\\flip.mp4"));
@@ -54,7 +59,6 @@ VEMainWindow::~VEMainWindow()
     theSettings.setLastDir(theLastDir);
     theSettings.setMainWndGeometry(this->geometry());
     theSettings.setVideoPresets(theVideoPresets);
-    theSettings.setScalingEnabled(ui->grpScaling->isChecked());
     theSettings.setScalingWidth(ui->valScaleWidth->value());
     theSettings.setScalingHeight(ui->valScaleHeight->value());
     theSettings.setScalingFilter(ui->cbxScalingFlags->currentIndex());
@@ -83,7 +87,6 @@ void VEMainWindow::ReloadSettings()
         ui->cbxPresets->addItem(preset.Name, preset.asVariant());
     }
 
-    ui->grpScaling->setChecked(theSettings.scalingEnabled());
     ui->valScaleWidth->setValue(theSettings.scalingWidth());
     ui->valScaleHeight->setValue(theSettings.scalingHeight());
     ui->cbxScalingFlags->setCurrentIndex(theSettings.scalingFilter());
@@ -132,6 +135,12 @@ void VEMainWindow::VideoPlaybackStateChanged(QMediaPlayer::PlaybackState newStat
     {
         ui->btnPlayPause->setText(tr("Pause"));
     }
+}
+
+void VEMainWindow::VideoSizeChanged(QSizeF videoSize)
+{
+    ui->valScaleWidth->setValue(videoSize.width());
+    ui->valScaleHeight->setValue(videoSize.height());
 }
 
 void VEMainWindow::PlayPause()
