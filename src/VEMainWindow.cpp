@@ -14,6 +14,9 @@ VEMainWindow::VEMainWindow(QWidget *parent)
     ui->setupUi(this);
     setWindowTitle(PROJECT_VERSION_STRING_SHORT);
 
+    // until cropping tool is finished
+    ui->grpCropping->hide();
+
     ReloadSettings();
     theLastDir = theSettings.lastDir();
     this->setGeometry(theSettings.mainWndGeometry());

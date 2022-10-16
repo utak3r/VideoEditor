@@ -9,7 +9,7 @@ VideoPlayer::VideoPlayer(QWidget *parent)
     : QGraphicsView {parent}
     , theVideoSize(QSizeF(853,480))
     , theCurrentCropState(VPCropState_Inactive)
-    , theCropEnabled(true)
+    , theCropEnabled(false)
     , theCropColor(QColor(Qt::white))
     , theCropHandleSize(8)
 {
@@ -18,6 +18,7 @@ VideoPlayer::VideoPlayer(QWidget *parent)
     theVideoItem = new QGraphicsVideoItem();
     setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    setViewportUpdateMode(QGraphicsView::FullViewportUpdate);
 
     setScene(theScene);
     theScene->addItem(theVideoItem);
@@ -114,19 +115,25 @@ QPointF VideoPlayer::mapFromVideo(QPointF point)
     return mappedPoint;
 }
 
+/*!
+ * \brief VideoPlayer::resizeEvent
+ */
 void VideoPlayer::resizeEvent(QResizeEvent *event)
 {
     if (theVideoItem)
     {
         theVideoSize = theVideoItem->nativeSize();
         theVideoItem->setOffset(QPointF(0, 0));
+        theVideoItem->setSize(size());
         fitInView(theScene->itemsBoundingRect(), Qt::KeepAspectRatio);
     }
 }
 
+/*!
+ * \brief VideoPlayer::paintEvent Renders video and draws a crop tool if enabled.
+ */
 void VideoPlayer::paintEvent(QPaintEvent *event)
 {
-    //painter.fillRect(rect(), QBrush(Qt::black, Qt::SolidPattern));
     QGraphicsView::paintEvent(event);
 
     QSizeF videoSize = theVideoItem->nativeSize();
@@ -144,6 +151,9 @@ void VideoPlayer::paintEvent(QPaintEvent *event)
     }
 }
 
+/*!
+ * \brief VideoPlayer::paintCrop Draws a crop tool
+ */
 void VideoPlayer::paintCrop(QPainter *painter)
 {
     paintCropRectangle(painter);
@@ -151,6 +161,9 @@ void VideoPlayer::paintCrop(QPainter *painter)
     //qDebug() << "Crop: " << mapToVideo(rect.topLeft()) << ", " << mapToVideo(rect.bottomRight());
 }
 
+/*!
+ * \brief VideoPlayer::paintCropRectangle Draws a rectangle of a crop tool.
+ */
 void VideoPlayer::paintCropRectangle(QPainter *painter)
 {
     QPen linePen;
@@ -162,6 +175,9 @@ void VideoPlayer::paintCropRectangle(QPainter *painter)
     painter->drawRect(theCropRectF);
 }
 
+/*!
+ * \brief VideoPlayer::cropHandleTLRect Draws a top left handle of a crop tool.
+ */
 QRect VideoPlayer::cropHandleTLRect()
 {
     return QRect(theCropRectF.x()-theCropHandleSize/2,
@@ -170,6 +186,9 @@ QRect VideoPlayer::cropHandleTLRect()
                  theCropHandleSize);
 }
 
+/*!
+ * \brief VideoPlayer::cropHandleTLRect Draws a top right handle of a crop tool.
+ */
 QRect VideoPlayer::cropHandleTRRect()
 {
     return QRect(theCropRectF.x()+theCropRectF.width()-theCropHandleSize/2,
@@ -179,6 +198,9 @@ QRect VideoPlayer::cropHandleTRRect()
                );
 }
 
+/*!
+ * \brief VideoPlayer::cropHandleTLRect Draws a bottom left handle of a crop tool.
+ */
 QRect VideoPlayer::cropHandleBLRect()
 {
     return QRect(theCropRectF.x()-theCropHandleSize/2,
@@ -188,6 +210,9 @@ QRect VideoPlayer::cropHandleBLRect()
                );
 }
 
+/*!
+ * \brief VideoPlayer::cropHandleTLRect Draws a bottom right handle of a crop tool.
+ */
 QRect VideoPlayer::cropHandleBRRect()
 {
     return QRect(theCropRectF.x()+theCropRectF.width()-theCropHandleSize/2,
@@ -197,6 +222,9 @@ QRect VideoPlayer::cropHandleBRRect()
                );
 }
 
+/*!
+ * \brief VideoPlayer::paintCropHandles Draws all handles of a crop tool.
+ */
 void VideoPlayer::paintCropHandles(QPainter *painter)
 {
     QPen handlePen;
@@ -216,6 +244,11 @@ void VideoPlayer::paintCropHandles(QPainter *painter)
 
 }
 
+/*!
+ * \brief VideoPlayer::isInsideCrop Checks if a given point is inside a crop tool.
+ * \param point Point to be checked.
+ * \return True, if inside a crop tool, false otherwise.
+ */
 bool VideoPlayer::isInsideCrop(QPointF point)
 {
     return theCropRectF.contains(point);
