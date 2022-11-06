@@ -6,7 +6,7 @@
 #include <QMouseEvent>
 
 VideoPlayer::VideoPlayer(QWidget *parent)
-    : QGraphicsView {parent}
+    : QGraphicsView(parent)
     , theVideoSize(QSizeF(853,480))
     , theCurrentCropState(VPCropState_Inactive)
     , theCropEnabled(false)
