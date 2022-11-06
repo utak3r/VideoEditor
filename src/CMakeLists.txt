@@ -78,41 +78,50 @@ qt_finalize_executable(VideoEditor)
 qt_add_library(VideoEditor_lib STATIC ${PROJECT_ADDITIONAL_SOURCES})
 target_link_libraries(VideoEditor_lib PRIVATE Qt6::Widgets Qt6::Multimedia Qt6::MultimediaWidgets)
 
+
 install (TARGETS VideoEditor
     RUNTIME DESTINATION "${CMAKE_INSTALL_PREFIX}"
     LIBRARY DESTINATION "${CMAKE_INSTALL_PREFIX}"
     )
-set(QT_LIBS
-    "${CMAKE_PREFIX_PATH}/bin/Qt6Widgets.dll"
-    "${CMAKE_PREFIX_PATH}/bin/Qt6Multimedia.dll"
-    "${CMAKE_PREFIX_PATH}/bin/Qt6MultimediaWidgets.dll"
-    "${CMAKE_PREFIX_PATH}/bin/Qt6Gui.dll"
-    "${CMAKE_PREFIX_PATH}/bin/Qt6Core.dll"
-    "${CMAKE_PREFIX_PATH}/bin/Qt6Network.dll"
+
+if (EXISTS ${WINDEPLOYQT_EXECUTABLE})
+    execute_process(
+      COMMAND ${WINDEPLOYQT_EXECUTABLE} --dir "${CMAKE_INSTALL_PREFIX}" "${CMAKE_BINARY_DIR}/src/VideoEditor.exe"
     )
-install(FILES ${QT_LIBS} DESTINATION "${CMAKE_INSTALL_PREFIX}")
-install(FILES
-    "${CMAKE_PREFIX_PATH}/plugins/platforms/qwindows.dll"
-    DESTINATION "${CMAKE_INSTALL_PREFIX}/platforms"
-    )
-install(FILES
-    "${CMAKE_PREFIX_PATH}/plugins/styles/qwindowsvistastyle.dll"
-    DESTINATION "${CMAKE_INSTALL_PREFIX}/styles"
-    )
-install(FILES
-    "${CMAKE_PREFIX_PATH}/plugins/iconengines/qsvgicon.dll"
-    DESTINATION "${CMAKE_INSTALL_PREFIX}/iconengines"
-    )
-install(FILES
-    "${CMAKE_PREFIX_PATH}/plugins/imageformats/qgif.dll"
-    "${CMAKE_PREFIX_PATH}/plugins/imageformats/qicns.dll"
-    "${CMAKE_PREFIX_PATH}/plugins/imageformats/qico.dll"
-    "${CMAKE_PREFIX_PATH}/plugins/imageformats/qjpeg.dll"
-    "${CMAKE_PREFIX_PATH}/plugins/imageformats/qpdf.dll"
-    "${CMAKE_PREFIX_PATH}/plugins/imageformats/qsvg.dll"
-    "${CMAKE_PREFIX_PATH}/plugins/imageformats/qtga.dll"
-    "${CMAKE_PREFIX_PATH}/plugins/imageformats/qtiff.dll"
-    "${CMAKE_PREFIX_PATH}/plugins/imageformats/qwbmp.dll"
-    "${CMAKE_PREFIX_PATH}/plugins/imageformats/qwebp.dll"
-    DESTINATION "${CMAKE_INSTALL_PREFIX}/imageformats"
-    )
+else()
+    set(QT_LIBS
+        "${CMAKE_PREFIX_PATH}/bin/Qt6Core.dll"
+        "${CMAKE_PREFIX_PATH}/bin/Qt6Gui.dll"
+        "${CMAKE_PREFIX_PATH}/bin/Qt6Widgets.dll"
+        "${CMAKE_PREFIX_PATH}/bin/Qt6Multimedia.dll"
+        "${CMAKE_PREFIX_PATH}/bin/Qt6MultimediaWidgets.dll"
+        "${CMAKE_PREFIX_PATH}/bin/Qt6Network.dll"
+        "${CMAKE_PREFIX_PATH}/bin/Qt6Svg.dll"
+        )
+    install(FILES ${QT_LIBS} DESTINATION "${CMAKE_INSTALL_PREFIX}")
+    install(FILES
+        "${CMAKE_PREFIX_PATH}/plugins/platforms/qwindows.dll"
+        DESTINATION "${CMAKE_INSTALL_PREFIX}/platforms"
+        )
+    install(FILES
+        "${CMAKE_PREFIX_PATH}/plugins/styles/qwindowsvistastyle.dll"
+        DESTINATION "${CMAKE_INSTALL_PREFIX}/styles"
+        )
+    install(FILES
+        "${CMAKE_PREFIX_PATH}/plugins/iconengines/qsvgicon.dll"
+        DESTINATION "${CMAKE_INSTALL_PREFIX}/iconengines"
+        )
+    install(FILES
+        "${CMAKE_PREFIX_PATH}/plugins/imageformats/qgif.dll"
+        "${CMAKE_PREFIX_PATH}/plugins/imageformats/qicns.dll"
+        "${CMAKE_PREFIX_PATH}/plugins/imageformats/qico.dll"
+        "${CMAKE_PREFIX_PATH}/plugins/imageformats/qjpeg.dll"
+        "${CMAKE_PREFIX_PATH}/plugins/imageformats/qpdf.dll"
+        "${CMAKE_PREFIX_PATH}/plugins/imageformats/qsvg.dll"
+        "${CMAKE_PREFIX_PATH}/plugins/imageformats/qtga.dll"
+        "${CMAKE_PREFIX_PATH}/plugins/imageformats/qtiff.dll"
+        "${CMAKE_PREFIX_PATH}/plugins/imageformats/qwbmp.dll"
+        "${CMAKE_PREFIX_PATH}/plugins/imageformats/qwebp.dll"
+        DESTINATION "${CMAKE_INSTALL_PREFIX}/imageformats"
+        )
+endif()
