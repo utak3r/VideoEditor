@@ -97,7 +97,7 @@ void VEMainWindow::OpenVideo()
     QString filename = QFileDialog::getOpenFileName(this,
                                                     tr("Open video file"),
                                                     theLastDir,
-                                                    tr("Video Files (*.mp4 *.mov *.avi)")
+                                                    tr("Video Files (*.mp4 *.mov *.avi *.mts *.mxf)")
                                                     );
     if (!filename.isEmpty())
     {
@@ -198,7 +198,7 @@ void VEMainWindow::Convert()
                     VideoPreset codec = ui->cbxPresets->currentData().value<VideoPreset>();
                     QString outFilename = QFileDialog::getSaveFileName(this, tr("Save video as..."),
                                                                        currentVideoFile.absoluteFilePath() + "_converted" + codec.Extension,
-                                                                       tr("Video files (*.mp4 *.mov *.avi)"));
+                                                                       tr("Video files (*.mp4 *.mov *.avi *.mts *.mxf)"));
                     if (!outFilename.isEmpty())
                     {
                         std::tuple<bool, int, int, QString> scaling = FFMPEG::getScalingTuple(ui->grpScaling->isChecked(), ui->valScaleWidth->value(), ui->valScaleHeight->value(), ui->cbxScalingFlags->currentIndex());
