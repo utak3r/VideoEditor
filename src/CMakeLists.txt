@@ -9,8 +9,6 @@ set(CMAKE_AUTORCC ON)
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_package(Qt6 REQUIRED COMPONENTS Widgets LinguistTools Multimedia MultimediaWidgets)
-
 set(TS_FILES ${CMAKE_SOURCE_DIR}/VideoEditor_pl_PL.ts)
 
 set(PROJECT_ADDITIONAL_SOURCES
@@ -86,7 +84,7 @@ install (TARGETS VideoEditor
 
 if (EXISTS ${WINDEPLOYQT_EXECUTABLE})
     execute_process(
-      COMMAND ${WINDEPLOYQT_EXECUTABLE} --dir "${CMAKE_INSTALL_PREFIX}" "${CMAKE_BINARY_DIR}/src/VideoEditor.exe"
+      COMMAND "${WINDEPLOYQT_EXECUTABLE}" --dir "${CMAKE_INSTALL_PREFIX}" "${CMAKE_BINARY_DIR}/src/VideoEditor.exe"
     )
 else()
     set(QT_LIBS
@@ -125,3 +123,12 @@ else()
         DESTINATION "${CMAKE_INSTALL_PREFIX}/imageformats"
         )
 endif()
+
+# There's a bug in deployqt tool in Qt 6.4.0, so we need to fix it:
+if (${Qt6_VERSION_MAJOR}.${Qt6_VERSION_MINOR}.${Qt6_VERSION_PATCH} VERSION_EQUAL "6.4.0")
+    install(FILES
+        "${CMAKE_PREFIX_PATH}/plugins/multimedia/windowsmediaplugin.dll"
+        DESTINATION "${CMAKE_INSTALL_PREFIX}/multimedia"
+        )
+endif()
+
