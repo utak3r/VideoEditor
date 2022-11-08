@@ -9,8 +9,6 @@ set(CMAKE_AUTORCC ON)
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_package(Qt6 REQUIRED COMPONENTS Widgets LinguistTools Multimedia MultimediaWidgets)
-
 set(TS_FILES ${CMAKE_SOURCE_DIR}/VideoEditor_pl_PL.ts)
 
 set(PROJECT_ADDITIONAL_SOURCES
@@ -86,7 +84,7 @@ install (TARGETS VideoEditor
 
 if (EXISTS ${WINDEPLOYQT_EXECUTABLE})
     execute_process(
-      COMMAND ${WINDEPLOYQT_EXECUTABLE} --dir "${CMAKE_INSTALL_PREFIX}" "${CMAKE_BINARY_DIR}/src/VideoEditor.exe"
+      COMMAND "${WINDEPLOYQT_EXECUTABLE}" --dir "${CMAKE_INSTALL_PREFIX}" "${CMAKE_BINARY_DIR}/src/VideoEditor.exe"
     )
 else()
     set(QT_LIBS

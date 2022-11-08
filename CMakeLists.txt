@@ -63,7 +63,7 @@ configure_file(
         version.rc
 )
 
-
+find_package(Qt6 REQUIRED COMPONENTS Widgets LinguistTools Multimedia MultimediaWidgets)
 
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
