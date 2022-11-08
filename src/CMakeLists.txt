@@ -123,3 +123,12 @@ else()
         DESTINATION "${CMAKE_INSTALL_PREFIX}/imageformats"
         )
 endif()
+
+# There's a bug in deployqt tool in Qt 6.4.0, so we need to fix it:
+if (${Qt6_VERSION_MAJOR}.${Qt6_VERSION_MINOR}.${Qt6_VERSION_PATCH} VERSION_EQUAL "6.4.0")
+    install(FILES
+        "${CMAKE_PREFIX_PATH}/plugins/multimedia/windowsmediaplugin.dll"
+        DESTINATION "${CMAKE_INSTALL_PREFIX}/multimedia"
+        )
+endif()
+
