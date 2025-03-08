@@ -1,82 +1,22 @@
 #ifndef VIDEOPLAYER_H
 #define VIDEOPLAYER_H
 
-#include <QVideoWidget>
 #include <QGraphicsView>
-
-class QGraphicsScene;
-class QGraphicsVideoItem;
-
-enum VideoPlayerCropHandle
-{
-    VPCropHandle_None,
-    VPCropHandle_TopLeft,
-    VPCropHandle_TopRight,
-    VPCropHandle_BottomLeft,
-    VPCropHandle_BottomRight
-};
-
-enum VideoPlayerCropState
-{
-    VPCropState_Inactive,
-    VPCropState_Active,
-    VPCropState_ResizingTL,
-    VPCropState_ResizingTR,
-    VPCropState_ResizingBL,
-    VPCropState_ResizingBR,
-    VPCropState_Translating
-};
+#include <QGraphicsScene>
 
 class VideoPlayer : public QGraphicsView
 {
-    Q_OBJECT
-    Q_PROPERTY(bool CropEnabled READ getCropEnabled WRITE setCropEnabled NOTIFY CropEnabledChanged)
-
+	Q_OBJECT
 public:
-    explicit VideoPlayer(QWidget *parent = nullptr);
-    ~VideoPlayer();
-
-    QObject* getVideoOutput();
-    bool getCropEnabled();
-    void setCropEnabled(bool enabled);
-    QPointF mapToVideo(QPointF point);
-    QPointF mapFromVideo(QPointF point);
-
-    QSize sizeHint() const override;
-
-signals:
-    void CropEnabledChanged(bool enabled);
-    void VideoSizeChanged(QSizeF videoSize);
+	VideoPlayer(QWidget* parent = nullptr);
+	~VideoPlayer();
 
 protected:
-    void resizeEvent(QResizeEvent *event) override;
-    void paintEvent(QPaintEvent *event) override;
-    void mousePressEvent(QMouseEvent *event) override;
-    void mouseReleaseEvent(QMouseEvent *event) override;
-    void mouseMoveEvent(QMouseEvent *event) override;
+	bool initFFmpeg();
 
 private:
-    QRectF calculateVideoViewRect();
-    void paintCrop(QPainter *painter);
-    void paintCropRectangle(QPainter *painter);
-    QRect cropHandleTLRect();
-    QRect cropHandleTRRect();
-    QRect cropHandleBLRect();
-    QRect cropHandleBRRect();
-    void paintCropHandles(QPainter *painter);
-    bool isInsideCrop(QPointF point);
-    std::tuple<bool, VideoPlayerCropHandle> isOverCropHandle(QPointF point);
-
-    QGraphicsScene* theScene;
-    QGraphicsVideoItem* theVideoItem;
-    QSizeF theVideoSize;
-    QRectF theVideoViewRectF;
-    QRectF theCropRectF;
-
-    VideoPlayerCropState theCurrentCropState;
-    bool theCropEnabled;
-    QColor theCropColor;
-    int theCropHandleSize;
+	QGraphicsView* theView;
+	QGraphicsScene* theScene;
 };
 
 #endif // VIDEOPLAYER_H

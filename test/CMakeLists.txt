@@ -22,10 +22,15 @@ set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 option(INSTALL_GTEST "Enable installation of googletest." OFF)
 FetchContent_MakeAvailable(googletest)
 
+set(FFMPEG_DIR "C:/tools/ffmpeg")
+
 include_directories(
+	PUBLIC
     ${gtest_SOURCE_DIR}/include
     ${gmock_SOURCE_DIR}/include
     ..
+    PRIVATE 
+        "${FFMPEG_DIR}/include"
     )
 
 find_package(Qt6 REQUIRED COMPONENTS Widgets LinguistTools Multimedia MultimediaWidgets)
@@ -34,9 +39,15 @@ add_executable(VEUnitTests
     main.cpp
     tst_videoeditor.cpp
     )
+
 target_link_libraries(VEUnitTests
     PUBLIC
     VideoEditor_lib
+	"${FFMPEG_DIR}/lib/avformat.lib"
+	"${FFMPEG_DIR}/lib/avcodec.lib"
+	"${FFMPEG_DIR}/lib/avutil.lib"
+	"${FFMPEG_DIR}/lib/swscale.lib"
+	"${FFMPEG_DIR}/lib/swresample.lib"    
     PRIVATE
     Threads::Threads GTest::gtest_main
     Qt6::Widgets Qt6::Multimedia Qt6::MultimediaWidgets
