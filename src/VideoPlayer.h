@@ -17,6 +17,10 @@ public:
 	VideoPlayer(QWidget* parent = nullptr);
 	~VideoPlayer();
 
+signals:
+	void VideoLengthChanged(quint64 length);
+	void FrameNumberChanged(quint64 frameNumber);
+
 protected:
 	bool openFile();
 	QImage getImageFromFrame(const AVFrame* frame, const QSizeF dstSize) const;
@@ -26,12 +30,14 @@ private:
 	void decodeAndDisplayFrame();
 
 private:
+	QString theVideoFormatName;
 	QString theVideoCodecName;
 	QSize theVideoSize;
 	int theVideoStreamIndex;
 	double theVideoFPS;
 	int theVideoPixelFormat;
-	int theCurrentVideoFrame;
+	uint64_t theCurrentVideoFrame;
+	uint64_t theVideoFrameCount;
 	QString theAudioCodecName;
 	int theAudioCodecSampleRate;
 	AVFormatContext* theFormatContext;

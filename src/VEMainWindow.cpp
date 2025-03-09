@@ -45,6 +45,10 @@ VEMainWindow::VEMainWindow(QWidget *parent)
 //    connect(ui->videoPlayer, &VideoPlayer::VideoSizeChanged, this, &VEMainWindow::VideoSizeChanged);
 //    connect(ui->grpCropping, &QGroupBox::toggled, this, [=](bool on) { ui->videoPlayer->setCropEnabled(on); });
 
+	connect(ui->videoPlayer, &VideoPlayer::VideoLengthChanged, this, &VEMainWindow::VideoDurationChanged);
+	connect(ui->videoPlayer, &VideoPlayer::FrameNumberChanged, this, &VEMainWindow::PlaybackPositionChanged);
+	ui->videoPlayer->show();
+
 #ifdef QT_DEBUG
     //theMediaPlayer->setSource(QUrl::fromLocalFile("d:\\devel\\sandbox\\VideoEditor\\flip.mp4"));
     //currentVideoFile = QFileInfo("d:\\devel\\sandbox\\VideoEditor\\flip.mp4");
@@ -54,6 +58,7 @@ VEMainWindow::VEMainWindow(QWidget *parent)
 
 VEMainWindow::~VEMainWindow()
 {
+    if (theMediaPlayer)
     if (theMediaPlayer->playbackState() == QMediaPlayer::PlayingState)
         theMediaPlayer->stop();
 

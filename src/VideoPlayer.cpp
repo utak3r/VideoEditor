@@ -19,13 +19,18 @@ VideoPlayer::VideoPlayer(QWidget* parent)
 	: QGraphicsView(parent)
 {
 	theScene = new QGraphicsScene(parent);
+	theScene->setBackgroundBrush(Qt::black);
+	setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+	setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+	setViewportUpdateMode(QGraphicsView::FullViewportUpdate);
 	this->setScene(theScene);
+	setAlignment(Qt::AlignCenter);
 
 	AVFormatContext* theFormatContext = nullptr;
 	const AVCodec* theVideoCodec = nullptr;
 	AVCodecContext* theCodecContext = nullptr;
 	theVideoPixelFormat = AV_PIX_FMT_RGB24;
-	theCurrentVideoFrame = 0;
+	theCurrentVideoFrame = -1;
 
 	openFile();
 	QTimer* timer = new QTimer(this);
@@ -57,7 +62,7 @@ bool VideoPlayer::openFile()
 		// Przestrzeñ barw: Zakres ITU-R BT.601
 		// Po³o¿enie chromy: Lewy
 
-		printf("Format %s, duration %lld us", formatCtx->iformat->long_name, formatCtx->duration);
+		theVideoFormatName = formatCtx->iformat->long_name;
 		if (0 <= avformat_find_stream_info(formatCtx, NULL))
 		{
 			for (int i = 0; i < formatCtx->nb_streams; i++)
@@ -74,6 +79,8 @@ bool VideoPlayer::openFile()
 						theVideoSize = QSize(codecParams->width, codecParams->height);
 						theVideoFPS = av_q2d(stream->avg_frame_rate);
 						theVideoPixelFormat = codecParams->format;
+						theVideoFrameCount = stream->nb_frames;
+						emit VideoLengthChanged(theVideoFrameCount);
 					}
 					else if (codecParams->codec_type == AVMEDIA_TYPE_AUDIO)
 					{
@@ -124,7 +131,7 @@ void VideoPlayer::decodeAndDisplayFrame()
 			{
 				if (0 == avcodec_receive_frame(theCodecContext, frame))
 				{
-					image = getImageFromFrame(frame, /*this->sceneRect().size()*/ QSizeF(600, 400));
+					image = getImageFromFrame(frame, theVideoSize/2.0 /*this->sceneRect().size()*/ /*QSizeF(600, 400)*/);
 					frame_decoded = true;
 				}
 			}
@@ -134,7 +141,11 @@ void VideoPlayer::decodeAndDisplayFrame()
 
 	if (frame_decoded)
 	{
-		theCurrentVideoFrame = theCodecContext->frame_num;
+		if (theCurrentVideoFrame != theCodecContext->frame_num)
+		{
+			theCurrentVideoFrame = theCodecContext->frame_num;
+			emit FrameNumberChanged(theCurrentVideoFrame);
+		}
 		QPixmap pixmap = QPixmap::fromImage(image);
 		theScene->clear();
 		theScene->addPixmap(pixmap);
@@ -147,7 +158,7 @@ QImage VideoPlayer::getImageFromFrame(const AVFrame* frame, const QSizeF dstSize
 {
 	int dstWidth = dstSize.width();
 	int dstHeight = dstSize.height();
-	QImage image(dstWidth, dstHeight, QImage::Format_RGB32);
+	QImage image(dstWidth, dstHeight, QImage::Format_RGB888);
 
 	SwsContext* img_convert_ctx = sws_getContext(
 		frame->width,
@@ -178,5 +189,6 @@ QImage VideoPlayer::getImageFromFrame(const AVFrame* frame, const QSizeF dstSize
 		av_frame_free(&rgbFrame);
 		sws_freeContext(img_convert_ctx);
 	}
+	//image.save("C:\\Users\\piotr\\devel\\sandbox\\VideoEditor\\frame.png");
 	return image;
 }
