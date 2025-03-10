@@ -9,6 +9,7 @@ struct AVFormatContext;
 struct AVCodec;
 struct AVCodecContext;
 struct AVFrame;
+struct AVStream;
 
 class VideoPlayer : public QGraphicsView
 {
@@ -71,6 +72,7 @@ private:
 	AVFormatContext* theFormatContext;
 	const AVCodec* theVideoCodec;
 	AVCodecContext* theCodecContext;
+	AVStream* theVideoStream;
 };
 
 #endif // VIDEOPLAYER_H

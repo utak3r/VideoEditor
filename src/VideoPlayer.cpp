@@ -30,6 +30,7 @@ VideoPlayer::VideoPlayer(QWidget* parent)
 	theFormatContext = nullptr;
 	theVideoCodec = nullptr;
 	theCodecContext = nullptr;
+	theVideoStream = nullptr;
 	theVideoPixelFormat = AV_PIX_FMT_RGB24;
 	theCurrentVideoFrame = -1;
 
@@ -73,9 +74,8 @@ void VideoPlayer::setPosition(qint64 position)
 {
 	if (theFormatContext)
 	{
-		avformat_seek_file(theFormatContext, theVideoStreamIndex, position, position, position, AVSEEK_FLAG_FRAME | AVSEEK_FLAG_ANY);
-		//av_seek_frame(theFormatContext, theVideoStreamIndex, (int64_t)position, AVSEEK_FLAG_ANY);
-		avcodec_flush_buffers(theCodecContext);
+		av_seek_frame(theFormatContext, theVideoStreamIndex, (int64_t)position, AVSEEK_FLAG_ANY | AVSEEK_FLAG_FRAME);
+		avformat_flush(theFormatContext);
 		theCurrentVideoFrame = position;
 		decodeAndDisplayFrame();
 	}
@@ -113,6 +113,7 @@ bool VideoPlayer::openFile(const QString filename)
 						avcodec_open2(codecContext, codec, NULL);
 						theVideoCodec = videoCodec;
 						theCodecContext = codecContext;
+						theVideoStream = stream;
 					}
 					else if (codecParams->codec_type == AVMEDIA_TYPE_AUDIO)
 					{
