@@ -27,9 +27,9 @@ VideoPlayer::VideoPlayer(QWidget* parent)
 	this->setScene(theScene);
 	setAlignment(Qt::AlignCenter);
 
-	AVFormatContext* theFormatContext = nullptr;
-	const AVCodec* theVideoCodec = nullptr;
-	AVCodecContext* theCodecContext = nullptr;
+	theFormatContext = nullptr;
+	theVideoCodec = nullptr;
+	theCodecContext = nullptr;
 	theVideoPixelFormat = AV_PIX_FMT_RGB24;
 	theCurrentVideoFrame = -1;
 
@@ -83,7 +83,7 @@ void VideoPlayer::setPosition(qint64 position)
 
 bool VideoPlayer::openFile(const QString filename)
 {
-	//closeFile();
+	closeFile();
 	bool open = false;
 	AVFormatContext* formatCtx = nullptr;
 	const AVCodec* videoCodec = nullptr;
