@@ -5,14 +5,18 @@
 #include <QGraphicsScene>
 
 
-class AVFormatContext;
-class AVCodec;
-class AVCodecContext;
-class AVFrame;
+struct AVFormatContext;
+struct AVCodec;
+struct AVCodecContext;
+struct AVFrame;
 
 class VideoPlayer : public QGraphicsView
 {
 	Q_OBJECT
+	Q_PROPERTY(qint64 duration READ duration)
+	Q_PROPERTY(qint64 position READ position)
+	Q_PROPERTY(VideoPlayer::PlaybackState playbackState READ playbackState)
+
 public:
 	VideoPlayer(QWidget* parent = nullptr);
 	~VideoPlayer();

@@ -73,14 +73,17 @@ void VideoPlayer::setPosition(qint64 position)
 {
 	if (theFormatContext)
 	{
-		av_seek_frame(theFormatContext, theVideoStreamIndex, (int64_t)position, AVSEEK_FLAG_BACKWARD);
+		avformat_seek_file(theFormatContext, theVideoStreamIndex, position, position, position, AVSEEK_FLAG_FRAME | AVSEEK_FLAG_ANY);
+		//av_seek_frame(theFormatContext, theVideoStreamIndex, (int64_t)position, AVSEEK_FLAG_ANY);
 		avcodec_flush_buffers(theCodecContext);
-		theCurrentVideoFrame = -1;
+		theCurrentVideoFrame = position;
+		decodeAndDisplayFrame();
 	}
 }
 
 bool VideoPlayer::openFile(const QString filename)
 {
+	//closeFile();
 	bool open = false;
 	AVFormatContext* formatCtx = nullptr;
 	const AVCodec* videoCodec = nullptr;
@@ -89,7 +92,7 @@ bool VideoPlayer::openFile(const QString filename)
 		theVideoFormatName = formatCtx->iformat->long_name;
 		if (0 <= avformat_find_stream_info(formatCtx, NULL))
 		{
-			for (int i = 0; i < formatCtx->nb_streams; i++)
+			for (int i = 0; i < (int)formatCtx->nb_streams; i++)
 			{
 				AVStream* stream = formatCtx->streams[i];
 				AVCodecParameters* codecParams = stream->codecpar;
@@ -105,6 +108,11 @@ bool VideoPlayer::openFile(const QString filename)
 						theVideoPixelFormat = codecParams->format;
 						theVideoFrameCount = (qint64)stream->nb_frames;
 						emit durationChanged(theVideoFrameCount);
+						AVCodecContext* codecContext = avcodec_alloc_context3(codec);
+						avcodec_parameters_to_context(codecContext, codecParams);
+						avcodec_open2(codecContext, codec, NULL);
+						theVideoCodec = videoCodec;
+						theCodecContext = codecContext;
 					}
 					else if (codecParams->codec_type == AVMEDIA_TYPE_AUDIO)
 					{
@@ -113,12 +121,6 @@ bool VideoPlayer::openFile(const QString filename)
 					}
 					printf("\tCodec %s ID %d bit_rate %lld", codec->long_name, codec->id, codecParams->bit_rate);
 
-					AVCodecContext* codecContext = avcodec_alloc_context3(codec);
-					avcodec_parameters_to_context(codecContext, codecParams);
-					avcodec_open2(codecContext, codec, NULL);
-
-					theVideoCodec = videoCodec;
-					theCodecContext = codecContext;
 				}
 			}			
 		}
@@ -131,12 +133,11 @@ bool VideoPlayer::openFile(const QString filename)
 
 void VideoPlayer::closeFile()
 {
-	if (theCodecContext)
+	if (theCodecContext != nullptr && theCodecContext != NULL)
 	{
-		avcodec_close(theCodecContext);
 		avcodec_free_context(&theCodecContext);
 	}
-	if (theFormatContext)
+	if (theFormatContext != nullptr && theFormatContext != NULL)
 	{
 		avformat_close_input(&theFormatContext);
 	}
@@ -219,5 +220,6 @@ QImage VideoPlayer::getImageFromFrame(const AVFrame* frame, const QSize dstSize)
 		av_frame_free(&rgbFrame);
 		sws_freeContext(img_convert_ctx);
 	}
+	//image.save("frame.png");
 	return image;
 }

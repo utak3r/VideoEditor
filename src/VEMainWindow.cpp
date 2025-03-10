@@ -47,9 +47,9 @@ VEMainWindow::VEMainWindow(QWidget *parent)
 
 
 #ifdef QT_DEBUG
-    theVideoPlayer->openFile("C:\\Users\\piotr\\devel\\sandbox\\VideoEditor\\flip.mp4");
-    currentVideoFile = QFileInfo("C:\\Users\\piotr\\devel\\sandbox\\VideoEditor\\flip.mp4");
-    theVideoPlayer->play();
+    //theVideoPlayer->openFile("C:\\Users\\piotr\\devel\\sandbox\\VideoEditor\\flip.mp4");
+    //currentVideoFile = QFileInfo("C:\\Users\\piotr\\devel\\sandbox\\VideoEditor\\flip.mp4");
+    //theVideoPlayer->play();
 #endif
 }
 
@@ -105,10 +105,10 @@ void VEMainWindow::OpenVideo()
                                                     );
     if (!filename.isEmpty())
     {
-        theMediaPlayer->setSource(QUrl::fromLocalFile(filename));
+        theVideoPlayer->openFile(filename);
         currentVideoFile = QFileInfo(filename);
         theLastDir = currentVideoFile.absoluteDir().absolutePath();
-        theMediaPlayer->play();
+        theVideoPlayer->play();
     }
 }
 
