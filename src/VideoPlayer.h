@@ -17,12 +17,30 @@ public:
 	VideoPlayer(QWidget* parent = nullptr);
 	~VideoPlayer();
 
+	enum PlaybackState
+	{
+		StoppedState,
+		PlayingState,
+		PausedState
+	};
+	Q_ENUM(VideoPlayer::PlaybackState)
+
+	VideoPlayer::PlaybackState playbackState() const { return thePlaybackState; }
+
 signals:
-	void VideoLengthChanged(quint64 length);
-	void FrameNumberChanged(quint64 frameNumber);
+	void durationChanged(quint64 length);
+	void positionChanged(quint64 frameNumber);
+	void playbackStateChanged(VideoPlayer::PlaybackState newState);
+
+public slots:
+	bool openFile(const QString filename);
+	void closeFile();
+	void play();
+	void pause();
+	//void stop();
+	void setPosition(quint64 position);
 
 protected:
-	bool openFile();
 	QImage getImageFromFrame(const AVFrame* frame, const QSize dstSize) const;
 	void resizeEvent(QResizeEvent* event) override;
 
@@ -31,6 +49,8 @@ private:
 	void decodeAndDisplayFrame();
 
 private:
+	QTimer* thePlayerTimer;
+	VideoPlayer::PlaybackState thePlaybackState;
 	QSize theViewSize;
 	QString theVideoFormatName;
 	QString theVideoCodecName;

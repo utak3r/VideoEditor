@@ -4,6 +4,7 @@
 #include <SettingsDialog.h>
 #include <../version.h>
 
+
 #define VIDEO_FILE_EXTENSIONS "*.mp4 *.mov *.avi *.mts *.mxf *.webm"
 
 VEMainWindow::VEMainWindow(QWidget *parent)
@@ -19,6 +20,8 @@ VEMainWindow::VEMainWindow(QWidget *parent)
     // until cropping tool is finished
     ui->grpCropping->hide();
 
+    theVideoPlayer = ui->videoPlayer;
+
     ReloadSettings();
     theLastDir = theSettings.lastDir();
     this->setGeometry(theSettings.mainWndGeometry());
@@ -27,17 +30,14 @@ VEMainWindow::VEMainWindow(QWidget *parent)
     connect(ui->btnExit, &QPushButton::clicked, this, &VEMainWindow::ExitApp);
     connect(ui->btnOpenVideo, &QPushButton::clicked, this, &VEMainWindow::OpenVideo);
 
-//    theMediaPlayer = new QMediaPlayer(this);
-//    theMediaPlayer->setLoops(QMediaPlayer::Infinite);
-//    theMediaPlayer->setVideoOutput(ui->videoPlayer->getVideoOutput());
-//    ui->videoPlayer->show();
+    theVideoPlayer->show();
 
     connect(ui->btnMarkIn, &QPushButton::clicked, this, &VEMainWindow::SetMarkIn);
     connect(ui->btnMarkOut, &QPushButton::clicked, this, &VEMainWindow::SetMarkOut);
     connect(ui->btnResetMarks, &QPushButton::clicked, this, &VEMainWindow::ResetMarks);
-//    connect(theMediaPlayer, &QMediaPlayer::durationChanged, this, &VEMainWindow::VideoDurationChanged);
-//    connect(theMediaPlayer, &QMediaPlayer::playbackStateChanged, this, &VEMainWindow::VideoPlaybackStateChanged);
-//    connect(theMediaPlayer, &QMediaPlayer::positionChanged, this, &VEMainWindow::PlaybackPositionChanged);
+    connect(theVideoPlayer, &VideoPlayer::durationChanged, this, &VEMainWindow::VideoDurationChanged);
+    connect(theVideoPlayer, &VideoPlayer::playbackStateChanged, this, &VEMainWindow::VideoPlaybackStateChanged);
+    connect(theVideoPlayer, &VideoPlayer::positionChanged, this, &VEMainWindow::PlaybackPositionChanged);
     connect(ui->videoPosSlider, &QSlider::sliderMoved, this, &VEMainWindow::PlaybackSliderMoved);
     connect(ui->btnPlayPause, &QPushButton::clicked, this, &VEMainWindow::PlayPause);
     connect(ui->btnConvert, &QPushButton::clicked, this, &VEMainWindow::Convert);
@@ -45,9 +45,6 @@ VEMainWindow::VEMainWindow(QWidget *parent)
 //    connect(ui->videoPlayer, &VideoPlayer::VideoSizeChanged, this, &VEMainWindow::VideoSizeChanged);
 //    connect(ui->grpCropping, &QGroupBox::toggled, this, [=](bool on) { ui->videoPlayer->setCropEnabled(on); });
 
-	connect(ui->videoPlayer, &VideoPlayer::VideoLengthChanged, this, &VEMainWindow::VideoDurationChanged);
-	connect(ui->videoPlayer, &VideoPlayer::FrameNumberChanged, this, &VEMainWindow::PlaybackPositionChanged);
-	ui->videoPlayer->show();
 
 #ifdef QT_DEBUG
     //theMediaPlayer->setSource(QUrl::fromLocalFile("d:\\devel\\sandbox\\VideoEditor\\flip.mp4"));
@@ -132,13 +129,13 @@ void VEMainWindow::VideoDurationChanged(qint64 duration)
     ui->videoPosSlider->setValue(0);
 }
 
-void VEMainWindow::VideoPlaybackStateChanged(QMediaPlayer::PlaybackState newState)
+void VEMainWindow::VideoPlaybackStateChanged(VideoPlayer::PlaybackState newState)
 {
-    if (newState == QMediaPlayer::PausedState || newState == QMediaPlayer::StoppedState)
+    if (newState == VideoPlayer::PausedState || newState == VideoPlayer::StoppedState)
     {
         ui->btnPlayPause->setText(tr("Play"));
     }
-    else if (newState == QMediaPlayer::PlayingState)
+    else if (newState == VideoPlayer::PlayingState)
     {
         ui->btnPlayPause->setText(tr("Pause"));
     }

@@ -33,15 +33,16 @@ VideoPlayer::VideoPlayer(QWidget* parent)
 	theVideoPixelFormat = AV_PIX_FMT_RGB24;
 	theCurrentVideoFrame = -1;
 
-	openFile();
-	QTimer* timer = new QTimer(this);
-	connect(timer, &QTimer::timeout, this, &VideoPlayer::decodeAndDisplayFrame);
-	if (theVideoFPS > 0) timer->start(1000.0 / theVideoFPS);
+	thePlaybackState = StoppedState;
+	thePlayerTimer = new QTimer(this);
+	connect(thePlayerTimer, &QTimer::timeout, this, &VideoPlayer::decodeAndDisplayFrame);
+	openFile("C:\\Users\\piotr\\devel\\sandbox\\VideoEditor\\flip.mp4");
+	play();
 }
 
 VideoPlayer::~VideoPlayer()
 {
-	// avcodec_free_context()
+	closeFile();
 }
 
 void VideoPlayer::resizeEvent(QResizeEvent* event)
@@ -50,12 +51,37 @@ void VideoPlayer::resizeEvent(QResizeEvent* event)
 	theViewSize = event->size();
 }
 
-bool VideoPlayer::openFile()
+void VideoPlayer::play()
+{
+	if (!thePlayerTimer->isActive())
+	{
+		if (theVideoFPS > 0) thePlayerTimer->start(1000.0 / theVideoFPS);
+		thePlaybackState = PlayingState;
+		emit playbackStateChanged(thePlaybackState);
+	}
+}
+
+void VideoPlayer::pause()
+{
+	if (thePlayerTimer->isActive())
+	{
+		thePlayerTimer->stop();
+		thePlaybackState = PausedState;
+		emit playbackStateChanged(thePlaybackState);
+	}
+}
+
+void VideoPlayer::setPosition(quint64 position)
+{
+}
+
+
+bool VideoPlayer::openFile(const QString filename)
 {
 	bool open = false;
 	AVFormatContext* formatCtx = nullptr;
 	const AVCodec* videoCodec = nullptr;
-	if (0 == avformat_open_input(&formatCtx, "C:\\Users\\piotr\\devel\\sandbox\\VideoEditor\\flip.mp4", NULL, NULL))
+	if (0 == avformat_open_input(&formatCtx, filename.toStdString().c_str(), NULL, NULL))
 	{
 		// Test video is:
 		// "C:\\Users\\piotr\\devel\\sandbox\\VideoEditor\\flip.mp4"
@@ -87,7 +113,7 @@ bool VideoPlayer::openFile()
 						theVideoFPS = av_q2d(stream->avg_frame_rate);
 						theVideoPixelFormat = codecParams->format;
 						theVideoFrameCount = stream->nb_frames;
-						emit VideoLengthChanged(theVideoFrameCount);
+						emit durationChanged(theVideoFrameCount);
 					}
 					else if (codecParams->codec_type == AVMEDIA_TYPE_AUDIO)
 					{
@@ -107,8 +133,22 @@ bool VideoPlayer::openFile()
 		}
 		theFormatContext = formatCtx;
 	}
-
+	thePlaybackState = StoppedState;
+	emit playbackStateChanged(thePlaybackState);
 	return open;
+}
+
+void VideoPlayer::closeFile()
+{
+	if (theCodecContext)
+	{
+		avcodec_close(theCodecContext);
+		avcodec_free_context(&theCodecContext);
+	}
+	if (theFormatContext)
+	{
+		avformat_close_input(&theFormatContext);
+	}
 }
 
 void VideoPlayer::decodeAndDisplayFrame()
@@ -155,7 +195,7 @@ void VideoPlayer::decodeAndDisplayFrame()
 		if (theCurrentVideoFrame != theCodecContext->frame_num)
 		{
 			theCurrentVideoFrame = theCodecContext->frame_num;
-			emit FrameNumberChanged(theCurrentVideoFrame);
+			emit positionChanged(theCurrentVideoFrame);
 		}
 		QPixmap pixmap = QPixmap::fromImage(image);
 		theScene->clear();
