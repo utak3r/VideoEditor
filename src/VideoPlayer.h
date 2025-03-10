@@ -23,13 +23,15 @@ signals:
 
 protected:
 	bool openFile();
-	QImage getImageFromFrame(const AVFrame* frame, const QSizeF dstSize) const;
+	QImage getImageFromFrame(const AVFrame* frame, const QSize dstSize) const;
+	void resizeEvent(QResizeEvent* event) override;
 
 private:
 	QGraphicsScene* theScene;
 	void decodeAndDisplayFrame();
 
 private:
+	QSize theViewSize;
 	QString theVideoFormatName;
 	QString theVideoCodecName;
 	QSize theVideoSize;

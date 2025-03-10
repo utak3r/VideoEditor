@@ -18,6 +18,7 @@ extern "C" {
 VideoPlayer::VideoPlayer(QWidget* parent)
 	: QGraphicsView(parent)
 {
+	theViewSize = this->sceneRect().size().toSize();
 	theScene = new QGraphicsScene(parent);
 	theScene->setBackgroundBrush(Qt::black);
 	setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
@@ -41,6 +42,12 @@ VideoPlayer::VideoPlayer(QWidget* parent)
 VideoPlayer::~VideoPlayer()
 {
 	// avcodec_free_context()
+}
+
+void VideoPlayer::resizeEvent(QResizeEvent* event)
+{
+	QGraphicsView::resizeEvent(event);
+	theViewSize = event->size();
 }
 
 bool VideoPlayer::openFile()
@@ -123,6 +130,10 @@ void VideoPlayer::decodeAndDisplayFrame()
 	AVPacket* packet = av_packet_alloc();
 	AVFrame* frame = av_frame_alloc();
 
+	double aspect = (double)theVideoSize.width() / (double)theVideoSize.height();
+	QSize dstSize = theViewSize;
+	dstSize.setHeight((double)dstSize.width() / aspect);
+
 	while (!frame_decoded && av_read_frame(theFormatContext, packet) >= 0)
 	{
 		if (packet->stream_index == theVideoStreamIndex)
@@ -131,7 +142,7 @@ void VideoPlayer::decodeAndDisplayFrame()
 			{
 				if (0 == avcodec_receive_frame(theCodecContext, frame))
 				{
-					image = getImageFromFrame(frame, theVideoSize/2.0 /*this->sceneRect().size()*/ /*QSizeF(600, 400)*/);
+					image = getImageFromFrame(frame, dstSize);
 					frame_decoded = true;
 				}
 			}
@@ -154,7 +165,7 @@ void VideoPlayer::decodeAndDisplayFrame()
 
 }
 
-QImage VideoPlayer::getImageFromFrame(const AVFrame* frame, const QSizeF dstSize) const
+QImage VideoPlayer::getImageFromFrame(const AVFrame* frame, const QSize dstSize) const
 {
 	int dstWidth = dstSize.width();
 	int dstHeight = dstSize.height();
