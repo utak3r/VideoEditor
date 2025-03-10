@@ -36,8 +36,6 @@ VideoPlayer::VideoPlayer(QWidget* parent)
 	thePlaybackState = StoppedState;
 	thePlayerTimer = new QTimer(this);
 	connect(thePlayerTimer, &QTimer::timeout, this, &VideoPlayer::decodeAndDisplayFrame);
-	openFile("C:\\Users\\piotr\\devel\\sandbox\\VideoEditor\\flip.mp4");
-	play();
 }
 
 VideoPlayer::~VideoPlayer()
@@ -71,10 +69,15 @@ void VideoPlayer::pause()
 	}
 }
 
-void VideoPlayer::setPosition(quint64 position)
+void VideoPlayer::setPosition(qint64 position)
 {
+	if (theFormatContext)
+	{
+		av_seek_frame(theFormatContext, theVideoStreamIndex, (int64_t)position, AVSEEK_FLAG_BACKWARD);
+		avcodec_flush_buffers(theCodecContext);
+		theCurrentVideoFrame = -1;
+	}
 }
-
 
 bool VideoPlayer::openFile(const QString filename)
 {
@@ -83,18 +86,6 @@ bool VideoPlayer::openFile(const QString filename)
 	const AVCodec* videoCodec = nullptr;
 	if (0 == avformat_open_input(&formatCtx, filename.toStdString().c_str(), NULL, NULL))
 	{
-		// Test video is:
-		// "C:\\Users\\piotr\\devel\\sandbox\\VideoEditor\\flip.mp4"
-		// Kodek: H264 - MPEG-4 AVC (part 10) (avc1)
-		// Rozdzielczoœæ obrazu: 1600x900
-		// Wymiary bufora: 1600x912
-		// Liczba klatek/s: 60
-		// Orientacja: Górna lewa
-		// Barwy podstawowe: ITU-R BT.601 (525 linii, 60 Hz)
-		// Funkcja transferu kolorów: ITU-R BT.709
-		// Przestrzeñ barw: Zakres ITU-R BT.601
-		// Po³o¿enie chromy: Lewy
-
 		theVideoFormatName = formatCtx->iformat->long_name;
 		if (0 <= avformat_find_stream_info(formatCtx, NULL))
 		{
@@ -112,7 +103,7 @@ bool VideoPlayer::openFile(const QString filename)
 						theVideoSize = QSize(codecParams->width, codecParams->height);
 						theVideoFPS = av_q2d(stream->avg_frame_rate);
 						theVideoPixelFormat = codecParams->format;
-						theVideoFrameCount = stream->nb_frames;
+						theVideoFrameCount = (qint64)stream->nb_frames;
 						emit durationChanged(theVideoFrameCount);
 					}
 					else if (codecParams->codec_type == AVMEDIA_TYPE_AUDIO)
@@ -155,18 +146,6 @@ void VideoPlayer::decodeAndDisplayFrame()
 {
 	bool frame_decoded = false;
 	QImage image;
-
-	// Demuxing (av_read_frame)
-	// Demuxes packets based on file format (mp4/avi/mkv etc.) 
-	//   until you have a packet for the stream that you want (eg. video)
-	// Feeds the decoder with the packet (avcodec_send_packet)
-	// Starts the decoding process until it has enough packets to 
-	//   give you the first frame (decodes based on DTS)
-	// Checks whether a frame is ready to be presented (avcodec_receive_frame)
-	// Asks the decoder if it has a frame to be presented after feeding it. 
-	//   It might not be ready and you need to re-feed it or even it might give you 
-	//   more than 1 frames at once. (Frames comes out based on PTS)
-
 	AVPacket* packet = av_packet_alloc();
 	AVFrame* frame = av_frame_alloc();
 
@@ -192,9 +171,9 @@ void VideoPlayer::decodeAndDisplayFrame()
 
 	if (frame_decoded)
 	{
-		if (theCurrentVideoFrame != theCodecContext->frame_num)
+		if (theCurrentVideoFrame != (qint64)theCodecContext->frame_num)
 		{
-			theCurrentVideoFrame = theCodecContext->frame_num;
+			theCurrentVideoFrame = (qint64)theCodecContext->frame_num;
 			emit positionChanged(theCurrentVideoFrame);
 		}
 		QPixmap pixmap = QPixmap::fromImage(image);
@@ -240,6 +219,5 @@ QImage VideoPlayer::getImageFromFrame(const AVFrame* frame, const QSize dstSize)
 		av_frame_free(&rgbFrame);
 		sws_freeContext(img_convert_ctx);
 	}
-	//image.save("C:\\Users\\piotr\\devel\\sandbox\\VideoEditor\\frame.png");
 	return image;
 }

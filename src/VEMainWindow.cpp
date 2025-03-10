@@ -47,9 +47,9 @@ VEMainWindow::VEMainWindow(QWidget *parent)
 
 
 #ifdef QT_DEBUG
-    //theMediaPlayer->setSource(QUrl::fromLocalFile("d:\\devel\\sandbox\\VideoEditor\\flip.mp4"));
-    //currentVideoFile = QFileInfo("d:\\devel\\sandbox\\VideoEditor\\flip.mp4");
-    //theMediaPlayer->play();
+    theVideoPlayer->openFile("C:\\Users\\piotr\\devel\\sandbox\\VideoEditor\\flip.mp4");
+    currentVideoFile = QFileInfo("C:\\Users\\piotr\\devel\\sandbox\\VideoEditor\\flip.mp4");
+    theVideoPlayer->play();
 #endif
 }
 
@@ -149,13 +149,13 @@ void VEMainWindow::VideoSizeChanged(QSizeF videoSize)
 
 void VEMainWindow::PlayPause()
 {
-    if (theMediaPlayer->playbackState() == QMediaPlayer::PausedState || theMediaPlayer->playbackState() == QMediaPlayer::StoppedState)
+    if (theVideoPlayer->playbackState() == VideoPlayer::PausedState || theVideoPlayer->playbackState() == VideoPlayer::StoppedState)
     {
-        theMediaPlayer->play();
+        theVideoPlayer->play();
     }
-    else if (theMediaPlayer->playbackState() == QMediaPlayer::PlayingState)
+    else if (theVideoPlayer->playbackState() == VideoPlayer::PlayingState)
     {
-        theMediaPlayer->pause();
+        theVideoPlayer->pause();
     }
 }
 
@@ -168,24 +168,24 @@ void VEMainWindow::PlaybackPositionChanged(qint64 position)
 
 void VEMainWindow::PlaybackSliderMoved(int value)
 {
-    theMediaPlayer->setPosition(value);
+    theVideoPlayer->setPosition(value);
 }
 
 void VEMainWindow::SetMarkIn()
 {
-    theMarks.setMarkIn(theMediaPlayer->position());
+    theMarks.setMarkIn(theVideoPlayer->position());
     ui->videoPosSlider->setMarkIn((int)theMarks.MarkIn());
 }
 
 void VEMainWindow::SetMarkOut()
 {
-    theMarks.setMarkOut(theMediaPlayer->position());
+    theMarks.setMarkOut(theVideoPlayer->position());
     ui->videoPosSlider->setMarkOut((int)theMarks.MarkOut());
 }
 
 void VEMainWindow::ResetMarks()
 {
-    theMarks.Reset(theMediaPlayer->duration());
+    theMarks.Reset(theVideoPlayer->duration());
     ui->videoPosSlider->resetMarks();
 }
 

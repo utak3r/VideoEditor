@@ -26,10 +26,12 @@ public:
 	Q_ENUM(VideoPlayer::PlaybackState)
 
 	VideoPlayer::PlaybackState playbackState() const { return thePlaybackState; }
+	qint64 duration() const { return theVideoFrameCount; }
+	qint64 position() const { return theCurrentVideoFrame; }
 
 signals:
-	void durationChanged(quint64 length);
-	void positionChanged(quint64 frameNumber);
+	void durationChanged(qint64 length);
+	void positionChanged(qint64 frameNumber);
 	void playbackStateChanged(VideoPlayer::PlaybackState newState);
 
 public slots:
@@ -38,7 +40,7 @@ public slots:
 	void play();
 	void pause();
 	//void stop();
-	void setPosition(quint64 position);
+	void setPosition(qint64 position);
 
 protected:
 	QImage getImageFromFrame(const AVFrame* frame, const QSize dstSize) const;
@@ -58,8 +60,8 @@ private:
 	int theVideoStreamIndex;
 	double theVideoFPS;
 	int theVideoPixelFormat;
-	uint64_t theCurrentVideoFrame;
-	uint64_t theVideoFrameCount;
+	qint64 theCurrentVideoFrame;
+	qint64 theVideoFrameCount;
 	QString theAudioCodecName;
 	int theAudioCodecSampleRate;
 	AVFormatContext* theFormatContext;
