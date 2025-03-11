@@ -74,6 +74,20 @@ void VideoPlayer::setPosition(qint64 position)
 {
 	if (theFormatContext)
 	{
+		/*
+		NOTE to myself:
+		It still needs finding the closest (backwards) keyframe 
+		and decoding up to a desired frame.
+		How? after seeking, do a av_read_frame -> decode_packet -> av_free_packet loop
+		until DTS is what we want.
+		*/
+		/*
+		NOTE to myself:
+		Check what's up with a AVSEEK_FLAG_BACKWARD flag.
+		*/
+		/*
+		Also I need to solve the issue with a VideoSlider not behaving correctly after seeking.
+		*/
 		double time = (double)position / theVideoFPS;
 		double stream_time_base = av_q2d(theVideoStream->time_base);
 		int64_t ts = (int64_t)(time / stream_time_base);
