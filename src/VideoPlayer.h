@@ -41,10 +41,11 @@ signals:
 
 public slots:
 	bool openFile(const QString filename);
+	void setSource(const QUrl& source);
 	void closeFile();
 	void play();
 	void pause();
-	//void stop();
+	void stop();
 	void setPosition(qint64 position);
 
 protected:

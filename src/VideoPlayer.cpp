@@ -76,6 +76,17 @@ void VideoPlayer::pause()
 	}
 }
 
+void VideoPlayer::stop()
+{
+	if (thePlayerTimer->isActive())
+	{
+		thePlayerTimer->stop();
+		setPosition(0);
+		thePlaybackState = StoppedState;
+		emit playbackStateChanged(thePlaybackState);
+	}
+}
+
 int64_t VideoPlayer::frameToTimestamp(int64_t frame)
 {
 	double time = (double)frame / theVideoFPS;
@@ -176,6 +187,12 @@ bool VideoPlayer::openFile(const QString filename)
 	thePlaybackState = StoppedState;
 	emit playbackStateChanged(thePlaybackState);
 	return open;
+}
+
+void VideoPlayer::setSource(const QUrl& source)
+{
+	QString filename = source.toLocalFile();
+	openFile(filename);
 }
 
 void VideoPlayer::closeFile()
