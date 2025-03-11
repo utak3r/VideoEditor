@@ -49,6 +49,8 @@ public slots:
 
 protected:
 	QImage getImageFromFrame(const AVFrame* frame, const QSize dstSize) const;
+	int64_t frameToTimestamp(int64_t frame);
+	int64_t timestampToFrame(int64_t timestamp);
 	void resizeEvent(QResizeEvent* event) override;
 
 private:

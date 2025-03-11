@@ -70,30 +70,49 @@ void VideoPlayer::pause()
 	}
 }
 
+int64_t VideoPlayer::frameToTimestamp(int64_t frame)
+{
+	double time = (double)frame / theVideoFPS;
+	double stream_time_base = av_q2d(theVideoStream->time_base);
+	return (int64_t)(time / stream_time_base);
+}
+
+int64_t VideoPlayer::timestampToFrame(int64_t timestamp)
+{
+	double stream_time_base = av_q2d(theVideoStream->time_base);
+	double time = (double)timestamp * stream_time_base;
+	return (int64_t)(time * theVideoFPS);
+}
+
 void VideoPlayer::setPosition(qint64 position)
 {
 	if (theFormatContext)
 	{
-		/*
-		NOTE to myself:
-		It still needs finding the closest (backwards) keyframe 
-		and decoding up to a desired frame.
-		How? after seeking, do a av_read_frame -> decode_packet -> av_free_packet loop
-		until DTS is what we want.
-		*/
-		/*
-		NOTE to myself:
-		Check what's up with a AVSEEK_FLAG_BACKWARD flag.
-		*/
-		/*
-		Also I need to solve the issue with a VideoSlider not behaving correctly after seeking.
-		*/
-		double time = (double)position / theVideoFPS;
-		double stream_time_base = av_q2d(theVideoStream->time_base);
-		int64_t ts = (int64_t)(time / stream_time_base);
-		int a = av_seek_frame(theFormatContext, theVideoStreamIndex, ts, AVSEEK_FLAG_ANY);
+		int64_t target_ts = frameToTimestamp(position);
+		int a = av_seek_frame(theFormatContext, theVideoStreamIndex, target_ts, 0);
+		
 		avcodec_flush_buffers(theCodecContext);
-		theCurrentVideoFrame = position;
+		AVPacket* packet = av_packet_alloc();
+		AVFrame* frame = av_frame_alloc();
+		bool frame_decoded = false;
+		while (!frame_decoded && av_read_frame(theFormatContext, packet) >= 0)
+		{
+			if (packet->stream_index == theVideoStreamIndex)
+			{
+				if (0 == avcodec_send_packet(theCodecContext, packet))
+				{
+					if (0 == avcodec_receive_frame(theCodecContext, frame))
+					{
+						frame_decoded = true;
+						theCurrentVideoFrame = timestampToFrame(frame->pkt_dts);
+					}
+				}
+			}
+			av_packet_unref(packet);
+		}
+		av_packet_free(&packet);
+		av_frame_free(&frame);
+
 		decodeAndDisplayFrame();
 	}
 }
@@ -190,9 +209,10 @@ void VideoPlayer::decodeAndDisplayFrame()
 
 	if (frame_decoded)
 	{
-		if (theCurrentVideoFrame != (qint64)theCodecContext->frame_num)
+		int64_t frame_num = (qint64)timestampToFrame(frame->pkt_dts);
+		if (theCurrentVideoFrame != (qint64)frame_num)
 		{
-			theCurrentVideoFrame = (qint64)theCodecContext->frame_num;
+			theCurrentVideoFrame = (qint64)frame_num;
 			emit positionChanged(theCurrentVideoFrame);
 		}
 		QPixmap pixmap = QPixmap::fromImage(image);
