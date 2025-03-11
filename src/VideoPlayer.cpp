@@ -74,8 +74,11 @@ void VideoPlayer::setPosition(qint64 position)
 {
 	if (theFormatContext)
 	{
-		av_seek_frame(theFormatContext, theVideoStreamIndex, (int64_t)position, AVSEEK_FLAG_ANY | AVSEEK_FLAG_FRAME);
-		avformat_flush(theFormatContext);
+		double time = (double)position / theVideoFPS;
+		double stream_time_base = av_q2d(theVideoStream->time_base);
+		int64_t ts = (int64_t)(time / stream_time_base);
+		int a = av_seek_frame(theFormatContext, theVideoStreamIndex, ts, AVSEEK_FLAG_ANY);
+		avcodec_flush_buffers(theCodecContext);
 		theCurrentVideoFrame = position;
 		decodeAndDisplayFrame();
 	}
