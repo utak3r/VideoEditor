@@ -5,6 +5,7 @@
 #include <QPainter>
 #include <QMouseEvent>
 #include <QTimer>
+#include <QElapsedTimer>
 
 extern "C" {
 #include <libavformat/avformat.h>
@@ -88,6 +89,9 @@ void VideoPlayer::setPosition(qint64 position)
 {
 	if (theFormatContext)
 	{
+		QElapsedTimer execution_timer;
+		execution_timer.start();
+
 		int64_t target_ts = frameToTimestamp(position);
 		int a = av_seek_frame(theFormatContext, theVideoStreamIndex, target_ts, 0);
 		
@@ -114,6 +118,7 @@ void VideoPlayer::setPosition(qint64 position)
 		av_frame_free(&frame);
 
 		decodeAndDisplayFrame();
+		qDebug() << "Seeked to frame " << theCurrentVideoFrame << " in " << execution_timer.elapsed() << "ms";
 	}
 }
 
@@ -150,14 +155,14 @@ bool VideoPlayer::openFile(const QString filename)
 						theVideoCodec = videoCodec;
 						theCodecContext = codecContext;
 						theVideoStream = stream;
+						qInfo() << "Video stream found at index " << i << " codec " << codec->long_name << " size " << codecParams->width << "x" << codecParams->height << " fps " << theVideoFPS;
 					}
 					else if (codecParams->codec_type == AVMEDIA_TYPE_AUDIO)
 					{
 						theAudioCodecName = codec->long_name;
 						theAudioCodecSampleRate = codecParams->sample_rate;
+						qInfo() << "Audio stream found codec " << codec->long_name << " sample rate " << codecParams->sample_rate;
 					}
-					printf("\tCodec %s ID %d bit_rate %lld", codec->long_name, codec->id, codecParams->bit_rate);
-
 				}
 			}			
 		}
@@ -182,6 +187,9 @@ void VideoPlayer::closeFile()
 
 void VideoPlayer::decodeAndDisplayFrame()
 {
+	QElapsedTimer execution_timer;
+	execution_timer.start();
+
 	bool frame_decoded = false;
 	QImage image;
 	AVPacket* packet = av_packet_alloc();
@@ -221,6 +229,7 @@ void VideoPlayer::decodeAndDisplayFrame()
 		this->viewport()->update();
 	}
 
+	qDebug() << "Frame decoded in " << execution_timer.elapsed() << "ms";
 }
 
 QImage VideoPlayer::getImageFromFrame(const AVFrame* frame, const QSize dstSize) const
