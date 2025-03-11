@@ -49,6 +49,11 @@ void VideoPlayer::resizeEvent(QResizeEvent* event)
 {
 	QGraphicsView::resizeEvent(event);
 	theViewSize = event->size();
+	if (thePlaybackState == PausedState)
+	{
+		//decodeAndDisplayFrame();
+		// Need to find a way of recoding a current frame, without getting a next one.
+	}
 }
 
 void VideoPlayer::play()
