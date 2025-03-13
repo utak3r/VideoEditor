@@ -18,12 +18,14 @@ extern "C" {
 
 VideoPlayer::VideoPlayer(QWidget* parent)
 	: QGraphicsView(parent)
+	, theCurrentPosition(-1)
 	, theCurrentCropState(VPCropState_Inactive)
 	, theCropEnabled(false)
 	, theCropColor(QColor(Qt::white))
 	, theCropHandleSize(8)
 	, theCropRectF(QRectF(0, 0, 0, 0))
 	, theVideoImageRectF(QRectF(0, 0, 0, 0))
+	, theMarksRange("---")
 {
 	theViewSize = this->sceneRect().size().toSize();
 	theScene = new QGraphicsScene(parent);
@@ -39,7 +41,6 @@ VideoPlayer::VideoPlayer(QWidget* parent)
 	theCodecContext = nullptr;
 	theVideoStream = nullptr;
 	theVideoPixelFormat = AV_PIX_FMT_RGB24;
-	theCurrentVideoFrame = -1;
 
 	thePlaybackState = StoppedState;
 	thePlayerTimer = new QTimer(this);
@@ -101,6 +102,90 @@ void VideoPlayer::paintEvent(QPaintEvent* event)
 		QPainter painter(this->viewport());
 		paintCrop(&painter);
 	}
+
+	QPainter painter(this->viewport());
+	paintTimestamps(&painter);
+
+}
+
+qint64 VideoPlayer::frameToMilliseconds(qint64 frame, double fps) const
+{
+	return (qint64)round(((double)frame / fps) * 1000.0);
+}
+
+qint64 VideoPlayer::duration() const
+{
+	return frameToMilliseconds(theVideoFrameCount, theVideoFPS);
+}
+
+qint64 VideoPlayer::position() const
+{
+	return theCurrentPosition;
+}
+
+void VideoPlayer::setMarkers(const QString& range)
+{
+	theMarksRange = range;
+}
+
+const QString& VideoPlayer::timestampStringFromMilliseconds(const qint64 position) const
+{
+	static QString timestamp = "00:00:00.0";
+	if (position > 0)
+	{
+		double timeInSecs = (double)position / 1000.0;
+		int secs = (int)floor(timeInSecs);
+		int dsecs = (int)((timeInSecs - (double)secs) * 10.0);
+		int mins = (int)floor((double)secs / 60.0);
+		if (mins > 0)
+			secs -= (mins * 60);
+		int hours = (int)floor((double)mins / 60.0);
+		if (hours > 0)
+			mins -= (hours * 60);
+		timestamp = QString("%1:%2:%3.%4")
+			.arg(hours, 2, 10, QChar('0'))
+			.arg(mins, 2, 10, QChar('0'))
+			.arg(secs, 2, 10, QChar('0'))
+			.arg(dsecs, 1, 10, QChar('0')
+			);
+	}
+	return timestamp;
+}
+
+void VideoPlayer::paintTimestamps(QPainter* painter)
+{
+	if (theCurrentPosition > 0)
+	{
+		double viewWidth = (double)theVideoImageRectF.width();
+		double viewHeight = (double)theVideoImageRectF.height();
+
+		// Few magic numbers for size and position
+		double widthRatio = 32.0;
+		double heightRatio = 12.0;
+		double fontSizeRatio = 24.5;
+
+		QFont font = painter->font();
+		font.setPixelSize((int)round(viewHeight / fontSizeRatio));
+		painter->setFont(font);
+
+		QPen pen = painter->pen();
+		pen.setStyle(Qt::SolidLine);
+		pen.setColor(Qt::white);
+		painter->setPen(pen);
+
+		QString timestamp = timestampStringFromMilliseconds(theCurrentPosition);
+		painter->drawText(QPoint(
+			(int)round(viewWidth / widthRatio),
+			(int)viewHeight - (int)round(viewHeight / heightRatio)),
+			timestamp
+		);
+
+		painter->drawText(QPoint(
+			(int)round(viewWidth / widthRatio),
+			(int)viewHeight - (int)round(viewHeight / heightRatio / 2.0)),
+			QString("[%1]").arg(theMarksRange)
+		);
+	}
 }
 
 /*!
@@ -158,6 +243,20 @@ void VideoPlayer::stop()
 	}
 }
 
+int64_t VideoPlayer::millisecondsToTimestamp(qint64 msecs, AVRational timeBase)
+{
+	double time = (double)msecs / 1000.0;
+	double stream_time_base = av_q2d(timeBase);
+	return (int64_t)(time / stream_time_base);
+}
+
+qint64 VideoPlayer::timestampToMilliseconds(int64_t timestamp, AVRational timeBase)
+{
+	double stream_time_base = av_q2d(timeBase);
+	double time = (double)timestamp * stream_time_base;
+	return (qint64)round(time * 1000.0);
+}
+
 int64_t VideoPlayer::frameToTimestamp(int64_t frame)
 {
 	double time = (double)frame / theVideoFPS;
@@ -179,33 +278,38 @@ void VideoPlayer::setPosition(qint64 position)
 		QElapsedTimer execution_timer;
 		execution_timer.start();
 
-		int64_t target_ts = frameToTimestamp(position);
-		int a = av_seek_frame(theFormatContext, theVideoStreamIndex, target_ts, 0);
-		
-		avcodec_flush_buffers(theCodecContext);
-		AVPacket* packet = av_packet_alloc();
-		AVFrame* frame = av_frame_alloc();
-		bool frame_decoded = false;
-		while (!frame_decoded && av_read_frame(theFormatContext, packet) >= 0)
+		int64_t target_ts = millisecondsToTimestamp(position, theVideoStream->time_base);
+		if (0 <= av_seek_frame(theFormatContext, theVideoStreamIndex, target_ts, 0))
 		{
-			if (packet->stream_index == theVideoStreamIndex)
+			avcodec_flush_buffers(theCodecContext);
+			AVPacket* packet = av_packet_alloc();
+			AVFrame* frame = av_frame_alloc();
+			bool frame_decoded = false;
+			while (!frame_decoded && av_read_frame(theFormatContext, packet) >= 0)
 			{
-				if (0 == avcodec_send_packet(theCodecContext, packet))
+				if (packet->stream_index == theVideoStreamIndex)
 				{
-					if (0 == avcodec_receive_frame(theCodecContext, frame))
+					if (0 == avcodec_send_packet(theCodecContext, packet))
 					{
-						frame_decoded = true;
-						theCurrentVideoFrame = timestampToFrame(frame->pkt_dts);
+						if (0 == avcodec_receive_frame(theCodecContext, frame))
+						{
+							frame_decoded = true;
+							theCurrentPosition = timestampToMilliseconds(frame->pkt_dts, theVideoStream->time_base);
+						}
 					}
 				}
+				av_packet_unref(packet);
 			}
-			av_packet_unref(packet);
-		}
-		av_packet_free(&packet);
-		av_frame_free(&frame);
+			av_packet_free(&packet);
+			av_frame_free(&frame);
 
-		decodeAndDisplayFrame();
-		qDebug() << "Seeked to frame " << theCurrentVideoFrame << " in " << execution_timer.elapsed() << "ms";
+			decodeAndDisplayFrame();
+			qDebug() << "Seeked to " << theCurrentPosition << "ms in " << execution_timer.elapsed() << "ms";
+		}
+		else
+		{
+			qDebug() << "Seeking to " << position << "ms has failed.";
+		}
 	}
 }
 
@@ -235,7 +339,7 @@ bool VideoPlayer::openFile(const QString filename)
 						theVideoFPS = av_q2d(stream->avg_frame_rate);
 						theVideoPixelFormat = codecParams->format;
 						theVideoFrameCount = (qint64)stream->nb_frames;
-						emit durationChanged(theVideoFrameCount);
+						emit durationChanged(frameToMilliseconds(theVideoFrameCount, theVideoFPS));
 						AVCodecContext* codecContext = avcodec_alloc_context3(codec);
 						avcodec_parameters_to_context(codecContext, codecParams);
 						avcodec_open2(codecContext, codec, NULL);
@@ -310,11 +414,11 @@ void VideoPlayer::decodeAndDisplayFrame()
 
 	if (frame_decoded)
 	{
-		int64_t frame_num = (qint64)timestampToFrame(frame->pkt_dts);
-		if (theCurrentVideoFrame != (qint64)frame_num)
+		qint64 frame_position = timestampToMilliseconds(frame->pkt_dts, theVideoStream->time_base);
+		if (theCurrentPosition != frame_position)
 		{
-			theCurrentVideoFrame = (qint64)frame_num;
-			emit positionChanged(theCurrentVideoFrame);
+			theCurrentPosition = frame_position;
+			emit positionChanged(theCurrentPosition);
 		}
 		QPixmap pixmap = QPixmap::fromImage(image);
 		theScene->clear();

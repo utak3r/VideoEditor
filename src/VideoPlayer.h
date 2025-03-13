@@ -10,12 +10,13 @@ struct AVCodec;
 struct AVCodecContext;
 struct AVFrame;
 struct AVStream;
+struct AVRational;
 
 class VideoPlayer : public QGraphicsView
 {
 	Q_OBJECT
-	Q_PROPERTY(qint64 duration READ duration)
-	Q_PROPERTY(qint64 position READ position)
+	Q_PROPERTY(qint64 duration READ duration NOTIFY durationChanged)
+	Q_PROPERTY(qint64 position READ position NOTIFY positionChanged)
 	Q_PROPERTY(VideoPlayer::PlaybackState playbackState READ playbackState NOTIFY playbackStateChanged)
 	Q_PROPERTY(bool CropEnabled READ getCropEnabled WRITE setCropEnabled NOTIFY CropEnabledChanged)
 
@@ -54,8 +55,8 @@ public:
 	Q_ENUM(VideoPlayer::VideoPlayerCropState)
 
 	VideoPlayer::PlaybackState playbackState() const { return thePlaybackState; }
-	qint64 duration() const { return theVideoFrameCount; }
-	qint64 position() const { return theCurrentVideoFrame; }
+	qint64 duration() const;
+	qint64 position() const;
 	QSize sizeHint() const override;
 	bool getCropEnabled() { return theCropEnabled; }
 	void setCropEnabled(bool enabled);
@@ -63,8 +64,8 @@ public:
 	QPointF mapFromVideo(QPointF point);
 
 signals:
-	void durationChanged(qint64 length);
-	void positionChanged(qint64 frameNumber);
+	void durationChanged(qint64 duration);
+	void positionChanged(qint64 position);
 	void playbackStateChanged(VideoPlayer::PlaybackState newState);
 	void CropEnabledChanged(bool enabled);
 
@@ -76,6 +77,7 @@ public slots:
 	void pause();
 	void stop();
 	void setPosition(qint64 position);
+	void setMarkers(const QString& range);
 
 	void resizeEvent(QResizeEvent* event) override;
 	void paintEvent(QPaintEvent* event) override;
@@ -85,8 +87,11 @@ public slots:
 
 protected:
 	QImage getImageFromFrame(const AVFrame* frame, const QSize dstSize) const;
+	int64_t millisecondsToTimestamp(qint64 msecs, AVRational timeBase);
+	qint64 timestampToMilliseconds(int64_t timestamp, AVRational timeBase);
 	int64_t frameToTimestamp(int64_t frame);
 	int64_t timestampToFrame(int64_t timestamp);
+	qint64 frameToMilliseconds(qint64 frame, double fps) const;
 	bool isInsideCrop(QPointF point);
 	std::tuple<bool, VideoPlayerCropHandle> isOverCropHandle(QPointF point);
 	void paintCrop(QPainter* painter);
@@ -96,6 +101,8 @@ protected:
 	QRect cropHandleTRRect();
 	QRect cropHandleBLRect();
 	QRect cropHandleBRRect();
+	void paintTimestamps(QPainter* painter);
+	const QString& timestampStringFromMilliseconds(const qint64 position) const;
 
 private:
 	QGraphicsScene* theScene;
@@ -111,7 +118,7 @@ private:
 	int theVideoStreamIndex;
 	double theVideoFPS;
 	int theVideoPixelFormat;
-	qint64 theCurrentVideoFrame;
+	qint64 theCurrentPosition;
 	qint64 theVideoFrameCount;
 	QString theAudioCodecName;
 	int theAudioCodecSampleRate;
@@ -119,6 +126,7 @@ private:
 	const AVCodec* theVideoCodec;
 	AVCodecContext* theCodecContext;
 	AVStream* theVideoStream;
+	QString theMarksRange;
 
 private:
 	bool theCropEnabled;

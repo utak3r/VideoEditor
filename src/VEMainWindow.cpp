@@ -175,18 +175,21 @@ void VEMainWindow::SetMarkIn()
 {
     theMarks.setMarkIn(theVideoPlayer->position());
     ui->videoPosSlider->setMarkIn((int)theMarks.MarkIn());
+    theVideoPlayer->setMarkers(theMarks.CurrentRange());
 }
 
 void VEMainWindow::SetMarkOut()
 {
     theMarks.setMarkOut(theVideoPlayer->position());
     ui->videoPosSlider->setMarkOut((int)theMarks.MarkOut());
+    theVideoPlayer->setMarkers(theMarks.CurrentRange());
 }
 
 void VEMainWindow::ResetMarks()
 {
     theMarks.Reset(theVideoPlayer->duration());
     ui->videoPosSlider->resetMarks();
+    theVideoPlayer->setMarkers(theMarks.CurrentRange());
 }
 
 void VEMainWindow::Convert()
