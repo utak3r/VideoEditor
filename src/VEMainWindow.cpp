@@ -18,7 +18,7 @@ VEMainWindow::VEMainWindow(QWidget *parent)
     setWindowTitle(PROJECT_VERSION_STRING_SHORT);
 
     // until cropping tool is finished
-    ui->grpCropping->hide();
+    //ui->grpCropping->hide();
 
     theVideoPlayer = ui->videoPlayer;
 
@@ -43,13 +43,13 @@ VEMainWindow::VEMainWindow(QWidget *parent)
     connect(ui->btnConvert, &QPushButton::clicked, this, &VEMainWindow::Convert);
     connect(ui->btnSettings, &QPushButton::clicked, this, &VEMainWindow::ShowSettings);
 //    connect(ui->videoPlayer, &VideoPlayer::VideoSizeChanged, this, &VEMainWindow::VideoSizeChanged);
-//    connect(ui->grpCropping, &QGroupBox::toggled, this, [=](bool on) { ui->videoPlayer->setCropEnabled(on); });
+    connect(ui->grpCropping, &QGroupBox::toggled, this, [=](bool on) { theVideoPlayer->setCropEnabled(on); });
 
 
 #ifdef QT_DEBUG
-    //theVideoPlayer->openFile("C:\\Users\\piotr\\devel\\sandbox\\VideoEditor\\flip.mp4");
-    //currentVideoFile = QFileInfo("C:\\Users\\piotr\\devel\\sandbox\\VideoEditor\\flip.mp4");
-    //theVideoPlayer->play();
+    theVideoPlayer->openFile("c:\\Users\\piotr\\devel\\sandbox\\VideoEditor\\test_video.mp4");
+    currentVideoFile = QFileInfo("c:\\Users\\piotr\\devel\\sandbox\\VideoEditor\\test_video.mp4");
+    theVideoPlayer->play();
 #endif
 }
 

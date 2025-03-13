@@ -18,6 +18,12 @@ extern "C" {
 
 VideoPlayer::VideoPlayer(QWidget* parent)
 	: QGraphicsView(parent)
+	, theCurrentCropState(VPCropState_Inactive)
+	, theCropEnabled(false)
+	, theCropColor(QColor(Qt::white))
+	, theCropHandleSize(8)
+	, theCropRectF(QRectF(0, 0, 0, 0))
+	, theVideoImageRectF(QRectF(0, 0, 0, 0))
 {
 	theViewSize = this->sceneRect().size().toSize();
 	theScene = new QGraphicsScene(parent);
@@ -38,6 +44,8 @@ VideoPlayer::VideoPlayer(QWidget* parent)
 	thePlaybackState = StoppedState;
 	thePlayerTimer = new QTimer(this);
 	connect(thePlayerTimer, &QTimer::timeout, this, &VideoPlayer::decodeAndDisplayFrame);
+
+	setMouseTracking(true);
 }
 
 VideoPlayer::~VideoPlayer()
@@ -49,11 +57,74 @@ void VideoPlayer::resizeEvent(QResizeEvent* event)
 {
 	QGraphicsView::resizeEvent(event);
 	theViewSize = event->size();
+	
 	if (thePlaybackState == PausedState)
 	{
 		//decodeAndDisplayFrame();
 		// Need to find a way of recoding a current frame, without getting a next one.
 	}
+}
+
+QSize VideoPlayer::sizeHint() const
+{
+	auto size = theVideoSize;
+	if (size.isValid())
+		return size;
+
+	return QWidget::sizeHint();
+}
+
+/*!
+ * \brief VideoPlayer::paintEvent Renders video and draws a crop tool if enabled.
+ */
+void VideoPlayer::paintEvent(QPaintEvent* event)
+{
+	QGraphicsView::paintEvent(event);
+
+	// find the video image and center it
+	foreach(QGraphicsItem * item, scene()->items())
+	{
+		QPixmap pixmap = qgraphicsitem_cast<QGraphicsPixmapItem*>(item)->pixmap();
+		if (!pixmap.isNull())
+		{
+			QRectF rect = item->sceneBoundingRect();
+			setSceneRect(rect);
+			theVideoImageRectF = QRectF(
+				mapFromScene(item->sceneBoundingRect().topLeft()),
+				mapFromScene(item->sceneBoundingRect().bottomRight())
+			);
+		}
+	}
+
+	if (theCropEnabled)
+	{
+		QPainter painter(this->viewport());
+		paintCrop(&painter);
+	}
+}
+
+/*!
+ * \brief VideoPlayer::paintCrop Draws a crop tool
+ */
+void VideoPlayer::paintCrop(QPainter* painter)
+{
+	paintCropRectangle(painter);
+	paintCropHandles(painter);
+	//qDebug() << "Crop: " << mapToVideo(rect.topLeft()) << ", " << mapToVideo(rect.bottomRight());
+}
+
+/*!
+ * \brief VideoPlayer::paintCropRectangle Draws a rectangle of a crop tool.
+ */
+void VideoPlayer::paintCropRectangle(QPainter* painter)
+{
+	QPen linePen;
+	linePen.setColor(theCropColor);
+	linePen.setStyle(Qt::DashLine);
+	linePen.setWidth(2);
+
+	painter->setPen(linePen);
+	painter->drawRect(theCropRectF);
 }
 
 void VideoPlayer::play()
@@ -247,8 +318,9 @@ void VideoPlayer::decodeAndDisplayFrame()
 		}
 		QPixmap pixmap = QPixmap::fromImage(image);
 		theScene->clear();
-		theScene->addPixmap(pixmap);
-		this->viewport()->update();
+		QGraphicsPixmapItem* item = theScene->addPixmap(pixmap);
+		fitInView(item, Qt::KeepAspectRatio);
+		theVideoImageRectF = item->boundingRect();
 	}
 
 	qDebug() << "Frame decoded in " << execution_timer.elapsed() << "ms";
@@ -291,4 +363,251 @@ QImage VideoPlayer::getImageFromFrame(const AVFrame* frame, const QSize dstSize)
 	}
 	//image.save("frame.png");
 	return image;
+}
+
+void VideoPlayer::setCropEnabled(bool enabled)
+{
+	theCropEnabled = enabled;
+	theCurrentCropState = (theCropEnabled) ? VPCropState_Active : VPCropState_Inactive;
+	if (theCropEnabled)
+	{
+		theCropRectF = theVideoImageRectF;
+	}
+	repaint();
+	emit CropEnabledChanged(theCropEnabled);
+}
+
+QPointF VideoPlayer::mapToVideo(QPointF point)
+{
+	double x = point.x() / theViewSize.width();
+	double y = point.y() / theViewSize.height();
+	return QPointF(x * theVideoSize.width(), y * theVideoSize.height());
+}
+
+QPointF VideoPlayer::mapFromVideo(QPointF point)
+{
+	double x = point.x() / theVideoSize.width();
+	double y = point.y() / theVideoSize.height();
+	return QPointF(x * theViewSize.width(), y * theViewSize.height());
+}
+
+/*!
+ * \brief VideoPlayer::cropHandleTLRect Draws a top left handle of a crop tool.
+ */
+QRect VideoPlayer::cropHandleTLRect()
+{
+	return QRect(theCropRectF.x() - theCropHandleSize / 2,
+		theCropRectF.y() - theCropHandleSize / 2,
+		theCropHandleSize,
+		theCropHandleSize);
+}
+
+/*!
+ * \brief VideoPlayer::cropHandleTLRect Draws a top right handle of a crop tool.
+ */
+QRect VideoPlayer::cropHandleTRRect()
+{
+	return QRect(theCropRectF.x() + theCropRectF.width() - theCropHandleSize / 2,
+		theCropRectF.y() - theCropHandleSize / 2,
+		theCropHandleSize,
+		theCropHandleSize
+	);
+}
+
+/*!
+ * \brief VideoPlayer::cropHandleTLRect Draws a bottom left handle of a crop tool.
+ */
+QRect VideoPlayer::cropHandleBLRect()
+{
+	return QRect(theCropRectF.x() - theCropHandleSize / 2,
+		theCropRectF.y() + theCropRectF.height() - theCropHandleSize / 2,
+		theCropHandleSize,
+		theCropHandleSize
+	);
+}
+
+/*!
+ * \brief VideoPlayer::cropHandleTLRect Draws a bottom right handle of a crop tool.
+ */
+QRect VideoPlayer::cropHandleBRRect()
+{
+	return QRect(theCropRectF.x() + theCropRectF.width() - theCropHandleSize / 2,
+		theCropRectF.y() + theCropRectF.height() - theCropHandleSize / 2,
+		theCropHandleSize,
+		theCropHandleSize
+	);
+}
+
+/*!
+ * \brief VideoPlayer::paintCropHandles Draws all handles of a crop tool.
+ */
+void VideoPlayer::paintCropHandles(QPainter* painter)
+{
+	QPen handlePen;
+	handlePen.setColor(theCropColor);
+	handlePen.setStyle(Qt::SolidLine);
+	handlePen.setWidth(2);
+	QBrush handleBrush;
+	handleBrush.setColor(theCropColor);
+	handleBrush.setStyle(Qt::SolidPattern);
+	painter->setPen(handlePen);
+	painter->setBrush(handleBrush);
+
+	painter->drawRect(cropHandleTLRect());
+	painter->drawRect(cropHandleTRRect());
+	painter->drawRect(cropHandleBLRect());
+	painter->drawRect(cropHandleBRRect());
+
+}
+
+/*!
+ * \brief VideoPlayer::isInsideCrop Checks if a given point is inside a crop tool.
+ * \param point Point to be checked.
+ * \return True, if inside a crop tool, false otherwise.
+ */
+bool VideoPlayer::isInsideCrop(QPointF point)
+{
+	return theCropRectF.contains(point);
+}
+
+std::tuple<bool, VideoPlayer::VideoPlayerCropHandle> VideoPlayer::isOverCropHandle(QPointF point)
+{
+	bool isOver = false;
+	VideoPlayerCropHandle which = VideoPlayer::VPCropHandle_None;
+
+	if (cropHandleTLRect().contains(point.toPoint()))
+	{
+		isOver = true;
+		which = VideoPlayer::VPCropHandle_TopLeft;
+	}
+	else if (cropHandleTRRect().contains(point.toPoint()))
+	{
+		isOver = true;
+		which = VideoPlayer::VPCropHandle_TopRight;
+	}
+	else if (cropHandleBLRect().contains(point.toPoint()))
+	{
+		isOver = true;
+		which = VideoPlayer::VPCropHandle_BottomLeft;
+	}
+	else if (cropHandleBRRect().contains(point.toPoint()))
+	{
+		isOver = true;
+		which = VideoPlayer::VPCropHandle_BottomRight;
+	}
+
+	return std::make_tuple(isOver, which);
+}
+
+void VideoPlayer::mousePressEvent(QMouseEvent* event)
+{
+	if (theCurrentCropState == VideoPlayer::VPCropState_Active && this->rect().contains(event->pos()))
+	{
+		if (event->button() == Qt::LeftButton)
+		{
+			std::tuple<bool, VideoPlayer::VideoPlayerCropHandle> overHandle = isOverCropHandle(event->pos());
+			if (std::get<0>(overHandle))
+			{
+				if (std::get<1>(overHandle) == VideoPlayer::VPCropHandle_TopLeft)
+					theCurrentCropState = VideoPlayer::VPCropState_ResizingTL;
+				else if (std::get<1>(overHandle) == VideoPlayer::VPCropHandle_TopRight)
+					theCurrentCropState = VideoPlayer::VPCropState_ResizingTR;
+				else if (std::get<1>(overHandle) == VideoPlayer::VPCropHandle_BottomLeft)
+					theCurrentCropState = VideoPlayer::VPCropState_ResizingBL;
+				else if (std::get<1>(overHandle) == VideoPlayer::VPCropHandle_BottomRight)
+					theCurrentCropState = VideoPlayer::VPCropState_ResizingBR;
+				event->accept();
+			}
+			else
+			{
+				theCurrentCropState = VideoPlayer::VPCropState_Translating;
+				event->accept();
+			}
+		}
+	}
+}
+
+void VideoPlayer::mouseReleaseEvent(QMouseEvent* event)
+{
+	if (event->button() == Qt::LeftButton && this->rect().contains(event->pos()))
+	{
+		if (theCurrentCropState == VideoPlayer::VPCropState_ResizingTL)
+		{
+			theCurrentCropState = VideoPlayer::VPCropState_Active;
+			event->accept();
+		}
+		if (theCurrentCropState == VideoPlayer::VPCropState_ResizingTR)
+		{
+			theCurrentCropState = VideoPlayer::VPCropState_Active;
+			event->accept();
+		}
+		if (theCurrentCropState == VideoPlayer::VPCropState_ResizingBL)
+		{
+			theCurrentCropState = VideoPlayer::VPCropState_Active;
+			event->accept();
+		}
+		if (theCurrentCropState == VideoPlayer::VPCropState_ResizingBR)
+		{
+			theCurrentCropState = VideoPlayer::VPCropState_Active;
+			event->accept();
+		}
+		else if (theCurrentCropState == VideoPlayer::VPCropState_Translating)
+		{
+			theCurrentCropState = VideoPlayer::VPCropState_Active;
+			event->accept();
+		}
+	}
+}
+
+void VideoPlayer::mouseMoveEvent(QMouseEvent* event)
+{
+	if (theCurrentCropState == VideoPlayer::VPCropState_Active && this->rect().contains(event->pos()))
+	{
+		if (isInsideCrop(event->pos()) && event->button() == Qt::NoButton)
+		{
+			if (cursor().shape() != Qt::SizeAllCursor)
+				setCursor(Qt::SizeAllCursor);
+		}
+		else
+		{
+			if (cursor().shape() != Qt::ArrowCursor)
+				setCursor(Qt::ArrowCursor);
+		}
+
+		std::tuple<bool, VideoPlayer::VideoPlayerCropHandle> overHandle = isOverCropHandle(event->pos());
+		if (std::get<0>(overHandle) && event->button() == Qt::NoButton)
+		{
+			if (std::get<1>(overHandle) == VideoPlayer::VPCropHandle_TopLeft ||
+				std::get<1>(overHandle) == VideoPlayer::VPCropHandle_BottomRight)
+			{
+				if (cursor().shape() != Qt::SizeFDiagCursor)
+					setCursor(Qt::SizeFDiagCursor);
+			}
+			else
+			{
+				if (cursor().shape() != Qt::SizeBDiagCursor)
+					setCursor(Qt::SizeBDiagCursor);
+			}
+		}
+
+		if (event->button() == Qt::LeftButton)
+		{
+			std::tuple<bool, VideoPlayer::VideoPlayerCropHandle> overHandle = isOverCropHandle(event->pos());
+			if (std::get<0>(overHandle))
+			{
+				// resizing
+			}
+			else
+			{
+				// moving
+			}
+		}
+	}
+	if (theCurrentCropState == VideoPlayer::VPCropState_ResizingBR && this->rect().contains(event->pos()))
+	{
+		QRectF newCrop = theCropRectF;
+		newCrop.setBottomRight(event->pos());
+		theCropRectF = newCrop;
+		repaint();
+	}
 }
