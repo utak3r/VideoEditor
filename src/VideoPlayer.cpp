@@ -6,6 +6,7 @@
 #include <QMouseEvent>
 #include <QTimer>
 #include <QElapsedTimer>
+#include "TimelineMarks.h"
 
 extern "C" {
 #include <libavformat/avformat.h>
@@ -128,30 +129,6 @@ void VideoPlayer::setMarkers(const QString& range)
 	theMarksRange = range;
 }
 
-const QString& VideoPlayer::timestampStringFromMilliseconds(const qint64 position) const
-{
-	static QString timestamp = "00:00:00.0";
-	if (position > 0)
-	{
-		double timeInSecs = (double)position / 1000.0;
-		int secs = (int)floor(timeInSecs);
-		int dsecs = (int)((timeInSecs - (double)secs) * 10.0);
-		int mins = (int)floor((double)secs / 60.0);
-		if (mins > 0)
-			secs -= (mins * 60);
-		int hours = (int)floor((double)mins / 60.0);
-		if (hours > 0)
-			mins -= (hours * 60);
-		timestamp = QString("%1:%2:%3.%4")
-			.arg(hours, 2, 10, QChar('0'))
-			.arg(mins, 2, 10, QChar('0'))
-			.arg(secs, 2, 10, QChar('0'))
-			.arg(dsecs, 1, 10, QChar('0')
-			);
-	}
-	return timestamp;
-}
-
 void VideoPlayer::paintTimestamps(QPainter* painter)
 {
 	if (theCurrentPosition > 0)
@@ -173,7 +150,7 @@ void VideoPlayer::paintTimestamps(QPainter* painter)
 		pen.setColor(Qt::white);
 		painter->setPen(pen);
 
-		QString timestamp = timestampStringFromMilliseconds(theCurrentPosition);
+		QString timestamp = TimelineMarks::MillisecondsToTimecode(theCurrentPosition, 1);
 		painter->drawText(QPoint(
 			(int)round(viewWidth / widthRatio),
 			(int)viewHeight - (int)round(viewHeight / heightRatio)),

@@ -102,7 +102,6 @@ protected:
 	QRect cropHandleBLRect();
 	QRect cropHandleBRRect();
 	void paintTimestamps(QPainter* painter);
-	const QString& timestampStringFromMilliseconds(const qint64 position) const;
 
 private:
 	QGraphicsScene* theScene;
