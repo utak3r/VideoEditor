@@ -11,26 +11,26 @@ class TimelineMarks
 {
 public:
     TimelineMarks();
-    int MarkIn();
-    void setMarkIn(int mark);
-    int MarkOut();
-    void setMarkOut(int mark);
+    qint64 MarkIn();
+    void setMarkIn(qint64 mark);
+    qint64 MarkOut();
+    void setMarkOut(qint64 mark);
 
 public:
     QString AsString();
-    int Duration();
-    void Reset(int duration = 0);
-    QString MillisecondsToTimecode(int time);
-    QString TimecodeStart();
-    QString TimecodeEnd();
+    qint64 Duration() const;
+    void Reset(qint64 duration = 0);
+    static QString MillisecondsToTimecode(qint64 time, uint secondsFractionPrecision = 3);
+    QString TimecodeStart(uint secondsFractionPrecision = 3) const;
+    QString TimecodeEnd(uint secondsFractionPrecision = 3) const;
     QString DurationTimecode();
-    QString CurrentRange();
+    QString CurrentRange(uint secondsFractionPrecision = 3) const;
     bool IsTrimmed();
 
 private:
-    int theMarkIn;
-    int theMarkOut;
-    int theVideoDuration;
+    qint64 theMarkIn;
+    qint64 theMarkOut;
+    qint64 theVideoDuration;
 };
 
 #endif // TIMELINEMARKS_H
