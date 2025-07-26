@@ -27,9 +27,24 @@ VideoPlayer::VideoPlayer(QWidget* parent)
 	, theCropRectF(QRectF(0, 0, 0, 0))
 	, theVideoImageRectF(QRectF(0, 0, 0, 0))
 	, theMarksRange("---")
+	, theVideoSize(QSize(0, 0))
+	, theVideoStreamIndex(-1)
+	, theVideoFPS(0.0)
+	, theVideoFrameCount(0)
+	, theVideoFormatName("")
+	, theVideoCodecName("")
+	, theAudioCodecName("")
+	, theAudioCodecSampleRate(0)
+	, theVideoPixelFormat(AV_PIX_FMT_RGB24)
+	, thePlaybackState(StoppedState)
+	, theScene(new QGraphicsScene(parent))
+	, theViewSize(this->sceneRect().size().toSize())
+	, theFormatContext(nullptr)
+	, theVideoCodec(nullptr)
+	, theCodecContext(nullptr)
+	, theVideoStream(nullptr)
+	, thePlayerTimer(nullptr)
 {
-	theViewSize = this->sceneRect().size().toSize();
-	theScene = new QGraphicsScene(parent);
 	theScene->setBackgroundBrush(Qt::black);
 	setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
 	setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
@@ -37,13 +52,6 @@ VideoPlayer::VideoPlayer(QWidget* parent)
 	this->setScene(theScene);
 	setAlignment(Qt::AlignCenter);
 
-	theFormatContext = nullptr;
-	theVideoCodec = nullptr;
-	theCodecContext = nullptr;
-	theVideoStream = nullptr;
-	theVideoPixelFormat = AV_PIX_FMT_RGB24;
-
-	thePlaybackState = StoppedState;
 	thePlayerTimer = new QTimer(this);
 	connect(thePlayerTimer, &QTimer::timeout, this, &VideoPlayer::decodeAndDisplayFrame);
 
@@ -277,8 +285,8 @@ void VideoPlayer::setPosition(qint64 position)
 				}
 				av_packet_unref(packet);
 			}
-			av_packet_free(&packet);
 			av_frame_free(&frame);
+			av_packet_free(&packet);
 
 			decodeAndDisplayFrame();
 			qDebug() << "Seeked to " << theCurrentPosition << "ms in " << execution_timer.elapsed() << "ms";
@@ -349,11 +357,11 @@ void VideoPlayer::setSource(const QUrl& source)
 
 void VideoPlayer::closeFile()
 {
-	if (theCodecContext != nullptr && theCodecContext != NULL)
+	if (theCodecContext)
 	{
 		avcodec_free_context(&theCodecContext);
 	}
-	if (theFormatContext != nullptr && theFormatContext != NULL)
+	if (theFormatContext)
 	{
 		avformat_close_input(&theFormatContext);
 	}
@@ -403,6 +411,9 @@ void VideoPlayer::decodeAndDisplayFrame()
 		fitInView(item, Qt::KeepAspectRatio);
 		theVideoImageRectF = item->boundingRect();
 	}
+
+	av_frame_free(&frame);
+	av_packet_free(&packet);
 
 	qDebug() << "Frame decoded in " << execution_timer.elapsed() << "ms";
 }
