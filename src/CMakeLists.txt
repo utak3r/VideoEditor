@@ -33,6 +33,8 @@ set(PROJECT_ADDITIONAL_SOURCES
     SettingsDialog.cpp
     SettingsDialog.h
     SettingsDialog.ui
+    VideoRecode.cpp
+    VideoRecode.h
 )
 set(PROJECT_SOURCES
     ${CMAKE_BINARY_DIR}/version.rc
@@ -72,7 +74,8 @@ target_link_libraries(VideoEditor
         "${FFMPEG_DIR}/lib/avcodec.lib"
         "${FFMPEG_DIR}/lib/avutil.lib"
         "${FFMPEG_DIR}/lib/swscale.lib"
-        "${FFMPEG_DIR}/lib/swresample.lib"    
+        "${FFMPEG_DIR}/lib/swresample.lib"
+        "${FFMPEG_DIR}/lib/avformat.lib"
 )
 
 set(cppcheck

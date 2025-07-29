@@ -2,6 +2,7 @@
 #include "./ui_VEMainWindow.h"
 #include <QFileDialog>
 #include <SettingsDialog.h>
+#include <VideoRecode.h>
 #include <../version.h>
 
 
@@ -194,7 +195,31 @@ void VEMainWindow::ResetMarks()
 
 void VEMainWindow::Convert()
 {
-    if (theFFMPEG)
+    QString outFilename = QFileDialog::getSaveFileName(this, tr("Save video as..."),
+        currentVideoFile.absoluteFilePath() + "_converted.mp4",
+        tr("Video Files") + QLatin1String(" (") + VIDEO_FILE_EXTENSIONS + QLatin1String(")"));
+    if (!outFilename.isEmpty())
+    {
+        //std::tuple<bool, int, int, QString> scaling = FFMPEG::getScalingTuple(ui->grpScaling->isChecked(), ui->valScaleWidth->value(), ui->valScaleHeight->value(), ui->cbxScalingFlags->currentIndex());
+        //theFFMPEG->Convert(currentVideoFile.absoluteFilePath(), codec.CommandLine, &theMarks, scaling, outFilename);
+
+		VideoRecode* recode = new VideoRecode(this);
+		recode->setInputPath(currentVideoFile.absoluteFilePath());
+		recode->setOutputPath(outFilename);
+		recode->setAudioCodec("");
+		recode->setVideoCodec("libx264");
+		recode->setVideoCodecPreset("medium");
+		recode->setVideoCodecTune("film");
+		recode->setVideoCodecProfile("high");
+        connect(recode, &VideoRecode::recodeProgress, this, [=](int progress) 
+            {
+            ui->statusbar->showMessage(tr("Recode progress: %1%").arg(progress));
+			});
+		recode->recode();
+    }
+
+
+    if (theFFMPEG && 0)
     {
         if (!theFFMPEG->binPath().isEmpty())
         {
