@@ -311,7 +311,9 @@ int VideoRecode::prepareVideoEncoder(StreamContext* sc, AVCodecContext* decoder_
 
     if (avcodec_open2(sc->video_avcc, sc->video_avc, NULL) < 0)
     {
-		qDebug() << "Failed to open video codec" << sc->video_avc->name;
+		qDebug() << "Failed to open video codec" << sc->video_avc->long_name << 
+            ", " << sc->video_avcc->width << "x" << sc->video_avcc->height << 
+            ", " << sc->video_avcc->pix_fmt;
         return -1;
     }
     avcodec_parameters_from_context(sc->video_avs->codecpar, sc->video_avcc);

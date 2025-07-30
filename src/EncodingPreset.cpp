@@ -42,7 +42,7 @@ VideoPreset EncodingPreset::getPreset() const
 		QString(".mp4"),
 		ui->cbVideoCodec->currentText().trimmed(),
 		ui->cbVideoPreset->currentText().trimmed(),
-		ui->cbVideoTune->currentText().trimmed(),
+		ui->cbVideoTune->currentText().trimmed() == "none" ? QString("") : ui->cbVideoTune->currentText().trimmed(),
 		ui->cbVideoProfile->currentText().trimmed(),
 		ui->cbxAudioCopy->isChecked() ? QString("") : QString("")
 	);
