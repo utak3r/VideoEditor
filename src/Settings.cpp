@@ -2,7 +2,6 @@
 
 Settings::Settings()
     : theSettings(nullptr)
-    , theFFMPEG("ffmpeg.exe")
     , theLastDir(".")
     , theMainWndGeometry(QRect(640, 250, 800, 500))
     , theScalingEnabled(false)
@@ -16,7 +15,6 @@ Settings::Settings()
 void Settings::ReadSettings()
 {
     theSettings->beginGroup("General");
-    theFFMPEG = theSettings->value("FFmpegPath", "ffmpeg.exe").value<QString>();
     theLastDir = theSettings->value("LastDir", ".").value<QString>();
     theSettings->endGroup();
 
@@ -54,17 +52,18 @@ void Settings::ReadSettings()
         {
             QString presetEncoded = theSettings->value(presetKey).value<QString>();
             QStringList list = presetEncoded.split("\r\n", Qt::KeepEmptyParts, Qt::CaseInsensitive);
-            if (list.count() == 3)
+            if (list.count() == 7)
             {
-                theVideoPresets.append(VideoPreset(list[0], list[1], list[2]));
+                theVideoPresets.append(VideoPreset(list[0], list[1], list[2], list[3], list[4], list[5], list[6]));
             }
         }
     }
     else
     {
-        theVideoPresets.append(VideoPreset("H.264 AAC", ".mp4", "-c:v libx264 -preset medium -tune film -c:a aac"));
-        theVideoPresets.append(VideoPreset("DNxHD 185Mbps PCM s24LE", ".mov", "-c:v dnxhd -b:v 185M -c:a pcm_s24le"));
-        theVideoPresets.append(VideoPreset("ProRes YUV422", ".mov", "-c:v prores_ks -profile:v 3 -vendor ap10 -pix_fmt yuv422p10le"));
+        theVideoPresets.append(VideoPreset("H.264 copy audio", ".mp4", "libx264", "medium", "film", "high", ""));
+        //theVideoPresets.append(VideoPreset("H.264 AAC", ".mp4", "-c:v libx264 -preset medium -tune film -c:a aac"));
+        //theVideoPresets.append(VideoPreset("DNxHD 185Mbps PCM s24LE", ".mov", "-c:v dnxhd -b:v 185M -c:a pcm_s24le"));
+        //theVideoPresets.append(VideoPreset("ProRes YUV422", ".mov", "-c:v prores_ks -profile:v 3 -vendor ap10 -pix_fmt yuv422p10le"));
     }
     theSettings->endGroup();
 }
@@ -72,7 +71,6 @@ void Settings::ReadSettings()
 void Settings::WriteSettings()
 {
     theSettings->beginGroup("General");
-    theSettings->setValue("FFmpegPath", theFFMPEG);
     theSettings->setValue("LastDir", theLastDir);
     theSettings->endGroup();
 
@@ -129,16 +127,6 @@ void Settings::WriteSettings()
     theSettings->endGroup();
 
     theSettings->sync();
-}
-
-QString Settings::ffmpeg()
-{
-    return theFFMPEG;
-}
-
-void Settings::setffmpeg(QString path)
-{
-    theFFMPEG = path;
 }
 
 QString Settings::lastDir()

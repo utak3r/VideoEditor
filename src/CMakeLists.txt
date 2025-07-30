@@ -35,6 +35,9 @@ set(PROJECT_ADDITIONAL_SOURCES
     SettingsDialog.ui
     VideoRecode.cpp
     VideoRecode.h
+    EncodingPreset.cpp
+    EncodingPreset.h
+    EncodingPreset.ui
 )
 set(PROJECT_SOURCES
     ${CMAKE_BINARY_DIR}/version.rc

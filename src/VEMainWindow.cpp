@@ -60,7 +60,7 @@ VEMainWindow::~VEMainWindow()
     if (theMediaPlayer->playbackState() == QMediaPlayer::PlayingState)
         theMediaPlayer->stop();
 
-    theSettings.setffmpeg(theFFMPEG->binPath());
+    //theSettings.setffmpeg(theFFMPEG->binPath());
     theSettings.setLastDir(theLastDir);
     theSettings.setMainWndGeometry(this->geometry());
     theSettings.setVideoPresets(theVideoPresets);
@@ -81,8 +81,6 @@ void VEMainWindow::ExitApp()
 void VEMainWindow::ReloadSettings()
 {
     theSettings.ReadSettings();
-    theFFMPEG = new FFMPEG(theSettings.ffmpeg(), this);
-    ui->statusbar->showMessage(theFFMPEG->binVersion());
 
     theVideoPresets.clear();
     theVideoPresets.append((*theSettings.videoPresets()));
@@ -95,6 +93,8 @@ void VEMainWindow::ReloadSettings()
     ui->valScaleWidth->setValue(theSettings.scalingWidth());
     ui->valScaleHeight->setValue(theSettings.scalingHeight());
     ui->cbxScalingFlags->setCurrentIndex(theSettings.scalingFilter());
+
+    ui->statusbar->showMessage(QString("%1").arg(PROJECT_VERSION_STRING_FULL));
 }
 
 void VEMainWindow::OpenVideo()
@@ -204,13 +204,14 @@ void VEMainWindow::Convert()
         //theFFMPEG->Convert(currentVideoFile.absoluteFilePath(), codec.CommandLine, &theMarks, scaling, outFilename);
 
 		VideoRecode* recode = new VideoRecode(this);
+        VideoPreset codec = ui->cbxPresets->currentData().value<VideoPreset>();
 		recode->setInputPath(currentVideoFile.absoluteFilePath());
 		recode->setOutputPath(outFilename);
-		recode->setAudioCodec("");
-		recode->setVideoCodec("libx264");
-		recode->setVideoCodecPreset("medium");
-		recode->setVideoCodecTune("film");
-		recode->setVideoCodecProfile("high");
+		recode->setAudioCodec(codec.AudioCodec);
+		recode->setVideoCodec(codec.VideoCodec);
+		recode->setVideoCodecPreset(codec.VideoCodecPreset);
+		recode->setVideoCodecTune(codec.VideoCodecTune);
+		recode->setVideoCodecProfile(codec.VideoCodecProfile);
         connect(recode, &VideoRecode::recodeProgress, this, [=](int progress) 
             {
             ui->statusbar->showMessage(tr("Recode progress: %1%").arg(progress));
@@ -234,7 +235,7 @@ void VEMainWindow::Convert()
                     if (!outFilename.isEmpty())
                     {
                         std::tuple<bool, int, int, QString> scaling = FFMPEG::getScalingTuple(ui->grpScaling->isChecked(), ui->valScaleWidth->value(), ui->valScaleHeight->value(), ui->cbxScalingFlags->currentIndex());
-                        theFFMPEG->Convert(currentVideoFile.absoluteFilePath(), codec.CommandLine, &theMarks, scaling, outFilename);
+                        //theFFMPEG->Convert(currentVideoFile.absoluteFilePath(), codec.CommandLine, &theMarks, scaling, outFilename);
                     }
                 }
             }

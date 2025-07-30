@@ -8,6 +8,8 @@ namespace Ui {
 class SettingsDialog;
 }
 
+class QTableWidget;
+
 class SettingsDialog : public QDialog
 {
     Q_OBJECT
@@ -17,13 +19,13 @@ public:
     ~SettingsDialog();
 
 private slots:
-    void SearchForFFMPEGBinary();
-    void VideoPresetChanged(int row, int column);
     void AddVideoPreset();
+	void EditVideoPreset();
     void RemoveVideoPreset();
 
 private:
     void ReadSettings();
+    void FillRowInfo(QTableWidget* table, int row, const VideoPreset& preset);
 
     Ui::SettingsDialog *ui;
     Settings* theSettings;
