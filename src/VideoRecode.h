@@ -93,6 +93,8 @@ public:
 
     QString lastErrorMessage() const;
 
+    static void getAvailableEncoders(QStringList& videoCodecs, QStringList& audioCodecs);
+
 public slots:
     void recode();
 

@@ -1,3 +1,8 @@
+// https://www.ffmpeg.org/doxygen/trunk/index.html
+// https://www.ffmpeg.org/doxygen/7.0/index.html
+// https://www.gyan.dev/ffmpeg/builds/
+
+
 #include <QObject>
 #include <QProcess>
 #include <QFileInfo>
@@ -726,3 +731,23 @@ void VideoRecode::recode()
     }
 
 }
+
+void VideoRecode::getAvailableEncoders(QStringList& videoCodecs, QStringList& audioCodecs)
+{
+    const AVCodec* codec;
+    void* iter = nullptr;
+    while ((codec = av_codec_iterate(&iter)))
+    {
+        if (codec->type == AVMEDIA_TYPE_VIDEO) 
+        {
+            if (av_codec_is_encoder(codec))
+                videoCodecs.append(QString::fromStdString(codec->name));
+        } 
+        else if (codec->type == AVMEDIA_TYPE_AUDIO) 
+        {
+            if (av_codec_is_encoder(codec))
+                audioCodecs.append(QString::fromStdString(codec->name));
+        }
+	}
+}
+
