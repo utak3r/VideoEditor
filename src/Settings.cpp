@@ -52,15 +52,16 @@ void Settings::ReadSettings()
         {
             QString presetEncoded = theSettings->value(presetKey).value<QString>();
             QStringList list = presetEncoded.split("\r\n", Qt::KeepEmptyParts, Qt::CaseInsensitive);
-            if (list.count() == 7)
+            if (list.count() == 6)
             {
-                theVideoPresets.append(VideoPreset(list[0], list[1], list[2], list[3], list[4], list[5], list[6]));
+                theVideoPresets.append(VideoPreset(list[0], list[1], list[2], list[3], list[4], list[5]));
             }
         }
     }
     else
     {
-        theVideoPresets.append(VideoPreset("H.264 copy audio", ".mp4", "libx264", "medium", "film", "high", ""));
+        theVideoPresets.append(VideoPreset("H.264 normal", ".mp4", "libx264 H.264 / AVC / MPEG-4 AVC / MPEG-4 part 10", "normal", "AAC (Advanced Audio Coding)", "medium"));
+        //theVideoPresets.append(VideoPreset("H.264 copy audio", ".mp4", "libx264", "medium", "film", "high", ""));
         //theVideoPresets.append(VideoPreset("H.264 AAC", ".mp4", "-c:v libx264 -preset medium -tune film -c:a aac"));
         //theVideoPresets.append(VideoPreset("DNxHD 185Mbps PCM s24LE", ".mov", "-c:v dnxhd -b:v 185M -c:a pcm_s24le"));
         //theVideoPresets.append(VideoPreset("ProRes YUV422", ".mov", "-c:v prores_ks -profile:v 3 -vendor ap10 -pix_fmt yuv422p10le"));

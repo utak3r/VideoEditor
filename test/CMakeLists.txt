@@ -48,6 +48,7 @@ target_link_libraries(VEUnitTests
 	"${FFMPEG_DIR}/lib/avutil.lib"
 	"${FFMPEG_DIR}/lib/swscale.lib"
 	"${FFMPEG_DIR}/lib/swresample.lib"    
+    "${FFMPEG_DIR}/lib/avformat.lib"
     PRIVATE
     Threads::Threads GTest::gtest_main
     Qt6::Widgets Qt6::Multimedia Qt6::MultimediaWidgets

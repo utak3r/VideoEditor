@@ -1,5 +1,6 @@
 #pragma once
 #include <QDialog>
+#include <QComboBox>
 #include "VideoPreset.h"
 
 namespace Ui {
@@ -14,6 +15,7 @@ public:
 	EncodingPreset(QWidget* parent = nullptr);
 	~EncodingPreset();
 
+	void getAvailablePresets(const QString& codecName, QComboBox* comboBox);
 	void setPreset(const VideoPreset& preset);
 	VideoPreset getPreset() const;
 

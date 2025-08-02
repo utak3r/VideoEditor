@@ -46,11 +46,11 @@ void SettingsDialog::FillRowInfo(QTableWidget *table, int row, const VideoPreset
 {
     table->setItem(row, 0, new QTableWidgetItem(preset.Name));
     table->setItem(row, 1, new QTableWidgetItem(preset.Extension));
-    QString codecSettings = QString("%1, preset=%2 tune=%3 profile=%4")
+    QString codecSettings = QString("Video: %1, preset: %2. Audio: %3, preset: %4")
         .arg(preset.VideoCodec)
         .arg(preset.VideoCodecPreset)
-        .arg(preset.VideoCodecTune)
-        .arg(preset.VideoCodecProfile);
+        .arg(preset.AudioCodec)
+        .arg(preset.AudioCodecPreset);
     table->setItem(row, 2, new QTableWidgetItem(codecSettings));
 }
 

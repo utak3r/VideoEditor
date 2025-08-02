@@ -9,9 +9,8 @@ VideoPreset::VideoPreset()
     Extension(""),
     VideoCodec(""),
 	AudioCodec(""),
-	VideoCodecPreset("medium"),
-	VideoCodecTune(""),
-    VideoCodecProfile("")
+	VideoCodecPreset(""),
+	AudioCodecPreset("")
 {
 }
 
@@ -21,16 +20,15 @@ VideoPreset::VideoPreset()
  * \param ext file extension to be used
  * \param cmd ffnpeg arguments to be used during conversion
  */
-VideoPreset::VideoPreset(QString name, QString ext, QString video, QString videoPreset, QString videoTune, QString videoProfile, QString audio)
+VideoPreset::VideoPreset(QString name, QString ext, QString video, QString videoPreset, QString audio, QString audioPreset)
     : VideoPreset()
 {
 	Name = name.trimmed();
     Extension = ext.trimmed();
     VideoCodec = video.trimmed();
 	VideoCodecPreset = videoPreset.trimmed();
-    VideoCodecTune = videoTune.trimmed();
-	VideoCodecProfile = videoProfile.trimmed();
     AudioCodec = audio.trimmed();
+	AudioCodecPreset = audioPreset.trimmed();
 }
 
 VideoPreset::VideoPreset(const VideoPreset& other)
@@ -40,8 +38,7 @@ VideoPreset::VideoPreset(const VideoPreset& other)
     VideoCodec = other.VideoCodec;
     AudioCodec = other.AudioCodec;
     VideoCodecPreset = other.VideoCodecPreset;
-    VideoCodecTune = other.VideoCodecTune;
-	VideoCodecProfile = other.VideoCodecProfile;
+	AudioCodecPreset = other.AudioCodecPreset;
 }
 
 VideoPreset& VideoPreset::operator=(const VideoPreset& other)
@@ -52,8 +49,7 @@ VideoPreset& VideoPreset::operator=(const VideoPreset& other)
         VideoCodec = other.VideoCodec;
         AudioCodec = other.AudioCodec;
         VideoCodecPreset = other.VideoCodecPreset;
-        VideoCodecTune = other.VideoCodecTune;
-        VideoCodecProfile = other.VideoCodecProfile;
+		AudioCodecPreset = other.AudioCodecPreset;
 	}
 	return *this;
 }
@@ -68,8 +64,7 @@ VideoPreset::VideoPreset(VideoPreset&& other) noexcept
     VideoCodec = std::move(other.VideoCodec);
     AudioCodec = std::move(other.AudioCodec);
     VideoCodecPreset = std::move(other.VideoCodecPreset);
-    VideoCodecTune = std::move(other.VideoCodecTune);
-	VideoCodecProfile = std::move(other.VideoCodecProfile);
+	AudioCodecPreset = std::move(other.AudioCodecPreset);
 }
 
 /*!
@@ -78,8 +73,7 @@ VideoPreset::VideoPreset(VideoPreset&& other) noexcept
 QString VideoPreset::asString()
 {
     QString str = Name + "\r\n" + Extension + "\r\n" + 
-        VideoCodec + "\r\n" + VideoCodecPreset + "\r\n" + VideoCodecTune + "\r\n" + VideoCodecProfile + "\r\n" +
-        AudioCodec;
+        VideoCodec + "\r\n" + VideoCodecPreset + "\r\n" + AudioCodec + "\r\n" + AudioCodecPreset;
     return str;
 }
 

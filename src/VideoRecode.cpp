@@ -135,6 +135,19 @@ void VideoRecode::setVideoCodecPreset(const QString& videoCodecPreset)
 	}
 }
 
+QString VideoRecode::audioCodecPreset() const
+{
+    return theAudioCodecPreset;
+}
+
+void VideoRecode::setAudioCodecPreset(const QString& audioCodecPreset)
+{
+    if (theAudioCodecPreset != audioCodecPreset)
+    {
+        theAudioCodecPreset = audioCodecPreset;
+	}
+}
+
 QString VideoRecode::videoCodecTune() const
 {
     return theVideoCodecTune;
@@ -171,6 +184,19 @@ void VideoRecode::setTargetFormat(const QString& format)
     if (theTargetFormat != format)
     {
         theTargetFormat = format;
+	}
+}
+
+TimelineMarks VideoRecode::marks()
+{
+    return theMarks;
+}
+
+void VideoRecode::setMarks(const TimelineMarks& marks)
+{
+    if (theMarks != marks)
+    {
+        theMarks = marks;
 	}
 }
 
@@ -275,12 +301,21 @@ int VideoRecode::prepareVideoEncoder(StreamContext* sc, AVCodecContext* decoder_
 {
     sc->video_avs = avformat_new_stream(sc->avfc, NULL);
 
-    sc->video_avc = avcodec_find_encoder_by_name(params.video_codec.toStdString().c_str());
-    if (!sc->video_avc)
+    if (sc->video_codec)
     {
-		qDebug() << "Failed to find the proper codec" << params.video_codec;
-        return -1;
+		sc->video_avc = sc->video_codec->getAVCodec();
+        if (!sc->video_avc)
+        {
+            qDebug() << "Failed to find the proper codec" << sc->video_codec->name();
+        }
     }
+
+  //  sc->video_avc = avcodec_find_encoder_by_name(params.video_codec.toStdString().c_str());
+  //  if (!sc->video_avc)
+  //  {
+		//qDebug() << "Failed to find the proper codec" << params.video_codec;
+  //      return -1;
+  //  }
 
     sc->video_avcc = avcodec_alloc_context3(sc->video_avc);
     if (!sc->video_avcc)
@@ -290,11 +325,17 @@ int VideoRecode::prepareVideoEncoder(StreamContext* sc, AVCodecContext* decoder_
     }
 
     if (!params.video_codec_preset.isEmpty())
-        av_opt_set(sc->video_avcc->priv_data, "preset", params.video_codec_preset.toStdString().c_str(), 0);
-    if (!params.video_codec_tune.isEmpty())
-        av_opt_set(sc->video_avcc->priv_data, "tune", params.video_codec_tune.toStdString().c_str(), 0);
-	if (!params.video_codec_profile.isEmpty())
-		av_opt_set(sc->video_avcc->priv_data, "profile", params.video_codec_profile.toStdString().c_str(), 0);
+    {
+		// Set the preset for the video codec
+		sc->video_codec->setPreset(params.video_codec_preset, sc->video_avcc);
+    }
+
+ //   if (!params.video_codec_preset.isEmpty())
+ //       av_opt_set(sc->video_avcc->priv_data, "preset", params.video_codec_preset.toStdString().c_str(), 0);
+ //   if (!params.video_codec_tune.isEmpty())
+ //       av_opt_set(sc->video_avcc->priv_data, "tune", params.video_codec_tune.toStdString().c_str(), 0);
+	//if (!params.video_codec_profile.isEmpty())
+	//	av_opt_set(sc->video_avcc->priv_data, "profile", params.video_codec_profile.toStdString().c_str(), 0);
     //if (!params.codec_priv_key.isNull() && !params.codec_priv_value.isNull())
     //    av_opt_set(sc->video_avcc->priv_data, params.codec_priv_key.toStdString().c_str(), params.codec_priv_value.toStdString().c_str(), 0);
 
@@ -313,6 +354,8 @@ int VideoRecode::prepareVideoEncoder(StreamContext* sc, AVCodecContext* decoder_
 
     sc->video_avcc->time_base = av_inv_q(input_framerate);
     sc->video_avs->time_base = sc->video_avcc->time_base;
+    sc->video_avs->duration = AV_NOPTS_VALUE;
+    //sc->video_avs->duration = millisecondsToTimestamp(theMarks.Duration(), sc->video_avcc->time_base);
 
     if (avcodec_open2(sc->video_avcc, sc->video_avc, NULL) < 0)
     {
@@ -329,12 +372,22 @@ int VideoRecode::prepareAudioEncoder(StreamContext* sc, int sample_rate, Encodin
 {
     sc->audio_avs = avformat_new_stream(sc->avfc, NULL);
 
-    sc->audio_avc = avcodec_find_encoder_by_name(sp.audio_codec.toStdString().c_str());
-    if (!sc->audio_avc) 
+    if (sc->audio_codec)
     {
-		qDebug() << "Failed to find the proper codec" << sp.audio_codec;
-        return -1;
+        sc->audio_avc = sc->audio_codec->getAVCodec();
+        if (!sc->audio_avc)
+        {
+            qDebug() << "Failed to find the proper codec" << sc->audio_codec->name();
+        }
     }
+
+
+  //  sc->audio_avc = avcodec_find_encoder_by_name(sp.audio_codec.toStdString().c_str());
+  //  if (!sc->audio_avc) 
+  //  {
+		//qDebug() << "Failed to find the proper codec" << sp.audio_codec;
+  //      return -1;
+  //  }
 
     sc->audio_avcc = avcodec_alloc_context3(sc->audio_avc);
     if (!sc->audio_avcc)
@@ -343,15 +396,22 @@ int VideoRecode::prepareAudioEncoder(StreamContext* sc, int sample_rate, Encodin
         return -1;
     }
 
-    int OUTPUT_CHANNELS = 2;
-    int OUTPUT_BIT_RATE = 196000;
-	av_channel_layout_default(&sc->audio_avcc->ch_layout, OUTPUT_CHANNELS);
+    if (!sp.audio_codec_preset.isEmpty())
+    {
+        // Set the preset for the video codec
+        sc->audio_codec->setPreset(sp.audio_codec_preset, sc->audio_avcc);
+    }
+
+
+ //   int OUTPUT_CHANNELS = 2;
+ //   int OUTPUT_BIT_RATE = 196000;
+	//av_channel_layout_default(&sc->audio_avcc->ch_layout, OUTPUT_CHANNELS);
     sc->audio_avcc->sample_rate = sample_rate;
     sc->audio_avcc->sample_fmt = sc->audio_avc->sample_fmts[0];
-    sc->audio_avcc->bit_rate = OUTPUT_BIT_RATE;
+    //sc->audio_avcc->bit_rate = OUTPUT_BIT_RATE;
     sc->audio_avcc->time_base = AVRational{ 1, sample_rate };
 
-    sc->audio_avcc->strict_std_compliance = FF_COMPLIANCE_EXPERIMENTAL;
+    //sc->audio_avcc->strict_std_compliance = FF_COMPLIANCE_EXPERIMENTAL;
 
     sc->audio_avs->time_base = sc->audio_avcc->time_base;
 
@@ -371,8 +431,10 @@ int VideoRecode::prepareCopy(AVFormatContext* avfc, AVStream** avs, AVCodecParam
     return 0;
 }
 
-int VideoRecode::remux(AVPacket** pkt, AVFormatContext** avfc, AVRational decoder_tb, AVRational encoder_tb)
+int VideoRecode::remux(AVPacket** pkt, AVFormatContext** avfc, AVRational decoder_tb, AVRational encoder_tb, int64_t pts_start, int64_t pts_end)
 {
+    (*pkt)->pts -= pts_start;
+    (*pkt)->dts -= pts_start;
     av_packet_rescale_ts(*pkt, decoder_tb, encoder_tb);
     if (av_interleaved_write_frame(*avfc, *pkt) < 0)
     {
@@ -382,9 +444,14 @@ int VideoRecode::remux(AVPacket** pkt, AVFormatContext** avfc, AVRational decode
     return 0;
 }
 
-int VideoRecode::encodeVideo(StreamContext* decoder, StreamContext* encoder, AVFrame* input_frame)
+int VideoRecode::encodeVideo(StreamContext* decoder, StreamContext* encoder, AVFrame* input_frame, int64_t pts_start)
 {
     if (input_frame) input_frame->pict_type = AV_PICTURE_TYPE_NONE;
+
+    if (pts_start > 0 && input_frame)
+    {
+        input_frame->pts -= pts_start;
+    }
 
     AVPacket* output_packet = av_packet_alloc();
     if (!output_packet)
@@ -424,8 +491,13 @@ int VideoRecode::encodeVideo(StreamContext* decoder, StreamContext* encoder, AVF
     return 0;
 }
 
-int VideoRecode::encodeAudio(StreamContext* decoder, StreamContext* encoder, AVFrame* input_frame)
+int VideoRecode::encodeAudio(StreamContext* decoder, StreamContext* encoder, AVFrame* input_frame, int64_t pts_start)
 {
+    if (pts_start > 0 && input_frame)
+    {
+        input_frame->pts -= pts_start;
+    }
+
     AVPacket* output_packet = av_packet_alloc();
     if (!output_packet)
     {
@@ -463,7 +535,7 @@ int VideoRecode::encodeAudio(StreamContext* decoder, StreamContext* encoder, AVF
     return 0;
 }
 
-int VideoRecode::transcodeAudio(StreamContext* decoder, StreamContext* encoder, AVPacket* input_packet, AVFrame* input_frame)
+int VideoRecode::transcodeAudio(StreamContext* decoder, StreamContext* encoder, AVPacket* input_packet, AVFrame* input_frame, int64_t pts_start, int64_t pts_end)
 {
     int response = avcodec_send_packet(decoder->audio_avcc, input_packet);
     if (response < 0)
@@ -485,16 +557,16 @@ int VideoRecode::transcodeAudio(StreamContext* decoder, StreamContext* encoder, 
             return response;
         }
 
-        if (response >= 0)
+        if (response >= 0 && input_frame->pts >= pts_start && input_frame->pts <= pts_end)
         {
-            if (encodeAudio(decoder, encoder, input_frame)) return -1;
+            if (encodeAudio(decoder, encoder, input_frame, pts_start)) return -1;
         }
         av_frame_unref(input_frame);
     }
     return 0;
 }
 
-int VideoRecode::transcodeVideo(StreamContext* decoder, StreamContext* encoder, AVPacket* input_packet, AVFrame* input_frame)
+int VideoRecode::transcodeVideo(StreamContext* decoder, StreamContext* encoder, AVPacket* input_packet, AVFrame* input_frame, int64_t pts_start, int64_t pts_end)
 {
     int response = avcodec_send_packet(decoder->video_avcc, input_packet);
     if (response < 0)
@@ -516,13 +588,20 @@ int VideoRecode::transcodeVideo(StreamContext* decoder, StreamContext* encoder, 
             return response;
         }
 
-        if (response >= 0)
+        if (response >= 0 && input_frame->pts >= pts_start && input_frame->pts <= pts_end)
         {
-            if (encodeVideo(decoder, encoder, input_frame)) return -1;
+            if (encodeVideo(decoder, encoder, input_frame, pts_start)) return -1;
         }
         av_frame_unref(input_frame);
     }
     return 0;
+}
+
+int64_t VideoRecode::millisecondsToTimestamp(qint64 msecs, AVRational timeBase)
+{
+    double time = (double)msecs / 1000.0;
+    double stream_time_base = av_q2d(timeBase);
+    return (int64_t)(time / stream_time_base);
 }
 
 void VideoRecode::recode()
@@ -532,6 +611,7 @@ void VideoRecode::recode()
     params.copy_video = theCopyVideo;
 	params.video_codec = theVideoCodec;
 	params.video_codec_preset = theVideoCodecPreset;
+	params.audio_codec_preset = theAudioCodecPreset;
 	params.video_codec_tune = theVideoCodecTune;
 	params.video_codec_profile = theVideoCodecProfile;
 
@@ -544,6 +624,8 @@ void VideoRecode::recode()
     {
         params.copy_audio = true; // If no audio codec is specified, copy audio
 	}
+    //params.copy_video = false;
+    //params.audio_codec = "aac";
     
 	StreamContext* decoder = new StreamContext();
     decoder->filename = theInputPath;
@@ -556,7 +638,11 @@ void VideoRecode::recode()
     {
         QFileInfo info(encoder->filename);
         encoder->filename = info.path() + "/" + info.completeBaseName() + params.output_extension;
-    }        
+    }
+
+    // Instantiate the video and audio codecs presets
+	encoder->video_codec = CodecFactory::instance().create(params.video_codec);
+	encoder->audio_codec = CodecFactory::instance().create(params.audio_codec);
 
     if (openMedia(decoder->filename, &decoder->avfc) == 0)
     {
@@ -602,6 +688,19 @@ void VideoRecode::recode()
                 }
             }
 
+			// Seek to the mark in time
+            int64_t start_pts = av_rescale_q(theMarks.MillisecondsStart() / 1000 * AV_TIME_BASE, AV_TIME_BASE_Q, decoder->video_avs->time_base);
+            int64_t end_pts = av_rescale_q(theMarks.MillisecondsEnd() / 1000 * AV_TIME_BASE, AV_TIME_BASE_Q, decoder->video_avs->time_base);
+            if (start_pts > 0)
+            {
+				avformat_seek_file(decoder->avfc, decoder->video_index, start_pts, start_pts, start_pts, AVSEEK_FLAG_ANY);
+                //av_seek_frame(decoder->avfc, decoder->video_index, start_pts, AVSEEK_FLAG_ANY);
+                avcodec_flush_buffers(decoder->video_avcc);
+                avformat_seek_file(decoder->avfc, decoder->audio_index, start_pts, start_pts, start_pts, AVSEEK_FLAG_ANY);
+                //av_seek_frame(decoder->avfc, decoder->audio_index, start_pts, AVSEEK_FLAG_ANY);
+                avcodec_flush_buffers(decoder->audio_avcc);
+            }
+
             if (encoder->avfc->oformat->flags & AVFMT_GLOBALHEADER)
                 encoder->avfc->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
 
@@ -621,6 +720,10 @@ void VideoRecode::recode()
             {
                 av_dict_set(&muxer_opts, params.muxer_opt_key.toStdString().c_str(), params.muxer_opt_value.toStdString().c_str(), 0);
             }
+            av_dict_set(&encoder->avfc->metadata, "duration", theMarks.DurationTimecode().toStdString().c_str(), 0);
+            //av_dict_set(&encoder->avfc->metadata, "duration", QString("%1").arg(theMarks.Duration() / 1000).toStdString().c_str(), 0);
+            av_dict_set(&encoder->audio_avs->metadata, "encoder", "VideoEditor", AV_DICT_DONT_STRDUP_VAL | AV_DICT_DONT_OVERWRITE);
+
 
             if (avformat_write_header(encoder->avfc, &muxer_opts) < 0)
             {
@@ -657,13 +760,12 @@ void VideoRecode::recode()
                 {
                     if (!params.copy_video)
                     {
-                        // TODO: refactor to be generic for audio and video (receiving a function pointer to the differences)
-                        if (transcodeVideo(decoder, encoder, input_packet, input_frame)) return;
+                        if (transcodeVideo(decoder, encoder, input_packet, input_frame, start_pts, end_pts)) return;
                         av_packet_unref(input_packet);
                     }
                     else
                     {
-                        if (remux(&input_packet, &encoder->avfc, decoder->video_avs->time_base, encoder->video_avs->time_base)) return;
+                        if (remux(&input_packet, &encoder->avfc, decoder->video_avs->time_base, encoder->video_avs->time_base, start_pts, end_pts)) return;
                     }
 					frame_count++;
                 }
@@ -671,12 +773,12 @@ void VideoRecode::recode()
                 {
                     if (!params.copy_audio)
                     {
-                        if (transcodeAudio(decoder, encoder, input_packet, input_frame)) return;
+                        if (transcodeAudio(decoder, encoder, input_packet, input_frame, start_pts, end_pts)) return;
                         av_packet_unref(input_packet);
                     }
                     else
                     {
-                        if (remux(&input_packet, &encoder->avfc, decoder->audio_avs->time_base, encoder->audio_avs->time_base)) return;
+                        if (remux(&input_packet, &encoder->avfc, decoder->audio_avs->time_base, encoder->audio_avs->time_base, start_pts, end_pts)) return;
                     }
                 }
                 else
@@ -690,10 +792,14 @@ void VideoRecode::recode()
             }
 
             if (!params.copy_video)
-                if (encodeVideo(decoder, encoder, nullptr)) return;
+                if (encodeVideo(decoder, encoder, nullptr, start_pts)) return;
             if (!params.copy_audio)
-                if (encodeAudio(decoder, encoder, nullptr)) return;
+                if (encodeAudio(decoder, encoder, nullptr, start_pts)) return;
 
+            encoder->video_avs->duration = end_pts - start_pts;
+            encoder->audio_avs->duration = end_pts - start_pts;
+            //av_dict_set(&encoder->avfc->metadata, "duration", QString("%1").arg(theMarks.Duration() / 1000).toStdString().c_str(), 0);
+            av_dict_set(&encoder->avfc->metadata, "duration", theMarks.DurationTimecode().toStdString().c_str(), 0);
             av_write_trailer(encoder->avfc);
 
             if (muxer_opts != nullptr)
@@ -722,6 +828,9 @@ void VideoRecode::recode()
             avcodec_free_context(&decoder->video_avcc); decoder->video_avcc = nullptr;
             avcodec_free_context(&decoder->audio_avcc); decoder->audio_avcc = nullptr;
 
+			delete encoder->video_codec; encoder->video_codec = nullptr;
+			delete encoder->audio_codec; encoder->audio_codec = nullptr;
+
             delete decoder; decoder = nullptr;
 			delete encoder; encoder = nullptr;
 
@@ -741,12 +850,12 @@ void VideoRecode::getAvailableEncoders(QStringList& videoCodecs, QStringList& au
         if (codec->type == AVMEDIA_TYPE_VIDEO) 
         {
             if (av_codec_is_encoder(codec))
-                videoCodecs.append(QString::fromStdString(codec->name));
+                videoCodecs.append(QString("%1: %2").arg(codec->name, codec->long_name));
         } 
         else if (codec->type == AVMEDIA_TYPE_AUDIO) 
         {
             if (av_codec_is_encoder(codec))
-                audioCodecs.append(QString::fromStdString(codec->name));
+                audioCodecs.append(QString("%1: %2").arg(codec->name, codec->long_name));
         }
 	}
 }

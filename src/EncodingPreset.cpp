@@ -1,5 +1,6 @@
 #include "EncodingPreset.h"
 #include "ui_EncodingPreset.h"
+#include "Codec.h"
 
 EncodingPreset::EncodingPreset(QWidget* parent)
 	: QDialog(parent)
@@ -7,17 +8,44 @@ EncodingPreset::EncodingPreset(QWidget* parent)
 {
 	ui->setupUi(this);
 
-	ui->cbVideoCodec->addItems({ "libx264", "libx265", "libvpx-vp9", "libaom-av1" });
-	ui->cbVideoPreset->addItems({ "ultrafast", "superfast", "veryfast", "faster", "fast", "medium", "slow", "slower", "veryslow" });
-	ui->cbVideoTune->addItems({ "none", "film", "animation", "grain", "stillimage", "fastdecode", "zerolatency" });
-	ui->cbVideoProfile->addItems({ "baseline", "main", "high", "high10", "high422", "high444" });
+	// Get list of available codecs
+	for (const auto& name : CodecFactory::instance().availablePlugins())
+	{
+		Codec* codec = CodecFactory::instance().create(name);
+		if (codec)
+		{
+			if (codec->type() == Codec::CodecType::Video)
+			{
+				ui->cbVideoCodec->addItem(name);
+			}
+			else if (codec->type() == Codec::CodecType::Audio)
+			{
+				ui->cbAudioCodec->addItem(name);
+			}
+			delete codec;
+		}
+	}
 
-	ui->cbVideoCodec->setCurrentIndex(0); // libx264
-	ui->cbVideoPreset->setCurrentIndex(5); // medium
-	ui->cbVideoTune->setCurrentIndex(0); // none
-	ui->cbVideoProfile->setCurrentIndex(2); // high
+	// Get available presets for chosen video codec
+	ui->cbVideoCodec->setCurrentIndex(0); // Default to first codec
+	getAvailablePresets(ui->cbVideoCodec->currentText(), ui->cbVideoPreset);
+	ui->cbVideoPreset->setCurrentIndex(0);
 
-	ui->cbxAudioCopy->setChecked(true);
+	connect(ui->cbVideoCodec, &QComboBox::currentTextChanged, this, [=](const QString& codecName) {
+		ui->cbVideoPreset->clear();
+		getAvailablePresets(codecName, ui->cbVideoPreset);
+		ui->cbVideoPreset->setCurrentIndex(0); // Reset to first preset
+		});
+
+	// Get available presets for chosen audio codec
+	ui->cbAudioCodec->setCurrentIndex(0); // Default to first audio codec
+	getAvailablePresets(ui->cbAudioCodec->currentText(), ui->cbAudioPreset);
+	ui->cbAudioPreset->setCurrentIndex(0);
+	connect(ui->cbAudioCodec, &QComboBox::currentTextChanged, this, [=](const QString& codecName) {
+		ui->cbAudioPreset->clear();
+		getAvailablePresets(codecName, ui->cbAudioPreset);
+		ui->cbAudioPreset->setCurrentIndex(0); // Reset to first preset
+		});
 }
 
 EncodingPreset::~EncodingPreset()
@@ -25,14 +53,23 @@ EncodingPreset::~EncodingPreset()
 	delete ui;
 }
 
+void EncodingPreset::getAvailablePresets(const QString& codecName, QComboBox* comboBox)
+{
+	if (!codecName.isEmpty())
+	{
+		Codec* codec = CodecFactory::instance().create(codecName);
+		comboBox->addItems(codec->getAvailablePresets());
+		delete codec;
+	}
+}
+
 void EncodingPreset::setPreset(const VideoPreset& preset)
 {
 	ui->lineEdit->setText(preset.Name);
 	ui->cbVideoCodec->setCurrentText(preset.VideoCodec);
 	ui->cbVideoPreset->setCurrentText(preset.VideoCodecPreset);
-	ui->cbVideoTune->setCurrentText(preset.VideoCodecTune);
-	ui->cbVideoProfile->setCurrentText(preset.VideoCodecProfile);
-	ui->cbxAudioCopy->setChecked(preset.AudioCodec.isEmpty());
+	ui->cbAudioCodec->setCurrentText(preset.AudioCodec);
+	ui->cbAudioPreset->setCurrentText(preset.AudioCodecPreset);
 }
 
 VideoPreset EncodingPreset::getPreset() const
@@ -42,9 +79,8 @@ VideoPreset EncodingPreset::getPreset() const
 		QString(".mp4"),
 		ui->cbVideoCodec->currentText().trimmed(),
 		ui->cbVideoPreset->currentText().trimmed(),
-		ui->cbVideoTune->currentText().trimmed() == "none" ? QString("") : ui->cbVideoTune->currentText().trimmed(),
-		ui->cbVideoProfile->currentText().trimmed(),
-		ui->cbxAudioCopy->isChecked() ? QString("") : QString("")
+		ui->cbAudioCodec->currentText().trimmed(),
+		ui->cbAudioPreset->currentText().trimmed()
 	);
 	qDebug() << "EncodingPreset::getPreset:" << preset;
 	return preset;

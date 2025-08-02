@@ -13,9 +13,30 @@ TimelineMarks::TimelineMarks()
 }
 
 /*!
+ * \brief TimelineMarks::TimelineMarks: copy constructor
+ */
+TimelineMarks::TimelineMarks(TimelineMarks& other)
+    : theMarkIn(other.theMarkIn)
+    , theMarkOut(other.theMarkOut)
+	, theVideoDuration(other.theVideoDuration)
+{
+}
+
+TimelineMarks& TimelineMarks::operator=(const TimelineMarks& other)
+{
+    if (this != &other)
+    {
+        theMarkIn = other.theMarkIn;
+        theMarkOut = other.theMarkOut;
+        theVideoDuration = other.theVideoDuration;
+	}
+	return *this;
+}
+
+/*!
  * \brief TimelineMarks::MarkIn
  */
-qint64 TimelineMarks::MarkIn()
+qint64 TimelineMarks::MarkIn() const
 {
     return theMarkIn;
 }
@@ -32,7 +53,7 @@ void TimelineMarks::setMarkIn(qint64 mark)
 /*!
  * \brief TimelineMarks::MarkOut
  */
-qint64 TimelineMarks::MarkOut()
+qint64 TimelineMarks::MarkOut() const
 {
     return theMarkOut;
 }
@@ -124,6 +145,22 @@ QString TimelineMarks::TimecodeEnd(uint secondsFractionPrecision) const
     return MillisecondsToTimecode(end, secondsFractionPrecision);
 }
 
+qint64 TimelineMarks::MillisecondsStart() const
+{
+    qint64 start = 0;
+    if (theMarkIn > -1)
+        start = theMarkIn;
+    return start;
+}
+
+qint64 TimelineMarks::MillisecondsEnd() const
+{
+    qint64 end = theVideoDuration;
+    if (theMarkOut > -1)
+        end = theMarkOut;
+    return end;
+}
+
 /*!
  * \brief TimelineMarks::duration_timecode: Returns duration in a timecode formatted string.
  */
@@ -149,9 +186,21 @@ QString TimelineMarks::CurrentRange(uint secondsFractionPrecision) const
  */
 bool TimelineMarks::IsTrimmed()
 {
-    bool trimmed = false;
-    if (theMarkIn > -1 || theMarkOut > -1)
-        trimmed = true;
-    return trimmed;
+	return (theMarkIn > -1 || theMarkOut > -1);
+}
+
+bool TimelineMarks::IsFullVideo() const
+{
+    return theMarkIn == -1 && theMarkOut == -1;
+}
+
+bool operator==(const TimelineMarks& lhs, const TimelineMarks& rhs)
+{
+    return (lhs.theMarkIn == rhs.theMarkIn && lhs.theMarkOut == rhs.theMarkOut && lhs.theVideoDuration == rhs.theVideoDuration);
+}
+
+bool operator!=(const TimelineMarks& lhs, const TimelineMarks& rhs)
+{
+    return !(lhs == rhs);
 }
 

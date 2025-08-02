@@ -13,7 +13,7 @@ class VideoPreset
 {
 public:
     VideoPreset();
-    VideoPreset(QString name, QString ext, QString video, QString videoPreset, QString videoTune, QString videoProfile, QString audio);
+    VideoPreset(QString name, QString ext, QString video, QString videoPreset, QString audio, QString audioPreset);
 	VideoPreset(const VideoPreset& other);
 	VideoPreset& operator=(const VideoPreset& other);
 	VideoPreset(VideoPreset&& other) noexcept;
@@ -24,9 +24,8 @@ public:
     QString Name;
     QString VideoCodec;
 	QString AudioCodec;
-	QString VideoCodecPreset; // ultrafast, superfast, veryfast, faster, fast, medium, slow, slower, veryslow
-	QString VideoCodecTune; // film, animation, grain, stillimage, zerolatency
-	QString VideoCodecProfile; // baseline, main, high, high10, high422, high444, dnxhr_hq, dnxhr_hqx, dnxhr_444, etc.
+	QString VideoCodecPreset;
+	QString AudioCodecPreset;
     QString Extension;
 
 };
@@ -39,9 +38,8 @@ inline QDebug operator<<(QDebug debug, const VideoPreset& preset)
                     << preset.Extension << ","
 		            << preset.VideoCodec << ","
 		            << preset.VideoCodecPreset << ","
-		            << preset.VideoCodecTune << ","
-                    << preset.VideoCodecProfile << ","
-		            << preset.AudioCodec
+		            << preset.AudioCodec << ","
+		            << preset.AudioCodecPreset
                     << ")";
     return debug.space();
 }

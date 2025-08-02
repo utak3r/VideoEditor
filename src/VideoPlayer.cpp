@@ -261,16 +261,20 @@ void VideoPlayer::setPosition(qint64 position)
 	if (theFormatContext)
 	{
 		QElapsedTimer execution_timer;
-		execution_timer.start();
+		//execution_timer.start();
 
-		int64_t target_ts = millisecondsToTimestamp(position, theVideoStream->time_base);
-		if (0 <= av_seek_frame(theFormatContext, theVideoStreamIndex, target_ts, 0))
+		//int64_t target_ts = millisecondsToTimestamp(position, theVideoStream->time_base);
+		int64_t target_ts = av_rescale_q(position / 1000 * AV_TIME_BASE, AV_TIME_BASE_Q, theVideoStream->time_base);
+
+		//if (0 <= avformat_seek_file(theFormatContext, theVideoStreamIndex, 0, target_ts, target_ts, AVSEEK_FLAG_BACKWARD))
+		if (0 <= av_seek_frame(theFormatContext, theVideoStreamIndex, target_ts, AVSEEK_FLAG_ANY))
+		//if (0 <= av_seek_frame(theFormatContext, theVideoStreamIndex, target_ts, 0))
 		{
 			avcodec_flush_buffers(theCodecContext);
 			AVPacket* packet = av_packet_alloc();
 			AVFrame* frame = av_frame_alloc();
 			bool frame_decoded = false;
-			while (!frame_decoded && av_read_frame(theFormatContext, packet) >= 0)
+			while (frame->pts < target_ts && av_read_frame(theFormatContext, packet) >= 0)
 			{
 				if (packet->stream_index == theVideoStreamIndex)
 				{
@@ -278,8 +282,7 @@ void VideoPlayer::setPosition(qint64 position)
 					{
 						if (0 == avcodec_receive_frame(theCodecContext, frame))
 						{
-							frame_decoded = true;
-							theCurrentPosition = timestampToMilliseconds(frame->pkt_dts, theVideoStream->time_base);
+							theCurrentPosition = timestampToMilliseconds(frame->pts, theVideoStream->time_base);
 						}
 					}
 				}

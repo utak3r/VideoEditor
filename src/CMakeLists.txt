@@ -38,6 +38,13 @@ set(PROJECT_ADDITIONAL_SOURCES
     EncodingPreset.cpp
     EncodingPreset.h
     EncodingPreset.ui
+    Codec.h
+    codec_x264.cpp
+    codec_x264.h
+    codec_x265.cpp
+    codec_x265.h
+    codec_aac.cpp
+    codec_aac.h
 )
 set(PROJECT_SOURCES
     ${CMAKE_BINARY_DIR}/version.rc
@@ -116,6 +123,7 @@ target_link_libraries(VideoEditor_lib
         "${FFMPEG_DIR}/lib/avutil.lib"
         "${FFMPEG_DIR}/lib/swscale.lib"
         "${FFMPEG_DIR}/lib/swresample.lib"    
+        "${FFMPEG_DIR}/lib/avformat.lib"
 )
 
 

@@ -1,5 +1,7 @@
 #include <QObject>
 #include <QSize>
+#include "TimelineMarks.h"
+#include "Codec.h"
 
 struct AVCodecParameters;
 struct AVPacket;
@@ -14,8 +16,10 @@ class VideoRecode : public QObject
 	Q_PROPERTY(bool copyVideo READ copyVideo WRITE setCopyVideo)
 	Q_PROPERTY(bool copyAudio READ copyAudio WRITE setCopyAudio)
 	Q_PROPERTY(QString videoCodecPreset READ videoCodecPreset WRITE setVideoCodecPreset)
+	Q_PROPERTY(QString audioCodecPreset READ audioCodecPreset WRITE setAudioCodecPreset)
 	Q_PROPERTY(QString videoCodecTune READ videoCodecTune WRITE setVideoCodecTune)
 	Q_PROPERTY(QString videoCodecProfile READ videoCodecProfile WRITE setVideoCodecProfile)
+	Q_PROPERTY(TimelineMarks marks READ marks WRITE setMarks)
             
     Q_PROPERTY(QString targetFormat READ targetFormat WRITE setTargetFormat)
     Q_PROPERTY(QString lastErrorMessage READ lastErrorMessage CONSTANT)
@@ -30,6 +34,8 @@ public:
 
     struct StreamContext
     {
+		Codec* video_codec;
+		Codec* audio_codec;
         AVFormatContext* avfc;
         const AVCodec* video_avc;
         const AVCodec* audio_avc;
@@ -51,9 +57,10 @@ public:
         QString muxer_opt_value;
         QString video_codec;
         QString audio_codec;
-		QString video_codec_preset; // ultrafast, superfast, veryfast, faster, fast, medium, slow, slower, veryslow
-		QString video_codec_tune; // film, animation, grain, stillimage, zerolatency
-		QString video_codec_profile; // baseline, main, high, high10, high422, high444, dnxhr_hq, dnxhr_hqx, dnxhr_444, etc.
+		QString video_codec_preset;
+		QString audio_codec_preset;
+		QString video_codec_tune;
+		QString video_codec_profile;
         QString codec_priv_key;
         QString codec_priv_value;
     };
@@ -82,6 +89,9 @@ public:
 	QString videoCodecPreset() const;
 	void setVideoCodecPreset(const QString& videoCodecPreset);
 
+	QString audioCodecPreset() const;
+	void setAudioCodecPreset(const QString& audioCodecPreset);
+
 	QString videoCodecTune() const;
     void setVideoCodecTune(const QString& videoCodecTune);
 
@@ -90,6 +100,9 @@ public:
 
     QString targetFormat() const;
     void setTargetFormat(const QString &format);
+
+	TimelineMarks marks();
+	void setMarks(const TimelineMarks& marks);
 
     QString lastErrorMessage() const;
 
@@ -106,11 +119,12 @@ private:
     int prepareVideoEncoder(StreamContext* sc, AVCodecContext* decoder_ctx, AVRational input_framerate, EncodingParams sp);
     int prepareAudioEncoder(StreamContext* sc, int sample_rate, EncodingParams sp);
     int prepareCopy(AVFormatContext* avfc, AVStream** avs, AVCodecParameters* decoder_par);
-    int remux(AVPacket** pkt, AVFormatContext** avfc, AVRational decoder_tb, AVRational encoder_tb);
-    int encodeVideo(StreamContext* decoder, StreamContext* encoder, AVFrame* input_frame);
-    int encodeAudio(StreamContext* decoder, StreamContext* encoder, AVFrame* input_frame);
-    int transcodeAudio(StreamContext* decoder, StreamContext* encoder, AVPacket* input_packet, AVFrame* input_frame);
-    int transcodeVideo(StreamContext* decoder, StreamContext* encoder, AVPacket* input_packet, AVFrame* input_frame);
+    int remux(AVPacket** pkt, AVFormatContext** avfc, AVRational decoder_tb, AVRational encoder_tb, int64_t pts_start, int64_t pts_end);
+    int encodeVideo(StreamContext* decoder, StreamContext* encoder, AVFrame* input_frame, int64_t pts_start);
+    int encodeAudio(StreamContext* decoder, StreamContext* encoder, AVFrame* input_frame, int64_t pts_start);
+    int transcodeAudio(StreamContext* decoder, StreamContext* encoder, AVPacket* input_packet, AVFrame* input_frame, int64_t pts_start, int64_t pts_end);
+    int transcodeVideo(StreamContext* decoder, StreamContext* encoder, AVPacket* input_packet, AVFrame* input_frame, int64_t pts_start, int64_t pts_end);
+    int64_t millisecondsToTimestamp(qint64 msecs, AVRational timeBase);
 
 private:
     QString theInputPath;
@@ -120,9 +134,11 @@ private:
     QString theVideoCodecTune;
     QString theVideoCodecProfile;
 	QString theAudioCodec;
-	bool theCopyVideo;
+	QString theAudioCodecPreset;
+    bool theCopyVideo;
 	bool theCopyAudio;
-
+	TimelineMarks theMarks;
     QString theTargetFormat;
     QString theLastErrorMessage;
+    int64_t skipped_pts;
 };

@@ -4,6 +4,10 @@
 #include <SettingsDialog.h>
 #include <VideoRecode.h>
 #include <../version.h>
+#include "Codec.h"
+#include "codec_x264.h"
+#include "codec_x265.h"
+#include "codec_aac.h"
 
 
 #define VIDEO_FILE_EXTENSIONS "*.mp4 *.mov *.avi *.mts *.mxf *.webm"
@@ -46,11 +50,25 @@ VEMainWindow::VEMainWindow(QWidget *parent)
 //    connect(ui->videoPlayer, &VideoPlayer::VideoSizeChanged, this, &VEMainWindow::VideoSizeChanged);
     connect(ui->grpCropping, &QGroupBox::toggled, this, [=](bool on) { theVideoPlayer->setCropEnabled(on); });
 
+    // Register codecs
+    static CodecRegistrar<CodecX264> registrarX264("libx264 H.264 / AVC / MPEG-4 AVC / MPEG-4 part 10");
+    static CodecRegistrar<CodecX265> registrarX265("libx265 H.265 / HEVC");
+    static CodecRegistrar<CodecAAC> registrarAAC("AAC (Advanced Audio Coding)");
+
+    for (const auto& name : CodecFactory::instance().availablePlugins())
+    {
+        qDebug() << "Zarejestrowany codec:" << name;
+    }
 
 #ifdef QT_DEBUG
-    theVideoPlayer->openFile("c:\\Users\\piotr\\devel\\sandbox\\VideoEditor\\test_video.mp4");
-    currentVideoFile = QFileInfo("c:\\Users\\piotr\\devel\\sandbox\\VideoEditor\\test_video.mp4");
+    //theVideoPlayer->openFile("c:\\Users\\piotr\\devel\\sandbox\\VideoEditor\\test_video.mp4");
+    //currentVideoFile = QFileInfo("c:\\Users\\piotr\\devel\\sandbox\\VideoEditor\\test_video.mp4");
+    theVideoPlayer->openFile("c:\\Users\\piotr\\Videos\\Division2_20250312_GoldenBullet_vs_boss_DoloresJones.mp4");
+    currentVideoFile = QFileInfo("c:\\Users\\piotr\\Videos\\Division2_20250312_GoldenBullet_vs_boss_DoloresJones.mp4");
     theVideoPlayer->play();
+
+	QStringList videoCodecs, audioCodecs;
+	VideoRecode::getAvailableEncoders(videoCodecs, audioCodecs);
 #endif
 }
 
@@ -207,11 +225,11 @@ void VEMainWindow::Convert()
         VideoPreset codec = ui->cbxPresets->currentData().value<VideoPreset>();
 		recode->setInputPath(currentVideoFile.absoluteFilePath());
 		recode->setOutputPath(outFilename);
+		recode->setMarks(theMarks);
 		recode->setAudioCodec(codec.AudioCodec);
 		recode->setVideoCodec(codec.VideoCodec);
 		recode->setVideoCodecPreset(codec.VideoCodecPreset);
-		recode->setVideoCodecTune(codec.VideoCodecTune);
-		recode->setVideoCodecProfile(codec.VideoCodecProfile);
+		recode->setAudioCodecPreset(codec.AudioCodecPreset);
         connect(recode, &VideoRecode::recodeProgress, this, [=](int progress) 
             {
             ui->statusbar->showMessage(tr("Recode progress: %1%").arg(progress));
