@@ -557,7 +557,10 @@ int VideoRecode::transcodeAudio(StreamContext* decoder, StreamContext* encoder, 
             return response;
         }
 
-        if (response >= 0 && input_frame->pts >= pts_start && input_frame->pts <= pts_end)
+        if (response >= 0 && 
+            input_frame->pts >= pts_start && 
+			(input_frame->pts <= pts_end || pts_end == -1)
+            )
         {
             if (encodeAudio(decoder, encoder, input_frame, pts_start)) return -1;
         }
@@ -588,7 +591,10 @@ int VideoRecode::transcodeVideo(StreamContext* decoder, StreamContext* encoder, 
             return response;
         }
 
-        if (response >= 0 && input_frame->pts >= pts_start && input_frame->pts <= pts_end)
+        if (response >= 0 && 
+            input_frame->pts >= pts_start && 
+            (input_frame->pts <= pts_end || pts_start == -1)
+            )
         {
             if (encodeVideo(decoder, encoder, input_frame, pts_start)) return -1;
         }
@@ -689,8 +695,8 @@ void VideoRecode::recode()
             }
 
 			// Seek to the mark in time
-            int64_t start_pts = av_rescale_q(theMarks.MillisecondsStart() / 1000 * AV_TIME_BASE, AV_TIME_BASE_Q, decoder->video_avs->time_base);
-            int64_t end_pts = av_rescale_q(theMarks.MillisecondsEnd() / 1000 * AV_TIME_BASE, AV_TIME_BASE_Q, decoder->video_avs->time_base);
+            int64_t start_pts = (theMarks.IsTrimmed()) ? av_rescale_q(theMarks.MillisecondsStart() / 1000 * AV_TIME_BASE, AV_TIME_BASE_Q, decoder->video_avs->time_base) : -1;
+            int64_t end_pts = (theMarks.IsTrimmed()) ? av_rescale_q(theMarks.MillisecondsEnd() / 1000 * AV_TIME_BASE, AV_TIME_BASE_Q, decoder->video_avs->time_base) : -1;
             if (start_pts > 0)
             {
 				avformat_seek_file(decoder->avfc, decoder->video_index, start_pts, start_pts, start_pts, AVSEEK_FLAG_ANY);
@@ -720,7 +726,8 @@ void VideoRecode::recode()
             {
                 av_dict_set(&muxer_opts, params.muxer_opt_key.toStdString().c_str(), params.muxer_opt_value.toStdString().c_str(), 0);
             }
-            av_dict_set(&encoder->avfc->metadata, "duration", theMarks.DurationTimecode().toStdString().c_str(), 0);
+            if (theMarks.IsTrimmed())
+                av_dict_set(&encoder->avfc->metadata, "duration", theMarks.DurationTimecode().toStdString().c_str(), 0);
             //av_dict_set(&encoder->avfc->metadata, "duration", QString("%1").arg(theMarks.Duration() / 1000).toStdString().c_str(), 0);
             av_dict_set(&encoder->audio_avs->metadata, "encoder", "VideoEditor", AV_DICT_DONT_STRDUP_VAL | AV_DICT_DONT_OVERWRITE);
 
@@ -796,10 +803,14 @@ void VideoRecode::recode()
             if (!params.copy_audio)
                 if (encodeAudio(decoder, encoder, nullptr, start_pts)) return;
 
-            encoder->video_avs->duration = end_pts - start_pts;
-            encoder->audio_avs->duration = end_pts - start_pts;
+            if (theMarks.IsTrimmed())
+            {
+                encoder->video_avs->duration = end_pts - start_pts;
+                encoder->audio_avs->duration = end_pts - start_pts;
+            }
             //av_dict_set(&encoder->avfc->metadata, "duration", QString("%1").arg(theMarks.Duration() / 1000).toStdString().c_str(), 0);
-            av_dict_set(&encoder->avfc->metadata, "duration", theMarks.DurationTimecode().toStdString().c_str(), 0);
+			if (theMarks.IsTrimmed())
+                av_dict_set(&encoder->avfc->metadata, "duration", theMarks.DurationTimecode().toStdString().c_str(), 0);
             av_write_trailer(encoder->avfc);
 
             if (muxer_opts != nullptr)
