@@ -535,7 +535,7 @@ int VideoRecode::encodeAudio(StreamContext* decoder, StreamContext* encoder, AVF
     return 0;
 }
 
-int VideoRecode::transcodeAudio(StreamContext* decoder, StreamContext* encoder, AVPacket* input_packet, AVFrame* input_frame, int64_t pts_start, int64_t pts_end)
+int VideoRecode::transcodeAudio(StreamContext* decoder, StreamContext* encoder, AVPacket* input_packet, AVFrame* input_frame, int64_t pts_start, int64_t pts_end, bool* mark_out_reached)
 {
     int response = avcodec_send_packet(decoder->audio_avcc, input_packet);
     if (response < 0)
@@ -557,19 +557,26 @@ int VideoRecode::transcodeAudio(StreamContext* decoder, StreamContext* encoder, 
             return response;
         }
 
-        if (response >= 0 && 
-            input_frame->pts >= pts_start && 
-			(input_frame->pts <= pts_end || pts_end == -1)
-            )
+        if (response >= 0)
+   //     if (response >= 0 && 
+   //         input_frame->pts >= pts_start && 
+			//(input_frame->pts <= pts_end || pts_end == -1)
+   //         )
         {
+			qDebug() << "Processing audio frame with PTS:" << input_frame->pts;
             if (encodeAudio(decoder, encoder, input_frame, pts_start)) return -1;
         }
         av_frame_unref(input_frame);
+
+        //if (input_frame->pts > pts_end && pts_end != -1)
+        //{
+        //    *mark_out_reached = true;
+        //}
     }
     return 0;
 }
 
-int VideoRecode::transcodeVideo(StreamContext* decoder, StreamContext* encoder, AVPacket* input_packet, AVFrame* input_frame, int64_t pts_start, int64_t pts_end)
+int VideoRecode::transcodeVideo(StreamContext* decoder, StreamContext* encoder, AVPacket* input_packet, AVFrame* input_frame, int64_t pts_start, int64_t pts_end, bool* mark_out_reached)
 {
     int response = avcodec_send_packet(decoder->video_avcc, input_packet);
     if (response < 0)
@@ -596,7 +603,12 @@ int VideoRecode::transcodeVideo(StreamContext* decoder, StreamContext* encoder, 
             (input_frame->pts <= pts_end || pts_start == -1)
             )
         {
+			qDebug() << "Processing video frame with PTS:" << input_frame->pts;
             if (encodeVideo(decoder, encoder, input_frame, pts_start)) return -1;
+        }
+        else if (input_frame->pts > pts_end && pts_end > 0)
+        {
+            *mark_out_reached = true;
         }
         av_frame_unref(input_frame);
     }
@@ -694,19 +706,6 @@ void VideoRecode::recode()
                 }
             }
 
-			// Seek to the mark in time
-            int64_t start_pts = (theMarks.IsTrimmed()) ? av_rescale_q(theMarks.MillisecondsStart() / 1000 * AV_TIME_BASE, AV_TIME_BASE_Q, decoder->video_avs->time_base) : -1;
-            int64_t end_pts = (theMarks.IsTrimmed()) ? av_rescale_q(theMarks.MillisecondsEnd() / 1000 * AV_TIME_BASE, AV_TIME_BASE_Q, decoder->video_avs->time_base) : -1;
-            if (start_pts > 0)
-            {
-				avformat_seek_file(decoder->avfc, decoder->video_index, start_pts, start_pts, start_pts, AVSEEK_FLAG_ANY);
-                //av_seek_frame(decoder->avfc, decoder->video_index, start_pts, AVSEEK_FLAG_ANY);
-                avcodec_flush_buffers(decoder->video_avcc);
-                avformat_seek_file(decoder->avfc, decoder->audio_index, start_pts, start_pts, start_pts, AVSEEK_FLAG_ANY);
-                //av_seek_frame(decoder->avfc, decoder->audio_index, start_pts, AVSEEK_FLAG_ANY);
-                avcodec_flush_buffers(decoder->audio_avcc);
-            }
-
             if (encoder->avfc->oformat->flags & AVFMT_GLOBALHEADER)
                 encoder->avfc->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
 
@@ -761,27 +760,75 @@ void VideoRecode::recode()
             int frame_count = 0;
             qint64 total_frames = (qint64)decoder->video_avs->nb_frames;
 
+
+            // Print out all the information for debugging
+            qDebug() << "Source stream time base:" << decoder->video_avs->time_base.num << "/" << decoder->video_avs->time_base.den;
+            qDebug() << "Source stream average framerate:" << decoder->video_avs->avg_frame_rate.num << "/" << decoder->video_avs->avg_frame_rate.den;
+            AVRational one_pts = av_div_q(av_inv_q(decoder->video_avs->time_base), decoder->video_avs->avg_frame_rate);
+            AVRational realtime_pts = av_mul_q(one_pts, decoder->video_avs->time_base);
+            qDebug() << "1 PTS value in source stream:" << one_pts.num << "/" << one_pts.den;
+            qDebug() << "Real time of 1 PTS in source stream:" << realtime_pts.num << "/" << realtime_pts.den;
+            int64_t start_frame_num = theMarks.MillisecondsStart() / 1000 * decoder->video_avs->avg_frame_rate.num / decoder->video_avs->avg_frame_rate.den;
+            int64_t end_frame_num = theMarks.MillisecondsEnd() / 1000 * decoder->video_avs->avg_frame_rate.num / decoder->video_avs->avg_frame_rate.den;
+            int64_t start_pts = start_frame_num * one_pts.num / one_pts.den;
+            int64_t end_pts = end_frame_num * one_pts.num / one_pts.den;
+            qDebug() << "Start PTS in trimmed source stream:" << start_pts;
+            qDebug() << "End PTS in trimmed source stream:" << end_pts;
+
+            // Seek to the mark in time
+
+            // video
+            if (start_pts > 0)
+            {
+                //int seek_ret = avformat_seek_file(decoder->avfc, decoder->video_index, start_pts, start_pts, start_pts, AVSEEK_FLAG_ANY);
+                //int seek_ret = av_seek_frame(decoder->avfc, decoder->video_index, start_pts, AVSEEK_FLAG_ANY);
+                int seek_ret = av_seek_frame(decoder->avfc, decoder->video_index, start_pts, AVSEEK_FLAG_ANY);
+                if (seek_ret >= 0) avcodec_flush_buffers(decoder->video_avcc);
+            }
+            // audio
+            if (start_pts > 0)
+            {
+                //int seek_ret = avformat_seek_file(decoder->avfc, decoder->audio_index, start_pts, start_pts, start_pts, AVSEEK_FLAG_ANY);
+                int64_t audio_start_pts = start_pts * 2;// *decoder->audio_avcc->sample_rate;
+                //int seek_ret = avformat_seek_file(decoder->avfc, decoder->audio_index, 0, start_pts, INT64_MAX, 0);
+                int seek_ret = av_seek_frame(decoder->avfc, decoder->audio_index, audio_start_pts, AVSEEK_FLAG_ANY);
+                if (seek_ret >= 0) avcodec_flush_buffers(decoder->audio_avcc);
+			}
+            bool video_mark_out_reached = false;
+			bool audio_mark_out_reached = false;
             while (av_read_frame(decoder->avfc, input_packet) >= 0)
             {
                 if (decoder->avfc->streams[input_packet->stream_index]->codecpar->codec_type == AVMEDIA_TYPE_VIDEO)
                 {
                     if (!params.copy_video)
                     {
-                        if (transcodeVideo(decoder, encoder, input_packet, input_frame, start_pts, end_pts)) return;
+                        if (transcodeVideo(decoder, encoder, input_packet, input_frame, start_pts, end_pts, &video_mark_out_reached)) return;
+						//qDebug() << "Processed video frame with PTS:" << input_frame->pts;
                         av_packet_unref(input_packet);
+                        if (video_mark_out_reached)
+                        {
+							qDebug() << "Mark out reached for video stream. Current PTS: " << input_frame->pts;
+                            continue; // Stop processing if the mark out is reached
+                        }
                     }
                     else
                     {
                         if (remux(&input_packet, &encoder->avfc, decoder->video_avs->time_base, encoder->video_avs->time_base, start_pts, end_pts)) return;
                     }
-					frame_count++;
+                    frame_count++;
                 }
                 else if (decoder->avfc->streams[input_packet->stream_index]->codecpar->codec_type == AVMEDIA_TYPE_AUDIO)
                 {
                     if (!params.copy_audio)
                     {
-                        if (transcodeAudio(decoder, encoder, input_packet, input_frame, start_pts, end_pts)) return;
+                        if (transcodeAudio(decoder, encoder, input_packet, input_frame, start_pts, end_pts, &audio_mark_out_reached)) return;
+						//qDebug() << "Processed audio frame with PTS: " << input_frame->pts;
                         av_packet_unref(input_packet);
+       //                 if (audio_mark_out_reached)
+       //                 {
+							//qDebug() << "Mark out reached for audio stream. Current PTS: " << input_frame->pts;
+       //                     continue; // Stop processing if the mark out is reached
+       //                 }
                     }
                     else
                     {
@@ -790,19 +837,36 @@ void VideoRecode::recode()
                 }
                 else
                 {
-					av_packet_unref(input_packet);
-                    //theLastErrorMessage = "Ignoring non-video and non-audio packet with stream index " + QString::number(input_packet->stream_index);
-                    //qDebug() << "Ignoring non-video and non-audio packet with stream index" << input_packet->stream_index;
+                    av_packet_unref(input_packet);
                 }
                 emit recodeProgress((int)((double)frame_count / (double)total_frames * 100.0));
-				qApp->processEvents();
+                qApp->processEvents();
+                if (video_mark_out_reached /* && audio_mark_out_reached*/)
+                {
+                    qDebug() << "Mark out reached for both video and audio streams.";
+                    break; // Stop processing if the mark out is reached for both streams
+				}
             }
-
             if (!params.copy_video)
                 if (encodeVideo(decoder, encoder, nullptr, start_pts)) return;
             if (!params.copy_audio)
                 if (encodeAudio(decoder, encoder, nullptr, start_pts)) return;
 
+
+            // audio
+            //if (start_pts > 0)
+            //{
+            //    int seek_ret = avformat_seek_file(decoder->avfc, decoder->audio_index, 0, 0, 0, AVSEEK_FLAG_BACKWARD);
+            //    if (seek_ret >= 0) avcodec_flush_buffers(decoder->audio_avcc);
+            //    seek_ret = avformat_seek_file(decoder->avfc, decoder->audio_index, start_pts, start_pts, start_pts, AVSEEK_FLAG_ANY);
+            //    //int seek_ret = av_seek_frame(decoder->avfc, decoder->audio_index, start_pts, AVSEEK_FLAG_ANY);
+            //    if (seek_ret >= 0) avcodec_flush_buffers(decoder->audio_avcc);
+            //}
+
+			// Close the input file
+            avformat_close_input(&decoder->avfc);
+
+			// Set the duration of the output file
             if (theMarks.IsTrimmed())
             {
                 encoder->video_avs->duration = end_pts - start_pts;
@@ -830,8 +894,6 @@ void VideoRecode::recode()
                 av_packet_free(&input_packet);
                 input_packet = nullptr;
             }
-
-            avformat_close_input(&decoder->avfc);
 
             avformat_free_context(decoder->avfc); decoder->avfc = nullptr;
             avformat_free_context(encoder->avfc); encoder->avfc = nullptr;

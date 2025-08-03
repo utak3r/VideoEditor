@@ -122,8 +122,8 @@ private:
     int remux(AVPacket** pkt, AVFormatContext** avfc, AVRational decoder_tb, AVRational encoder_tb, int64_t pts_start, int64_t pts_end);
     int encodeVideo(StreamContext* decoder, StreamContext* encoder, AVFrame* input_frame, int64_t pts_start);
     int encodeAudio(StreamContext* decoder, StreamContext* encoder, AVFrame* input_frame, int64_t pts_start);
-    int transcodeAudio(StreamContext* decoder, StreamContext* encoder, AVPacket* input_packet, AVFrame* input_frame, int64_t pts_start, int64_t pts_end);
-    int transcodeVideo(StreamContext* decoder, StreamContext* encoder, AVPacket* input_packet, AVFrame* input_frame, int64_t pts_start, int64_t pts_end);
+    int transcodeAudio(StreamContext* decoder, StreamContext* encoder, AVPacket* input_packet, AVFrame* input_frame, int64_t pts_start, int64_t pts_end, bool* mark_out_reached);
+    int transcodeVideo(StreamContext* decoder, StreamContext* encoder, AVPacket* input_packet, AVFrame* input_frame, int64_t pts_start, int64_t pts_end, bool* mark_out_reached);
     int64_t millisecondsToTimestamp(qint64 msecs, AVRational timeBase);
 
 private:
