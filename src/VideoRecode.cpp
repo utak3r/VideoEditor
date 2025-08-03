@@ -881,6 +881,12 @@ void VideoRecode::recode()
 			bool audio_mark_out_reached = false;
             int64_t video_start_pts = millisecondsToTimestamp(theMarks.MillisecondsStart(), decoder->avfc->streams[decoder->video_index]->time_base);
             int64_t audio_start_pts = millisecondsToTimestamp(theMarks.MillisecondsStart(), decoder->avfc->streams[decoder->audio_index]->time_base);
+
+            int seek_ret = avformat_seek_file(decoder->avfc, decoder->video_index, 0, video_start_pts, video_start_pts, AVSEEK_FLAG_BACKWARD);
+            if (seek_ret >= 0) avcodec_flush_buffers(decoder->video_avcc);
+            seek_ret = avformat_seek_file(decoder->avfc, decoder->audio_index, 0, audio_start_pts, audio_start_pts, AVSEEK_FLAG_BACKWARD);
+            if (seek_ret >= 0) avcodec_flush_buffers(decoder->audio_avcc);
+
             while (av_read_frame(decoder->avfc, input_packet) >= 0)
             {
                 if (decoder->avfc->streams[input_packet->stream_index]->codecpar->codec_type == AVMEDIA_TYPE_VIDEO)
