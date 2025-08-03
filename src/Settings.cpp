@@ -60,11 +60,8 @@ void Settings::ReadSettings()
     }
     else
     {
-        theVideoPresets.append(VideoPreset("H.264 normal", ".mp4", "libx264 H.264 / AVC / MPEG-4 AVC / MPEG-4 part 10", "normal", "AAC (Advanced Audio Coding)", "medium"));
-        //theVideoPresets.append(VideoPreset("H.264 copy audio", ".mp4", "libx264", "medium", "film", "high", ""));
-        //theVideoPresets.append(VideoPreset("H.264 AAC", ".mp4", "-c:v libx264 -preset medium -tune film -c:a aac"));
-        //theVideoPresets.append(VideoPreset("DNxHD 185Mbps PCM s24LE", ".mov", "-c:v dnxhd -b:v 185M -c:a pcm_s24le"));
-        //theVideoPresets.append(VideoPreset("ProRes YUV422", ".mov", "-c:v prores_ks -profile:v 3 -vendor ap10 -pix_fmt yuv422p10le"));
+        theVideoPresets.append(VideoPreset("H.264 normal", ".mp4", "libx264 H.264 / AVC / MPEG-4 AVC / MPEG-4 part 10", "normal", "AAC (Advanced Audio Coding)", "high"));
+        theVideoPresets.append(VideoPreset("H.265 normal", ".mp4", "libx265 H.265 / HEVC", "normal", "AAC (Advanced Audio Coding)", "high"));
     }
     theSettings->endGroup();
 }
