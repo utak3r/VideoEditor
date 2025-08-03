@@ -1,5 +1,6 @@
 #include "SettingsDialog.h"
 #include "ui_SettingsDialog.h"
+#include "EncodingPreset.h"
 #include <QFileDialog>
 
 SettingsDialog::SettingsDialog(Settings *settings, QWidget *parent)
@@ -12,8 +13,8 @@ SettingsDialog::SettingsDialog(Settings *settings, QWidget *parent)
     ui->tabWidget->setCurrentIndex(0);
 
     connect(ui->btnClose, &QPushButton::clicked, this, [=]() { setResult(QDialog::Accepted); accept(); });
-    connect(ui->btnFFMPEGBinPath, &QPushButton::clicked, this, &SettingsDialog::SearchForFFMPEGBinary);
     connect(ui->btnAddPreset, &QPushButton::clicked, this, &SettingsDialog::AddVideoPreset);
+	connect(ui->btnEditPreset, &QPushButton::clicked, this, &SettingsDialog::EditVideoPreset);
     connect(ui->btnRemovePreset, &QPushButton::clicked, this, &SettingsDialog::RemoveVideoPreset);
     ReadSettings();
 }
@@ -26,9 +27,7 @@ SettingsDialog::~SettingsDialog()
 void SettingsDialog::ReadSettings()
 {
     theSettings->ReadSettings();
-    ui->txtFFMPEGBinPath->setText(theSettings->ffmpeg());
 
-    disconnect(ui->tableVideoPresets);
     int presetsCount = theSettings->videoPresets()->count();
     if (presetsCount > 0)
     {
@@ -36,67 +35,63 @@ void SettingsDialog::ReadSettings()
         int i = 0;
         foreach (VideoPreset preset, (*theSettings->videoPresets()))
         {
-            QTableWidgetItem *item1 = new QTableWidgetItem(preset.Name);
-            ui->tableVideoPresets->setItem(i, 0, item1);
-            QTableWidgetItem *item2 = new QTableWidgetItem(preset.Extension);
-            ui->tableVideoPresets->setItem(i, 1, item2);
-            QTableWidgetItem *item3 = new QTableWidgetItem(preset.CommandLine);
-            ui->tableVideoPresets->setItem(i, 2, item3);
+			FillRowInfo(ui->tableVideoPresets, i, preset);
             i++;
         }
-        connect(ui->tableVideoPresets, &QTableWidget::cellChanged, this, &SettingsDialog::VideoPresetChanged);
     }
 
 }
 
-void SettingsDialog::SearchForFFMPEGBinary()
+void SettingsDialog::FillRowInfo(QTableWidget *table, int row, const VideoPreset &preset)
 {
-    QString binPath = QFileDialog::getOpenFileName(this, tr("Find FFMPEG..."),
-                                                   theSettings->ffmpeg(),
-                                                   tr("Executable files (*.exe)"));
-    if (!binPath.isEmpty())
-    {
-        ui->txtFFMPEGBinPath->setText(binPath);
-        theSettings->setffmpeg(binPath);
-        theSettings->WriteSettings();
-    }
-}
-
-void SettingsDialog::VideoPresetChanged(int row, int column)
-{
-    QString newValue = ui->tableVideoPresets->item(row, column)->text();
-    switch (column)
-    {
-    case 0:
-        {
-        (*theSettings->videoPresets())[row].Name = newValue;
-        break;
-        }
-    case 1:
-        {
-        (*theSettings->videoPresets())[row].Extension = newValue;
-        break;
-        }
-    case 2:
-        {
-        (*theSettings->videoPresets())[row].CommandLine = newValue;
-        break;
-        }
-    }
-    theSettings->WriteSettings();
+    table->setItem(row, 0, new QTableWidgetItem(preset.Name));
+    table->setItem(row, 1, new QTableWidgetItem(preset.Extension));
+    QString codecSettings = QString("Video: %1, preset: %2. Audio: %3, preset: %4")
+        .arg(preset.VideoCodec)
+        .arg(preset.VideoCodecPreset)
+        .arg(preset.AudioCodec)
+        .arg(preset.AudioCodecPreset);
+    table->setItem(row, 2, new QTableWidgetItem(codecSettings));
 }
 
 void SettingsDialog::AddVideoPreset()
 {
-    ui->tableVideoPresets->insertRow(ui->tableVideoPresets->columnCount());
-    theSettings->videoPresets()->append(VideoPreset("", "", ""));
+	auto newPresetDlg = new EncodingPreset(this);
+	newPresetDlg->setWindowTitle(tr("Add Video Preset"));
+	newPresetDlg->setModal(true);
+	newPresetDlg->exec();
+	auto preset = newPresetDlg->getPreset();
+	qDebug() << "Adding new video preset:" << preset;
+    ui->tableVideoPresets->insertRow(ui->tableVideoPresets->rowCount());
+	FillRowInfo(ui->tableVideoPresets, ui->tableVideoPresets->rowCount() - 1, preset);
+    theSettings->videoPresets()->append(preset);
     theSettings->WriteSettings();
+}
+
+void SettingsDialog::EditVideoPreset()
+{
+    if (int toEdit = ui->tableVideoPresets->currentRow(); toEdit >= 0)
+    {
+		auto editPresetDlg = new EncodingPreset(this);
+		editPresetDlg->setWindowTitle(tr("Edit Video Preset"));
+		editPresetDlg->setModal(true);
+		editPresetDlg->setPreset((*theSettings->videoPresets())[toEdit]);
+		editPresetDlg->exec();
+		auto preset = editPresetDlg->getPreset();
+        qDebug() << "Editing video preset:" << preset;
+        (*theSettings->videoPresets())[toEdit] = preset;
+        FillRowInfo(ui->tableVideoPresets, toEdit, preset);
+        theSettings->WriteSettings();
+    }
+    else
+    {
+		qDebug() << "No preset selected for editing.";
+    }
 }
 
 void SettingsDialog::RemoveVideoPreset()
 {
-    int toRemove = ui->tableVideoPresets->currentRow();
-    if (toRemove > -1)
+    if (int toRemove = ui->tableVideoPresets->currentRow(); toRemove >= 0)
     {
         theSettings->videoPresets()->remove(toRemove);
         ui->tableVideoPresets->removeRow(toRemove);

@@ -13,9 +13,30 @@ TimelineMarks::TimelineMarks()
 }
 
 /*!
+ * \brief TimelineMarks::TimelineMarks: copy constructor
+ */
+TimelineMarks::TimelineMarks(TimelineMarks& other)
+    : theMarkIn(other.theMarkIn)
+    , theMarkOut(other.theMarkOut)
+	, theVideoDuration(other.theVideoDuration)
+{
+}
+
+TimelineMarks& TimelineMarks::operator=(const TimelineMarks& other)
+{
+    if (this != &other)
+    {
+        theMarkIn = other.theMarkIn;
+        theMarkOut = other.theMarkOut;
+        theVideoDuration = other.theVideoDuration;
+	}
+	return *this;
+}
+
+/*!
  * \brief TimelineMarks::MarkIn
  */
-int TimelineMarks::MarkIn()
+qint64 TimelineMarks::MarkIn() const
 {
     return theMarkIn;
 }
@@ -23,7 +44,7 @@ int TimelineMarks::MarkIn()
 /*!
  * \brief TimelineMarks::setMarkIn
  */
-void TimelineMarks::setMarkIn(int mark)
+void TimelineMarks::setMarkIn(qint64 mark)
 {
     if (mark < theMarkOut || theMarkOut == -1)
         theMarkIn = mark;
@@ -32,7 +53,7 @@ void TimelineMarks::setMarkIn(int mark)
 /*!
  * \brief TimelineMarks::MarkOut
  */
-int TimelineMarks::MarkOut()
+qint64 TimelineMarks::MarkOut() const
 {
     return theMarkOut;
 }
@@ -40,7 +61,7 @@ int TimelineMarks::MarkOut()
 /*!
  * \brief TimelineMarks::setMarkOut
  */
-void TimelineMarks::setMarkOut(int mark)
+void TimelineMarks::setMarkOut(qint64 mark)
 {
     if (mark > theMarkIn || theMarkIn == -1)
         theMarkOut = mark;
@@ -57,11 +78,11 @@ QString TimelineMarks::AsString()
 /*!
  * \brief TimelineMarks::duration: Duration between the marks.
  */
-int TimelineMarks::Duration()
+qint64 TimelineMarks::Duration() const
 {
-    int duration = 0;
-    int start = 0;
-    int end = theVideoDuration;
+    qint64 duration = 0;
+    qint64 start = 0;
+    qint64 end = theVideoDuration;
     if (theMarkIn > -1)
         start = theMarkIn;
     if (theMarkOut > -1)
@@ -73,7 +94,7 @@ int TimelineMarks::Duration()
 /*!
  * \brief TimelineMarks::reset: Reset marks.
  */
-void TimelineMarks::Reset(int duration)
+void TimelineMarks::Reset(qint64 duration)
 {
     theMarkIn = -1;
     theMarkOut = -1;
@@ -83,7 +104,7 @@ void TimelineMarks::Reset(int duration)
 /*!
  * \brief TimelineMarks::milliseconds_to_timecode: Format given time in ms into a string.
  */
-QString TimelineMarks::MillisecondsToTimecode(int time)
+QString TimelineMarks::MillisecondsToTimecode(qint64 time, uint secondsFractionPrecision)
 {
     QString timecode = "";
     if (time > -1)
@@ -92,11 +113,12 @@ QString TimelineMarks::MillisecondsToTimecode(int time)
         int minutes = qFloor(time / 60000) - hours*60;
         int seconds = qFloor(time / 1000) - hours*3600 - minutes*60;
         int milliseconds = time - hours*3600000 - minutes*60000 - seconds*1000;
+        milliseconds /= pow(10, 3 - secondsFractionPrecision);
         timecode = QString("%1:%2:%3.%4").
                 arg(hours, 2, 10, QLatin1Char('0')).
                 arg(minutes, 2, 10, QLatin1Char('0')).
                 arg(seconds, 2, 10, QLatin1Char('0')).
-                arg(milliseconds, 3, 10, QLatin1Char('0'));
+                arg(milliseconds, secondsFractionPrecision, 10, QLatin1Char('0'));
     }
     return timecode;
 }
@@ -104,23 +126,39 @@ QString TimelineMarks::MillisecondsToTimecode(int time)
 /*!
  * \brief TimelineMarks::timecode_start: Returns beginning of range in a timecode format.
  */
-QString TimelineMarks::TimecodeStart()
+QString TimelineMarks::TimecodeStart(uint secondsFractionPrecision) const
 {
-    int start = 0;
+    qint64 start = 0;
     if (theMarkIn > -1)
         start = theMarkIn;
-    return MillisecondsToTimecode(start);
+    return MillisecondsToTimecode(start, secondsFractionPrecision);
 }
 
 /*!
  * \brief TimelineMarks::timecode_end: Returns end of range in a timecode format.
  */
-QString TimelineMarks::TimecodeEnd()
+QString TimelineMarks::TimecodeEnd(uint secondsFractionPrecision) const
 {
-    int end = theVideoDuration;
+    qint64 end = theVideoDuration;
     if (theMarkOut > -1)
         end = theMarkOut;
-    return MillisecondsToTimecode(end);
+    return MillisecondsToTimecode(end, secondsFractionPrecision);
+}
+
+qint64 TimelineMarks::MillisecondsStart() const
+{
+    qint64 start = 0;
+    if (theMarkIn > -1)
+        start = theMarkIn;
+    return start;
+}
+
+qint64 TimelineMarks::MillisecondsEnd() const
+{
+    qint64 end = theVideoDuration;
+    if (theMarkOut > -1)
+        end = theMarkOut;
+    return end;
 }
 
 /*!
@@ -135,11 +173,11 @@ QString TimelineMarks::DurationTimecode()
  * \brief TimelineMarks::current_range: Range in a text format.
  * From mark in to mark out, but if they're not set, show full video duration.
  */
-QString TimelineMarks::CurrentRange()
+QString TimelineMarks::CurrentRange(uint secondsFractionPrecision) const
 {
     QString video_range = "---";
     if (Duration() > 0)
-        video_range = TimecodeStart() + " - " + TimecodeEnd();
+        video_range = TimecodeStart(secondsFractionPrecision) + " - " + TimecodeEnd(secondsFractionPrecision);
     return video_range;
 }
 
@@ -148,9 +186,21 @@ QString TimelineMarks::CurrentRange()
  */
 bool TimelineMarks::IsTrimmed()
 {
-    bool trimmed = false;
-    if (theMarkIn > -1 || theMarkOut > -1)
-        trimmed = true;
-    return trimmed;
+	return (theMarkIn > -1 || theMarkOut > -1);
+}
+
+bool TimelineMarks::IsFullVideo() const
+{
+    return theMarkIn == -1 && theMarkOut == -1;
+}
+
+bool operator==(const TimelineMarks& lhs, const TimelineMarks& rhs)
+{
+    return (lhs.theMarkIn == rhs.theMarkIn && lhs.theMarkOut == rhs.theMarkOut && lhs.theVideoDuration == rhs.theVideoDuration);
+}
+
+bool operator!=(const TimelineMarks& lhs, const TimelineMarks& rhs)
+{
+    return !(lhs == rhs);
 }
 

@@ -13,13 +13,19 @@ class VideoPreset
 {
 public:
     VideoPreset();
-    VideoPreset(QString name, QString ext, QString cmd);
+    VideoPreset(QString name, QString ext, QString video, QString videoPreset, QString audio, QString audioPreset);
+	VideoPreset(const VideoPreset& other);
+	VideoPreset& operator=(const VideoPreset& other);
+	VideoPreset(VideoPreset&& other) noexcept;
     QVariant asVariant();
     QString asString();
 
 public:
     QString Name;
-    QString CommandLine;
+    QString VideoCodec;
+	QString AudioCodec;
+	QString VideoCodecPreset;
+	QString AudioCodecPreset;
     QString Extension;
 
 };
@@ -30,7 +36,11 @@ inline QDebug operator<<(QDebug debug, const VideoPreset& preset)
     debug.nospace() << "VideoPreset("
                     << preset.Name << ","
                     << preset.Extension << ","
-                    << preset.CommandLine << ")";
+		            << preset.VideoCodec << ","
+		            << preset.VideoCodecPreset << ","
+		            << preset.AudioCodec << ","
+		            << preset.AudioCodecPreset
+                    << ")";
     return debug.space();
 }
 

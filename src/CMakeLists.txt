@@ -9,7 +9,7 @@ set(CMAKE_AUTORCC ON)
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-set(TS_FILES ${CMAKE_SOURCE_DIR}/VideoEditor_pl_PL.ts)
+set(TS_FILES ${CMAKE_SOURCE_DIR}/translations/VideoEditor_pl.ts)
 
 set(PROJECT_ADDITIONAL_SOURCES
     VEMainWindow.cpp
@@ -33,6 +33,18 @@ set(PROJECT_ADDITIONAL_SOURCES
     SettingsDialog.cpp
     SettingsDialog.h
     SettingsDialog.ui
+    VideoRecode.cpp
+    VideoRecode.h
+    EncodingPreset.cpp
+    EncodingPreset.h
+    EncodingPreset.ui
+    Codec.h
+    codec_x264.cpp
+    codec_x264.h
+    codec_x265.cpp
+    codec_x265.h
+    codec_aac.cpp
+    codec_aac.h
 )
 set(PROJECT_SOURCES
     ${CMAKE_BINARY_DIR}/version.rc
@@ -40,7 +52,6 @@ set(PROJECT_SOURCES
     main.cpp
     ${CMAKE_SOURCE_DIR}/VideoEditor.qrc
     ${PROJECT_ADDITIONAL_SOURCES}
-    ${TS_FILES}
 )
 
 set(app_icon_resource_windows "${CMAKE_SOURCE_DIR}/VideoEditor.rc")
@@ -50,9 +61,32 @@ qt_add_executable(VideoEditor
     ${PROJECT_SOURCES}
     ${app_icon_resource_windows}
 )
-qt_create_translation(QM_FILES ${CMAKE_SOURCE_DIR} ${TS_FILES})
 
-target_link_libraries(VideoEditor PRIVATE Qt6::Widgets Qt6::Multimedia Qt6::MultimediaWidgets)
+if(Qt6LinguistTools_FOUND)
+    qt6_add_translations(VideoEditor TS_FILES ${TS_FILES} QM_FILES_OUTPUT_VARIABLE QM_FILES)
+endif()
+
+
+set(FFMPEG_DIR "C:/tools/ffmpeg")
+
+target_include_directories(VideoEditor 
+    PRIVATE 
+        "${FFMPEG_DIR}/include"
+)
+
+target_link_libraries(VideoEditor
+    PRIVATE 
+        Qt6::Widgets 
+        Qt6::Multimedia 
+        Qt6::MultimediaWidgets
+    PUBLIC
+        "${FFMPEG_DIR}/lib/avformat.lib"
+        "${FFMPEG_DIR}/lib/avcodec.lib"
+        "${FFMPEG_DIR}/lib/avutil.lib"
+        "${FFMPEG_DIR}/lib/swscale.lib"
+        "${FFMPEG_DIR}/lib/swresample.lib"
+        "${FFMPEG_DIR}/lib/avformat.lib"
+)
 
 set(cppcheck
   "d:/devel/cppcheck/cppcheck"
@@ -74,13 +108,32 @@ qt_finalize_executable(VideoEditor)
 
 # this library serves for linking against unit tests
 qt_add_library(VideoEditor_lib STATIC ${PROJECT_ADDITIONAL_SOURCES})
-target_link_libraries(VideoEditor_lib PRIVATE Qt6::Widgets Qt6::Multimedia Qt6::MultimediaWidgets)
+target_include_directories(VideoEditor_lib 
+    PRIVATE 
+        "${FFMPEG_DIR}/include"
+)
+target_link_libraries(VideoEditor_lib
+    PRIVATE 
+        Qt6::Widgets 
+        Qt6::Multimedia 
+        Qt6::MultimediaWidgets
+    PUBLIC
+        "${FFMPEG_DIR}/lib/avformat.lib"
+        "${FFMPEG_DIR}/lib/avcodec.lib"
+        "${FFMPEG_DIR}/lib/avutil.lib"
+        "${FFMPEG_DIR}/lib/swscale.lib"
+        "${FFMPEG_DIR}/lib/swresample.lib"    
+        "${FFMPEG_DIR}/lib/avformat.lib"
+)
 
 
 install (TARGETS VideoEditor
     RUNTIME DESTINATION "${CMAKE_INSTALL_PREFIX}"
     LIBRARY DESTINATION "${CMAKE_INSTALL_PREFIX}"
     )
+
+install(FILES ${QM_FILES}
+    DESTINATION "${CMAKE_INSTALL_PREFIX}/translations")
 
 if (EXISTS ${WINDEPLOYQT_EXECUTABLE})
     execute_process(

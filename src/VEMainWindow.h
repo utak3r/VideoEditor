@@ -9,6 +9,7 @@
 #include <QMediaMetaData>
 #include <TimelineMarks.h>
 #include <VideoPreset.h>
+#include <VideoPlayer.h>
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class VEMainWindow; }
@@ -29,7 +30,7 @@ private slots:
     void Convert();
     void ShowSettings();
     void VideoDurationChanged(qint64 duration);
-    void VideoPlaybackStateChanged(QMediaPlayer::PlaybackState newState);
+    void VideoPlaybackStateChanged(VideoPlayer::PlaybackState newState);
     void VideoSizeChanged(QSizeF videoSize);
     void PlayPause();
     void PlaybackPositionChanged(qint64 position);
@@ -45,6 +46,7 @@ private:
     FFMPEG* theFFMPEG;
     QString theLastDir;
     QMediaPlayer* theMediaPlayer;
+	VideoPlayer* theVideoPlayer;
     TimelineMarks theMarks;
     QList<VideoPreset> theVideoPresets;
 };

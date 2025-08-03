@@ -17,8 +17,6 @@ public:
     void ReadSettings();
     void WriteSettings();
 
-    QString ffmpeg();
-    void setffmpeg(QString path);
     QString lastDir();
     void setLastDir(QString dir);
     QRect mainWndGeometry();
@@ -36,7 +34,6 @@ public:
 
 private:
     QSettings* theSettings;
-    QString theFFMPEG;
     QString theLastDir;
     QRect theMainWndGeometry;
     QList<VideoPreset> theVideoPresets;

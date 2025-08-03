@@ -21,146 +21,107 @@
        <property name="currentIndex">
         <number>0</number>
        </property>
-       <widget class="QWidget" name="tabGeneral">
+       <widget class="QWidget" name="tabVideoPresets">
         <attribute name="title">
-         <string>General</string>
+         <string>Video presets</string>
         </attribute>
-        <layout class="QVBoxLayout" name="verticalLayout_3">
+        <layout class="QHBoxLayout" name="horizontalLayout_4">
          <item>
-          <layout class="QHBoxLayout" name="horizontalLayout_2">
+          <widget class="QTableWidget" name="tableVideoPresets">
+           <property name="editTriggers">
+            <set>QAbstractItemView::EditTrigger::NoEditTriggers</set>
+           </property>
+           <property name="selectionBehavior">
+            <enum>QAbstractItemView::SelectionBehavior::SelectRows</enum>
+           </property>
+           <column>
+            <property name="text">
+             <string>Name</string>
+            </property>
+           </column>
+           <column>
+            <property name="text">
+             <string>Extension</string>
+            </property>
+           </column>
+           <column>
+            <property name="text">
+             <string>Codec arguments</string>
+            </property>
+           </column>
+          </widget>
+         </item>
+         <item>
+          <layout class="QVBoxLayout" name="verticalLayout_2">
            <item>
-            <widget class="QLabel" name="label">
-             <property name="text">
-              <string>FFMPEG binary path:</string>
-             </property>
-            </widget>
-           </item>
-           <item>
-            <widget class="QLineEdit" name="txtFFMPEGBinPath">
+            <widget class="QPushButton" name="btnAddPreset">
              <property name="minimumSize">
               <size>
-               <width>250</width>
-               <height>0</height>
-              </size>
-             </property>
-            </widget>
-           </item>
-           <item>
-            <widget class="QPushButton" name="btnFFMPEGBinPath">
-             <property name="minimumSize">
-              <size>
-               <width>30</width>
+               <width>160</width>
                <height>0</height>
               </size>
              </property>
              <property name="maximumSize">
               <size>
-               <width>30</width>
+               <width>160</width>
                <height>16777215</height>
               </size>
              </property>
              <property name="text">
-              <string notr="true">...</string>
+              <string>&amp;Add preset </string>
              </property>
             </widget>
            </item>
-          </layout>
-         </item>
-         <item>
-          <spacer name="verticalSpacer">
-           <property name="orientation">
-            <enum>Qt::Vertical</enum>
-           </property>
-           <property name="sizeHint" stdset="0">
-            <size>
-             <width>20</width>
-             <height>404</height>
-            </size>
-           </property>
-          </spacer>
-         </item>
-        </layout>
-       </widget>
-       <widget class="QWidget" name="tabVideoPresets">
-        <attribute name="title">
-         <string>Video presets</string>
-        </attribute>
-        <layout class="QVBoxLayout" name="verticalLayout_2">
-         <item>
-          <layout class="QHBoxLayout" name="horizontalLayout_4">
            <item>
-            <widget class="QTableWidget" name="tableVideoPresets">
-             <column>
-              <property name="text">
-               <string>Name</string>
-              </property>
-             </column>
-             <column>
-              <property name="text">
-               <string>Extension</string>
-              </property>
-             </column>
-             <column>
-              <property name="text">
-               <string>Codec arguments</string>
-              </property>
-             </column>
+            <widget class="QPushButton" name="btnEditPreset">
+             <property name="minimumSize">
+              <size>
+               <width>160</width>
+               <height>0</height>
+              </size>
+             </property>
+             <property name="maximumSize">
+              <size>
+               <width>160</width>
+               <height>16777215</height>
+              </size>
+             </property>
+             <property name="text">
+              <string>&amp;Edit preset </string>
+             </property>
             </widget>
            </item>
            <item>
-            <layout class="QVBoxLayout" name="verticalLayout_4">
-             <item>
-              <widget class="QPushButton" name="btnAddPreset">
-               <property name="minimumSize">
-                <size>
-                 <width>160</width>
-                 <height>0</height>
-                </size>
-               </property>
-               <property name="maximumSize">
-                <size>
-                 <width>160</width>
-                 <height>16777215</height>
-                </size>
-               </property>
-               <property name="text">
-                <string>&amp;Add preset </string>
-               </property>
-              </widget>
-             </item>
-             <item>
-              <widget class="QPushButton" name="btnRemovePreset">
-               <property name="minimumSize">
-                <size>
-                 <width>160</width>
-                 <height>0</height>
-                </size>
-               </property>
-               <property name="maximumSize">
-                <size>
-                 <width>160</width>
-                 <height>16777215</height>
-                </size>
-               </property>
-               <property name="text">
-                <string>&amp;Remove preset</string>
-               </property>
-              </widget>
-             </item>
-             <item>
-              <spacer name="verticalSpacer_2">
-               <property name="orientation">
-                <enum>Qt::Vertical</enum>
-               </property>
-               <property name="sizeHint" stdset="0">
-                <size>
-                 <width>20</width>
-                 <height>40</height>
-                </size>
-               </property>
-              </spacer>
-             </item>
-            </layout>
+            <widget class="QPushButton" name="btnRemovePreset">
+             <property name="minimumSize">
+              <size>
+               <width>160</width>
+               <height>0</height>
+              </size>
+             </property>
+             <property name="maximumSize">
+              <size>
+               <width>160</width>
+               <height>16777215</height>
+              </size>
+             </property>
+             <property name="text">
+              <string>&amp;Remove preset</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <spacer name="verticalSpacer_2">
+             <property name="orientation">
+              <enum>Qt::Orientation::Vertical</enum>
+             </property>
+             <property name="sizeHint" stdset="0">
+              <size>
+               <width>20</width>
+               <height>40</height>
+              </size>
+             </property>
+            </spacer>
            </item>
           </layout>
          </item>
@@ -173,7 +134,7 @@
        <item>
         <spacer name="horizontalSpacer">
          <property name="orientation">
-          <enum>Qt::Horizontal</enum>
+          <enum>Qt::Orientation::Horizontal</enum>
          </property>
          <property name="sizeHint" stdset="0">
           <size>

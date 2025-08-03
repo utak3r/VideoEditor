@@ -2,7 +2,13 @@
 #include "./ui_VEMainWindow.h"
 #include <QFileDialog>
 #include <SettingsDialog.h>
+#include <VideoRecode.h>
 #include <../version.h>
+#include "Codec.h"
+#include "codec_x264.h"
+#include "codec_x265.h"
+#include "codec_aac.h"
+
 
 #define VIDEO_FILE_EXTENSIONS "*.mp4 *.mov *.avi *.mts *.mxf *.webm"
 
@@ -17,7 +23,9 @@ VEMainWindow::VEMainWindow(QWidget *parent)
     setWindowTitle(PROJECT_VERSION_STRING_SHORT);
 
     // until cropping tool is finished
-    ui->grpCropping->hide();
+    //ui->grpCropping->hide();
+
+    theVideoPlayer = ui->videoPlayer;
 
     ReloadSettings();
     theLastDir = theSettings.lastDir();
@@ -27,37 +35,50 @@ VEMainWindow::VEMainWindow(QWidget *parent)
     connect(ui->btnExit, &QPushButton::clicked, this, &VEMainWindow::ExitApp);
     connect(ui->btnOpenVideo, &QPushButton::clicked, this, &VEMainWindow::OpenVideo);
 
-    theMediaPlayer = new QMediaPlayer(this);
-    theMediaPlayer->setLoops(QMediaPlayer::Infinite);
-    theMediaPlayer->setVideoOutput(ui->videoPlayer->getVideoOutput());
-    ui->videoPlayer->show();
+    theVideoPlayer->show();
 
     connect(ui->btnMarkIn, &QPushButton::clicked, this, &VEMainWindow::SetMarkIn);
     connect(ui->btnMarkOut, &QPushButton::clicked, this, &VEMainWindow::SetMarkOut);
     connect(ui->btnResetMarks, &QPushButton::clicked, this, &VEMainWindow::ResetMarks);
-    connect(theMediaPlayer, &QMediaPlayer::durationChanged, this, &VEMainWindow::VideoDurationChanged);
-    connect(theMediaPlayer, &QMediaPlayer::playbackStateChanged, this, &VEMainWindow::VideoPlaybackStateChanged);
-    connect(theMediaPlayer, &QMediaPlayer::positionChanged, this, &VEMainWindow::PlaybackPositionChanged);
+    connect(theVideoPlayer, &VideoPlayer::durationChanged, this, &VEMainWindow::VideoDurationChanged);
+    connect(theVideoPlayer, &VideoPlayer::playbackStateChanged, this, &VEMainWindow::VideoPlaybackStateChanged);
+    connect(theVideoPlayer, &VideoPlayer::positionChanged, this, &VEMainWindow::PlaybackPositionChanged);
     connect(ui->videoPosSlider, &QSlider::sliderMoved, this, &VEMainWindow::PlaybackSliderMoved);
     connect(ui->btnPlayPause, &QPushButton::clicked, this, &VEMainWindow::PlayPause);
     connect(ui->btnConvert, &QPushButton::clicked, this, &VEMainWindow::Convert);
     connect(ui->btnSettings, &QPushButton::clicked, this, &VEMainWindow::ShowSettings);
-    connect(ui->videoPlayer, &VideoPlayer::VideoSizeChanged, this, &VEMainWindow::VideoSizeChanged);
-    connect(ui->grpCropping, &QGroupBox::toggled, this, [=](bool on) { ui->videoPlayer->setCropEnabled(on); });
+//    connect(ui->videoPlayer, &VideoPlayer::VideoSizeChanged, this, &VEMainWindow::VideoSizeChanged);
+    connect(ui->grpCropping, &QGroupBox::toggled, this, [=](bool on) { theVideoPlayer->setCropEnabled(on); });
+
+    // Register codecs
+    static CodecRegistrar<CodecX264> registrarX264("libx264 H.264 / AVC / MPEG-4 AVC / MPEG-4 part 10");
+    static CodecRegistrar<CodecX265> registrarX265("libx265 H.265 / HEVC");
+    static CodecRegistrar<CodecAAC> registrarAAC("AAC (Advanced Audio Coding)");
+
+    for (const auto& name : CodecFactory::instance().availablePlugins())
+    {
+        qDebug() << "Zarejestrowany codec:" << name;
+    }
 
 #ifdef QT_DEBUG
-    theMediaPlayer->setSource(QUrl::fromLocalFile("d:\\devel\\sandbox\\VideoEditor\\flip.mp4"));
-    currentVideoFile = QFileInfo("d:\\devel\\sandbox\\VideoEditor\\flip.mp4");
-    theMediaPlayer->play();
+    //theVideoPlayer->openFile("c:\\Users\\piotr\\devel\\sandbox\\VideoEditor\\test_video.mp4");
+    //currentVideoFile = QFileInfo("c:\\Users\\piotr\\devel\\sandbox\\VideoEditor\\test_video.mp4");
+    theVideoPlayer->openFile("c:\\Users\\piotr\\Videos\\Division2_20250312_GoldenBullet_vs_boss_DoloresJones.mp4");
+    currentVideoFile = QFileInfo("c:\\Users\\piotr\\Videos\\Division2_20250312_GoldenBullet_vs_boss_DoloresJones.mp4");
+    theVideoPlayer->play();
+
+	QStringList videoCodecs, audioCodecs;
+	VideoRecode::getAvailableEncoders(videoCodecs, audioCodecs);
 #endif
 }
 
 VEMainWindow::~VEMainWindow()
 {
+    if (theMediaPlayer)
     if (theMediaPlayer->playbackState() == QMediaPlayer::PlayingState)
         theMediaPlayer->stop();
 
-    theSettings.setffmpeg(theFFMPEG->binPath());
+    //theSettings.setffmpeg(theFFMPEG->binPath());
     theSettings.setLastDir(theLastDir);
     theSettings.setMainWndGeometry(this->geometry());
     theSettings.setVideoPresets(theVideoPresets);
@@ -78,8 +99,6 @@ void VEMainWindow::ExitApp()
 void VEMainWindow::ReloadSettings()
 {
     theSettings.ReadSettings();
-    theFFMPEG = new FFMPEG(theSettings.ffmpeg(), this);
-    ui->statusbar->showMessage(theFFMPEG->binVersion());
 
     theVideoPresets.clear();
     theVideoPresets.append((*theSettings.videoPresets()));
@@ -92,6 +111,8 @@ void VEMainWindow::ReloadSettings()
     ui->valScaleWidth->setValue(theSettings.scalingWidth());
     ui->valScaleHeight->setValue(theSettings.scalingHeight());
     ui->cbxScalingFlags->setCurrentIndex(theSettings.scalingFilter());
+
+    ui->statusbar->showMessage(QString("%1").arg(PROJECT_VERSION_STRING_FULL));
 }
 
 void VEMainWindow::OpenVideo()
@@ -103,10 +124,10 @@ void VEMainWindow::OpenVideo()
                                                     );
     if (!filename.isEmpty())
     {
-        theMediaPlayer->setSource(QUrl::fromLocalFile(filename));
+        theVideoPlayer->openFile(filename);
         currentVideoFile = QFileInfo(filename);
         theLastDir = currentVideoFile.absoluteDir().absolutePath();
-        theMediaPlayer->play();
+        theVideoPlayer->play();
     }
 }
 
@@ -127,13 +148,13 @@ void VEMainWindow::VideoDurationChanged(qint64 duration)
     ui->videoPosSlider->setValue(0);
 }
 
-void VEMainWindow::VideoPlaybackStateChanged(QMediaPlayer::PlaybackState newState)
+void VEMainWindow::VideoPlaybackStateChanged(VideoPlayer::PlaybackState newState)
 {
-    if (newState == QMediaPlayer::PausedState || newState == QMediaPlayer::StoppedState)
+    if (newState == VideoPlayer::PausedState || newState == VideoPlayer::StoppedState)
     {
         ui->btnPlayPause->setText(tr("Play"));
     }
-    else if (newState == QMediaPlayer::PlayingState)
+    else if (newState == VideoPlayer::PlayingState)
     {
         ui->btnPlayPause->setText(tr("Pause"));
     }
@@ -147,13 +168,13 @@ void VEMainWindow::VideoSizeChanged(QSizeF videoSize)
 
 void VEMainWindow::PlayPause()
 {
-    if (theMediaPlayer->playbackState() == QMediaPlayer::PausedState || theMediaPlayer->playbackState() == QMediaPlayer::StoppedState)
+    if (theVideoPlayer->playbackState() == VideoPlayer::PausedState || theVideoPlayer->playbackState() == VideoPlayer::StoppedState)
     {
-        theMediaPlayer->play();
+        theVideoPlayer->play();
     }
-    else if (theMediaPlayer->playbackState() == QMediaPlayer::PlayingState)
+    else if (theVideoPlayer->playbackState() == VideoPlayer::PlayingState)
     {
-        theMediaPlayer->pause();
+        theVideoPlayer->pause();
     }
 }
 
@@ -166,30 +187,68 @@ void VEMainWindow::PlaybackPositionChanged(qint64 position)
 
 void VEMainWindow::PlaybackSliderMoved(int value)
 {
-    theMediaPlayer->setPosition(value);
+    theVideoPlayer->setPosition(value);
 }
 
 void VEMainWindow::SetMarkIn()
 {
-    theMarks.setMarkIn(theMediaPlayer->position());
+    theMarks.setMarkIn(theVideoPlayer->position());
     ui->videoPosSlider->setMarkIn((int)theMarks.MarkIn());
+    theVideoPlayer->setMarkers(theMarks.CurrentRange(1));
 }
 
 void VEMainWindow::SetMarkOut()
 {
-    theMarks.setMarkOut(theMediaPlayer->position());
+    theMarks.setMarkOut(theVideoPlayer->position());
     ui->videoPosSlider->setMarkOut((int)theMarks.MarkOut());
+    theVideoPlayer->setMarkers(theMarks.CurrentRange(1));
 }
 
 void VEMainWindow::ResetMarks()
 {
-    theMarks.Reset(theMediaPlayer->duration());
+    theMarks.Reset(theVideoPlayer->duration());
     ui->videoPosSlider->resetMarks();
+    theVideoPlayer->setMarkers(theMarks.CurrentRange(1));
 }
 
 void VEMainWindow::Convert()
 {
-    if (theFFMPEG)
+    QString outFilename = QFileDialog::getSaveFileName(this, tr("Save video as..."),
+        currentVideoFile.absoluteFilePath() + "_converted.mp4",
+        tr("Video Files") + QLatin1String(" (") + VIDEO_FILE_EXTENSIONS + QLatin1String(")"));
+    if (!outFilename.isEmpty())
+    {
+        //std::tuple<bool, int, int, QString> scaling = FFMPEG::getScalingTuple(ui->grpScaling->isChecked(), ui->valScaleWidth->value(), ui->valScaleHeight->value(), ui->cbxScalingFlags->currentIndex());
+        //theFFMPEG->Convert(currentVideoFile.absoluteFilePath(), codec.CommandLine, &theMarks, scaling, outFilename);
+
+		VideoRecode* recode = new VideoRecode(this);
+        VideoPreset codec = ui->cbxPresets->currentData().value<VideoPreset>();
+		recode->setInputPath(currentVideoFile.absoluteFilePath());
+		recode->setOutputPath(outFilename);
+		recode->setMarks(theMarks);
+		recode->setAudioCodec(codec.AudioCodec);
+		recode->setVideoCodec(codec.VideoCodec);
+		recode->setVideoCodecPreset(codec.VideoCodecPreset);
+		recode->setAudioCodecPreset(codec.AudioCodecPreset);
+        if (ui->grpScaling->isChecked())
+        {
+            recode->setScalingEnabled(true);
+            recode->setScalingSize(QSize(ui->valScaleWidth->value(), ui->valScaleHeight->value()));
+            recode->setScalingFilter(ui->cbxScalingFlags->currentIndex());
+        }
+        else
+        {
+            recode->setScalingEnabled(false);
+		}
+        connect(recode, &VideoRecode::recodeProgress, this, [=](int progress) 
+            {
+            ui->statusbar->showMessage(tr("Recode progress: %1%").arg(progress));
+			});
+		recode->recode();
+    }
+
+
+    if (theFFMPEG && 0)
     {
         if (!theFFMPEG->binPath().isEmpty())
         {
@@ -204,7 +263,7 @@ void VEMainWindow::Convert()
                     if (!outFilename.isEmpty())
                     {
                         std::tuple<bool, int, int, QString> scaling = FFMPEG::getScalingTuple(ui->grpScaling->isChecked(), ui->valScaleWidth->value(), ui->valScaleHeight->value(), ui->cbxScalingFlags->currentIndex());
-                        theFFMPEG->Convert(currentVideoFile.absoluteFilePath(), codec.CommandLine, &theMarks, scaling, outFilename);
+                        //theFFMPEG->Convert(currentVideoFile.absoluteFilePath(), codec.CommandLine, &theMarks, scaling, outFilename);
                     }
                 }
             }
