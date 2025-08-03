@@ -125,7 +125,6 @@ private:
     int transcodeAudio(StreamContext* decoder, StreamContext* encoder, AVPacket* input_packet, AVFrame* input_frame, int64_t pts_start, int64_t pts_end, bool* mark_out_reached);
     int transcodeVideo(StreamContext* decoder, StreamContext* encoder, AVPacket* input_packet, AVFrame* input_frame, int64_t pts_start, int64_t pts_end, bool* mark_in_reached, bool* mark_out_reached);
     int64_t millisecondsToTimestamp(qint64 msecs, AVRational timeBase);
-	int64_t seek_stream(AVFormatContext* avfc, AVCodecContext* avcc, int stream_index, int64_t ms, bool encode);
 
 private:
     QString theInputPath;
