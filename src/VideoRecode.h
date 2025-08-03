@@ -5,6 +5,7 @@
 
 struct AVCodecParameters;
 struct AVPacket;
+struct SwsContext;
 
 class VideoRecode : public QObject
 {
@@ -20,6 +21,9 @@ class VideoRecode : public QObject
 	Q_PROPERTY(QString videoCodecTune READ videoCodecTune WRITE setVideoCodecTune)
 	Q_PROPERTY(QString videoCodecProfile READ videoCodecProfile WRITE setVideoCodecProfile)
 	Q_PROPERTY(TimelineMarks marks READ marks WRITE setMarks)
+	Q_PROPERTY(bool scalingEnabled READ scalingEnabled WRITE setScalingEnabled)
+	Q_PROPERTY(QSize scalingSize READ scalingSize WRITE setScalingSize)
+	Q_PROPERTY(int scalingFilter READ scalingFilter WRITE setScalingFilter)
             
     Q_PROPERTY(QString targetFormat READ targetFormat WRITE setTargetFormat)
     Q_PROPERTY(QString lastErrorMessage READ lastErrorMessage CONSTANT)
@@ -46,6 +50,7 @@ public:
         int video_index;
         int audio_index;
         QString filename;
+		SwsContext* swsc;
     };
 
     struct EncodingParams
@@ -63,6 +68,8 @@ public:
 		QString video_codec_profile;
         QString codec_priv_key;
         QString codec_priv_value;
+		bool scaling_enabled;
+		QSize scaling_size;
     };
 
 public:
@@ -104,6 +111,15 @@ public:
 	TimelineMarks marks();
 	void setMarks(const TimelineMarks& marks);
 
+	bool scalingEnabled() const;
+	void setScalingEnabled(bool enabled);
+
+	QSize scalingSize() const;
+	void setScalingSize(const QSize& size);
+
+    int scalingFilter() const;
+    void setScalingFilter(int filter);
+
     QString lastErrorMessage() const;
 
     static void getAvailableEncoders(QStringList& videoCodecs, QStringList& audioCodecs);
@@ -123,7 +139,11 @@ private:
     int encodeVideo(StreamContext* decoder, StreamContext* encoder, AVFrame* input_frame, int64_t pts_start);
     int encodeAudio(StreamContext* decoder, StreamContext* encoder, AVFrame* input_frame, int64_t pts_start);
     int transcodeAudio(StreamContext* decoder, StreamContext* encoder, AVPacket* input_packet, AVFrame* input_frame, int64_t pts_start, int64_t pts_end, bool* mark_out_reached);
-    int transcodeVideo(StreamContext* decoder, StreamContext* encoder, AVPacket* input_packet, AVFrame* input_frame, int64_t pts_start, int64_t pts_end, bool* mark_in_reached, bool* mark_out_reached);
+    int transcodeVideo(StreamContext* decoder, StreamContext* encoder, 
+        AVPacket* input_packet, 
+        AVFrame* input_frame, AVFrame* scaled_frame, 
+        int64_t pts_start, int64_t pts_end, 
+        bool* mark_in_reached, bool* mark_out_reached);
     int64_t millisecondsToTimestamp(qint64 msecs, AVRational timeBase);
 
 private:
@@ -141,4 +161,7 @@ private:
     QString theTargetFormat;
     QString theLastErrorMessage;
     int64_t skipped_pts;
+	bool theScalingEnabled;
+    QSize theScalingSize;
+    int theScalingFilter;
 };

@@ -200,6 +200,58 @@ void VideoRecode::setMarks(const TimelineMarks& marks)
 	}
 }
 
+bool VideoRecode::scalingEnabled() const
+{
+	return theScalingEnabled;
+}
+
+void VideoRecode::setScalingEnabled(bool enabled)
+{
+    if (theScalingEnabled != enabled)
+    {
+        theScalingEnabled = enabled;
+	}
+}
+
+QSize VideoRecode::scalingSize() const
+{
+	return theScalingSize;
+}
+
+void VideoRecode::setScalingSize(const QSize& size)
+{
+    if (theScalingSize != size)
+    {
+        theScalingSize = size;
+	}
+}
+
+int VideoRecode::scalingFilter() const
+{
+    return 0;
+}
+
+void VideoRecode::setScalingFilter(int filter)
+{
+    int sws_filter = SWS_BILINEAR;
+    switch (filter)
+    {
+        case 0: // SWS_FAST_BILINEAR
+        case 1: // SWS_BILINEAR
+        case 2: // SWS_BICUBIC
+        case 3: // SWS_AREA
+        case 4: // SWS_GAUSS
+        case 5: // SWS_LANCZOS
+            break;
+        default:
+            sws_filter = SWS_BILINEAR;
+	}
+    if (theScalingFilter != sws_filter)
+    {
+        theScalingFilter = sws_filter;
+    }
+}
+
 QString VideoRecode::lastErrorMessage() const
 {
     return theLastErrorMessage;
@@ -310,13 +362,6 @@ int VideoRecode::prepareVideoEncoder(StreamContext* sc, AVCodecContext* decoder_
         }
     }
 
-  //  sc->video_avc = avcodec_find_encoder_by_name(params.video_codec.toStdString().c_str());
-  //  if (!sc->video_avc)
-  //  {
-		//qDebug() << "Failed to find the proper codec" << params.video_codec;
-  //      return -1;
-  //  }
-
     sc->video_avcc = avcodec_alloc_context3(sc->video_avc);
     if (!sc->video_avcc)
     {
@@ -330,32 +375,25 @@ int VideoRecode::prepareVideoEncoder(StreamContext* sc, AVCodecContext* decoder_
 		sc->video_codec->setPreset(params.video_codec_preset, sc->video_avcc);
     }
 
- //   if (!params.video_codec_preset.isEmpty())
- //       av_opt_set(sc->video_avcc->priv_data, "preset", params.video_codec_preset.toStdString().c_str(), 0);
- //   if (!params.video_codec_tune.isEmpty())
- //       av_opt_set(sc->video_avcc->priv_data, "tune", params.video_codec_tune.toStdString().c_str(), 0);
-	//if (!params.video_codec_profile.isEmpty())
-	//	av_opt_set(sc->video_avcc->priv_data, "profile", params.video_codec_profile.toStdString().c_str(), 0);
-    //if (!params.codec_priv_key.isNull() && !params.codec_priv_value.isNull())
-    //    av_opt_set(sc->video_avcc->priv_data, params.codec_priv_key.toStdString().c_str(), params.codec_priv_value.toStdString().c_str(), 0);
-
-    sc->video_avcc->height = decoder_ctx->height;
-    sc->video_avcc->width = decoder_ctx->width;
+    if (theScalingEnabled)
+    {
+        sc->video_avcc->height = theScalingSize.height();
+        sc->video_avcc->width = theScalingSize.width();
+    }
+    else
+    {
+        sc->video_avcc->height = decoder_ctx->height;
+        sc->video_avcc->width = decoder_ctx->width;
+	}
     sc->video_avcc->sample_aspect_ratio = decoder_ctx->sample_aspect_ratio;
     if (sc->video_avc->pix_fmts)
         sc->video_avcc->pix_fmt = sc->video_avc->pix_fmts[0];
     else
         sc->video_avcc->pix_fmt = decoder_ctx->pix_fmt;
 
-    //sc->video_avcc->bit_rate = 2 * 1000 * 1000;
-    //sc->video_avcc->rc_buffer_size = 4 * 1000 * 1000;
-    //sc->video_avcc->rc_max_rate = 2 * 1000 * 1000;
-    //sc->video_avcc->rc_min_rate = 2.5 * 1000 * 1000;
-
     sc->video_avcc->time_base = av_inv_q(input_framerate);
     sc->video_avs->time_base = sc->video_avcc->time_base;
     sc->video_avs->duration = AV_NOPTS_VALUE;
-    //sc->video_avs->duration = millisecondsToTimestamp(theMarks.Duration(), sc->video_avcc->time_base);
 
     if (avcodec_open2(sc->video_avcc, sc->video_avc, NULL) < 0)
     {
@@ -382,13 +420,6 @@ int VideoRecode::prepareAudioEncoder(StreamContext* sc, int sample_rate, Encodin
     }
 
 
-  //  sc->audio_avc = avcodec_find_encoder_by_name(sp.audio_codec.toStdString().c_str());
-  //  if (!sc->audio_avc) 
-  //  {
-		//qDebug() << "Failed to find the proper codec" << sp.audio_codec;
-  //      return -1;
-  //  }
-
     sc->audio_avcc = avcodec_alloc_context3(sc->audio_avc);
     if (!sc->audio_avcc)
     {
@@ -403,12 +434,8 @@ int VideoRecode::prepareAudioEncoder(StreamContext* sc, int sample_rate, Encodin
     }
 
 
- //   int OUTPUT_CHANNELS = 2;
- //   int OUTPUT_BIT_RATE = 196000;
-	//av_channel_layout_default(&sc->audio_avcc->ch_layout, OUTPUT_CHANNELS);
     sc->audio_avcc->sample_rate = sample_rate;
     sc->audio_avcc->sample_fmt = sc->audio_avc->sample_fmts[0];
-    //sc->audio_avcc->bit_rate = OUTPUT_BIT_RATE;
     sc->audio_avcc->time_base = AVRational{ 1, sample_rate };
 
     //sc->audio_avcc->strict_std_compliance = FF_COMPLIANCE_EXPERIMENTAL;
@@ -576,7 +603,10 @@ int VideoRecode::transcodeAudio(StreamContext* decoder, StreamContext* encoder, 
     return 0;
 }
 
-int VideoRecode::transcodeVideo(StreamContext* decoder, StreamContext* encoder, AVPacket* input_packet, AVFrame* input_frame, int64_t pts_start, int64_t pts_end, bool* mark_in_reached, bool* mark_out_reached)
+int VideoRecode::transcodeVideo(StreamContext* decoder, StreamContext* encoder, 
+                                AVPacket* input_packet, AVFrame* input_frame, AVFrame* scaled_frame, 
+                                int64_t pts_start, int64_t pts_end, 
+                                bool* mark_in_reached, bool* mark_out_reached)
 {
     int response = avcodec_send_packet(decoder->video_avcc, input_packet);
     if (response < 0)
@@ -605,7 +635,14 @@ int VideoRecode::transcodeVideo(StreamContext* decoder, StreamContext* encoder, 
         {
 			*mark_in_reached = true;
 			qDebug() << "Processing video frame with PTS:" << input_frame->pts;
-            if (encodeVideo(decoder, encoder, input_frame, pts_start)) return -1;
+            if (theScalingEnabled && encoder->swsc)
+            {
+                sws_scale_frame(encoder->swsc, scaled_frame, input_frame);
+				scaled_frame->pts = input_frame->pts;
+                if (encodeVideo(decoder, encoder, scaled_frame, pts_start)) return -1;
+            }
+            else
+                if (encodeVideo(decoder, encoder, input_frame, pts_start)) return -1;
         }
         else if (input_frame->pts > pts_end && pts_end > 0)
         {
@@ -749,6 +786,33 @@ void VideoRecode::recode()
                 return;
             }
 
+			AVFrame* scaled_frame = av_frame_alloc();
+            if (!scaled_frame)
+            {
+                theLastErrorMessage = "Failed to allocate memory for AVFrame";
+                qDebug() << "Failed to allocate memory for AVFrame";
+                emit recodeError(theLastErrorMessage);
+                return;
+            }
+            if (theScalingEnabled)
+            {
+                scaled_frame->width = theScalingSize.width();
+                scaled_frame->height = theScalingSize.height();
+            }
+            else
+            {
+                scaled_frame->width = decoder->video_avcc->width;
+                scaled_frame->height = decoder->video_avcc->height;
+			}
+			// Create a scaling context if scaling is enabled
+			encoder->swsc = nullptr;
+            if (theScalingEnabled)
+                encoder->swsc = sws_getContext(
+                    decoder->video_avcc->width, decoder->video_avcc->height, decoder->video_avcc->pix_fmt,
+                    theScalingSize.width(), theScalingSize.height(), decoder->video_avcc->pix_fmt,
+                    theScalingFilter, NULL, NULL, NULL
+			    );
+
             AVPacket* input_packet = av_packet_alloc();
             if (!input_packet)
             {
@@ -788,7 +852,7 @@ void VideoRecode::recode()
                 {
                     if (!params.copy_video)
                     {
-                        if (transcodeVideo(decoder, encoder, input_packet, input_frame, video_start_pts, end_pts, &video_mark_in_reached, &video_mark_out_reached)) return;
+                        if (transcodeVideo(decoder, encoder, input_packet, input_frame, scaled_frame, video_start_pts, end_pts, &video_mark_in_reached, &video_mark_out_reached)) return;
                         av_packet_unref(input_packet);
                         if (video_mark_out_reached)
                         {
@@ -843,6 +907,12 @@ void VideoRecode::recode()
                 av_dict_free(&muxer_opts);
                 muxer_opts = nullptr;
             }
+
+            if (scaled_frame != nullptr)
+            {
+                av_frame_free(&scaled_frame);
+                scaled_frame = nullptr;
+			}
 
             if (input_frame != nullptr)
             {

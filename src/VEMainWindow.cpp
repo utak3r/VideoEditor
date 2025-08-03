@@ -230,6 +230,16 @@ void VEMainWindow::Convert()
 		recode->setVideoCodec(codec.VideoCodec);
 		recode->setVideoCodecPreset(codec.VideoCodecPreset);
 		recode->setAudioCodecPreset(codec.AudioCodecPreset);
+        if (ui->grpScaling->isChecked())
+        {
+            recode->setScalingEnabled(true);
+            recode->setScalingSize(QSize(ui->valScaleWidth->value(), ui->valScaleHeight->value()));
+            recode->setScalingFilter(ui->cbxScalingFlags->currentIndex());
+        }
+        else
+        {
+            recode->setScalingEnabled(false);
+		}
         connect(recode, &VideoRecode::recodeProgress, this, [=](int progress) 
             {
             ui->statusbar->showMessage(tr("Recode progress: %1%").arg(progress));

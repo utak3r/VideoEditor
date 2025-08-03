@@ -36,7 +36,7 @@
         <item>
          <widget class="VideoSlider" name="videoPosSlider">
           <property name="orientation">
-           <enum>Qt::Horizontal</enum>
+           <enum>Qt::Orientation::Horizontal</enum>
           </property>
          </widget>
         </item>
@@ -52,7 +52,7 @@
           <item>
            <spacer name="horizontalSpacer">
             <property name="orientation">
-             <enum>Qt::Horizontal</enum>
+             <enum>Qt::Orientation::Horizontal</enum>
             </property>
             <property name="sizeHint" stdset="0">
              <size>
@@ -157,7 +157,7 @@
                 <string>X</string>
                </property>
                <property name="alignment">
-                <set>Qt::AlignCenter</set>
+                <set>Qt::AlignmentFlag::AlignCenter</set>
                </property>
               </widget>
              </item>
@@ -186,7 +186,7 @@
            <item>
             <widget class="QComboBox" name="cbxScalingFlags">
              <property name="currentIndex">
-              <number>4</number>
+              <number>0</number>
              </property>
              <item>
               <property name="text">
@@ -206,6 +206,11 @@
              <item>
               <property name="text">
                <string>Averaging area</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>Gaussian</string>
               </property>
              </item>
              <item>
@@ -272,7 +277,7 @@
         <item>
          <spacer name="verticalSpacer">
           <property name="orientation">
-           <enum>Qt::Vertical</enum>
+           <enum>Qt::Orientation::Vertical</enum>
           </property>
           <property name="sizeHint" stdset="0">
            <size>
