@@ -454,7 +454,8 @@ int VideoRecode::prepareAudioEncoder(StreamContext* sc, int sample_rate, Encodin
 
 
     sc->audio_avcc->sample_rate = sample_rate;
-    sc->audio_avcc->sample_fmt = sc->audio_avc->sample_fmts[0];
+    if (sc->audio_avc)
+        sc->audio_avcc->sample_fmt = sc->audio_avc->sample_fmts[0];
     sc->audio_avcc->time_base = AVRational{ 1, sample_rate };
 
     //sc->audio_avcc->strict_std_compliance = FF_COMPLIANCE_EXPERIMENTAL;

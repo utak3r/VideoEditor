@@ -40,17 +40,17 @@ public:
     {
         std::unique_ptr<Codec> video_codec;
         std::unique_ptr<Codec> audio_codec;
-        AVFormatContext* avfc;
-        const AVCodec* video_avc;
-        const AVCodec* audio_avc;
-        AVStream* video_avs;
-        AVStream* audio_avs;
-        AVCodecContext* video_avcc;
-        AVCodecContext* audio_avcc;
-        int video_index;
-        int audio_index;
-        QString filename;
-		SwsContext* swsc;
+		AVFormatContext* avfc = nullptr;
+		const AVCodec* video_avc = nullptr;
+		const AVCodec* audio_avc = nullptr;
+		AVStream* video_avs = nullptr;
+		AVStream* audio_avs = nullptr;
+		AVCodecContext* video_avcc = nullptr;
+		AVCodecContext* audio_avcc = nullptr;
+		int video_index = -1;
+		int audio_index = -1;
+		QString filename = QString();
+		SwsContext* swsc = nullptr;
 
         ~StreamContext();
     };
