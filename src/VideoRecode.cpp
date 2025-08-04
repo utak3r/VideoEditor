@@ -259,20 +259,16 @@ void VideoRecode::setScalingFilter(int filter)
     int sws_filter = SWS_BILINEAR;
     switch (filter)
     {
-        case 0: // SWS_FAST_BILINEAR
-        case 1: // SWS_BILINEAR
-        case 2: // SWS_BICUBIC
-        case 3: // SWS_AREA
-        case 4: // SWS_GAUSS
-        case 5: // SWS_LANCZOS
-            break;
-        default:
-            sws_filter = SWS_BILINEAR;
+        case 0: sws_filter = SWS_FAST_BILINEAR; break;
+        case 1: sws_filter = SWS_BILINEAR; break;
+        case 2: sws_filter = SWS_BICUBIC; break;
+        case 3: sws_filter = SWS_AREA; break;
+        case 4: sws_filter = SWS_GAUSS; break;
+        case 5: sws_filter = SWS_LANCZOS; break;
+        default: sws_filter = SWS_BILINEAR;
 	}
     if (theScalingFilter != sws_filter)
-    {
         theScalingFilter = sws_filter;
-    }
 }
 
 QString VideoRecode::lastErrorMessage() const

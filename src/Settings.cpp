@@ -3,7 +3,7 @@
 Settings::Settings()
     : theSettings(nullptr)
     , theLastDir(".")
-    , theMainWndGeometry(QRect(640, 250, 800, 500))
+    , theMainWndGeometry(QRect(640, 250, 960, 600))
     , theScalingEnabled(false)
     , theScalingWidth(-1)
     , theScalingHeight(720)
@@ -36,10 +36,12 @@ void Settings::ReadSettings()
         theScalingFilter = 2;
     else if (filter == "Averaging area")
         theScalingFilter = 3;
+    else if (filter == "Gaussian")
+        theScalingFilter = 4;
     else if (filter == "Lanczos")
-        theScalingFilter = 4;
+        theScalingFilter = 5;
     else
-        theScalingFilter = 4;
+        theScalingFilter = 5;
 
     theSettings->endGroup();
 
