@@ -30,6 +30,27 @@ static QString AVError2QString(int errnum)
     return QString(errbuf);
 }
 
+VideoRecode::StreamContext::~StreamContext()
+{
+    if (video_avcc)
+    {
+        avcodec_free_context(&video_avcc);
+    }
+    if (audio_avcc) 
+    {
+        avcodec_free_context(&audio_avcc);
+    }
+    if (avfc) 
+    {
+        avformat_close_input(&avfc);
+        avformat_free_context(avfc);
+    }
+    if (swsc) 
+    {
+        sws_freeContext(swsc);
+	}
+}
+
 VideoRecode::VideoRecode(QObject *parent) 
 : 
     QObject(parent),
@@ -38,7 +59,9 @@ VideoRecode::VideoRecode(QObject *parent)
     theCopyVideo(false), theCopyAudio(false),
 	theVideoCodecPreset("medium"), theVideoCodecTune(""), theVideoCodecProfile(""),
     theTargetFormat("mp4"),
-	theLastErrorMessage("")
+	theLastErrorMessage(""),
+	theScalingEnabled(false),
+	theScalingFilter(SWS_BILINEAR)
 {
 }
 
@@ -683,10 +706,12 @@ void VideoRecode::recode()
     //params.copy_video = false;
     //params.audio_codec = "aac";
     
-	StreamContext* decoder = new StreamContext();
+	std::unique_ptr<StreamContext> decoder(new StreamContext());
+	//StreamContext* decoder = new StreamContext();
     decoder->filename = theInputPath;
 
-	StreamContext* encoder = new StreamContext();
+	std::unique_ptr<StreamContext> encoder(new StreamContext());
+	//StreamContext* encoder = new StreamContext();
 	encoder->filename = theOutputPath;
 
     // replace the filename extension, if provided
@@ -697,21 +722,20 @@ void VideoRecode::recode()
     }
 
     // Instantiate the video and audio codecs presets
-	encoder->video_codec = CodecFactory::instance().create(params.video_codec);
-	encoder->audio_codec = CodecFactory::instance().create(params.audio_codec);
+	encoder->video_codec = std::unique_ptr<Codec>(CodecFactory::instance().create(params.video_codec));
+	encoder->audio_codec = std::unique_ptr<Codec>(CodecFactory::instance().create(params.audio_codec));
 
     if (openMedia(decoder->filename, &decoder->avfc) == 0)
     {
-        if (prepareDecoder(decoder) == 0)
+        if (prepareDecoder(decoder.get()) == 0)
         {
             avformat_alloc_output_context2(&encoder->avfc, NULL, NULL, encoder->filename.toStdString().c_str());
             if (!encoder->avfc)
             {
 				qDebug() << "Failed to allocate output format context for" << encoder->filename;
 				theLastErrorMessage = "Failed to allocate output format context for " + encoder->filename;
-				delete decoder;
-				delete encoder;
-				//free(decoder);
+				//delete decoder;
+				//delete encoder;
 				emit recodeError(theLastErrorMessage);
                 return;
             }
@@ -723,7 +747,7 @@ void VideoRecode::recode()
                     if (!params.copy_video)
                     {
                         AVRational input_framerate = av_guess_frame_rate(decoder->avfc, decoder->video_avs, NULL);
-                        prepareVideoEncoder(encoder, decoder->video_avcc, input_framerate, params);
+                        prepareVideoEncoder(encoder.get(), decoder->video_avcc, input_framerate, params);
                     }
                     else
                     {
@@ -735,7 +759,7 @@ void VideoRecode::recode()
                 {
                     if (!params.copy_audio)
                     {
-                        if (prepareAudioEncoder(encoder, decoder->audio_avcc->sample_rate, params)) return;
+                        if (prepareAudioEncoder(encoder.get(), decoder->audio_avcc->sample_rate, params)) return;
                     }
                     else
                     {
@@ -754,6 +778,8 @@ void VideoRecode::recode()
 					theLastErrorMessage = "Could not open output file: " + encoder->filename;
 					qDebug() << "Could not open output file" << encoder->filename;
                     emit recodeError(theLastErrorMessage);
+					//delete decoder;
+					//delete encoder;
                     return;
                 }
             }
@@ -774,6 +800,9 @@ void VideoRecode::recode()
 				theLastErrorMessage = "An error occurred when opening output file: " + encoder->filename;
 				qDebug() << "An error occurred when opening output file" << encoder->filename;
                 emit recodeError(theLastErrorMessage);
+				av_dict_free(&muxer_opts);
+				//delete decoder;
+				//delete encoder;
                 return;
             }
 
@@ -783,6 +812,9 @@ void VideoRecode::recode()
 				theLastErrorMessage = "Failed to allocate memory for AVFrame";
 				qDebug() << "Failed to allocate memory for AVFrame";
                 emit recodeError(theLastErrorMessage);
+				//delete decoder;
+				//delete encoder;
+				av_dict_free(&muxer_opts);
                 return;
             }
 
@@ -792,6 +824,10 @@ void VideoRecode::recode()
                 theLastErrorMessage = "Failed to allocate memory for AVFrame";
                 qDebug() << "Failed to allocate memory for AVFrame";
                 emit recodeError(theLastErrorMessage);
+				av_frame_free(&input_frame);
+				//delete decoder;
+				//delete encoder;
+				av_dict_free(&muxer_opts);
                 return;
             }
             if (theScalingEnabled)
@@ -819,6 +855,11 @@ void VideoRecode::recode()
 				theLastErrorMessage = "Failed to allocate memory for AVPacket";
 				qDebug() << "Failed to allocate memory for AVPacket";
                 emit recodeError(theLastErrorMessage);
+				av_frame_free(&scaled_frame);
+				av_frame_free(&input_frame);
+				//delete decoder;
+				//delete encoder;
+				av_dict_free(&muxer_opts);
                 return;
             }
 
@@ -852,7 +893,7 @@ void VideoRecode::recode()
                 {
                     if (!params.copy_video)
                     {
-                        if (transcodeVideo(decoder, encoder, input_packet, input_frame, scaled_frame, video_start_pts, end_pts, &video_mark_in_reached, &video_mark_out_reached)) return;
+                        if (transcodeVideo(decoder.get(), encoder.get(), input_packet, input_frame, scaled_frame, video_start_pts, end_pts, &video_mark_in_reached, &video_mark_out_reached)) return;
                         av_packet_unref(input_packet);
                         if (video_mark_out_reached)
                         {
@@ -869,7 +910,7 @@ void VideoRecode::recode()
                 {
                     if (!params.copy_audio)
                     {
-                        if (transcodeAudio(decoder, encoder, input_packet, input_frame, audio_start_pts, end_pts, &audio_mark_out_reached)) return;
+                        if (transcodeAudio(decoder.get(), encoder.get(), input_packet, input_frame, audio_start_pts, end_pts, &audio_mark_out_reached)) return;
                         av_packet_unref(input_packet);
                     }
                     else
@@ -890,9 +931,9 @@ void VideoRecode::recode()
 				}
             }
             if (!params.copy_video)
-                if (encodeVideo(decoder, encoder, nullptr, video_start_pts)) return;
+                if (encodeVideo(decoder.get(), encoder.get(), nullptr, video_start_pts)) return;
             if (!params.copy_audio)
-                if (encodeAudio(decoder, encoder, nullptr, audio_start_pts)) return;
+                if (encodeAudio(decoder.get(), encoder.get(), nullptr, audio_start_pts)) return;
 
 
 			// Close the input file
@@ -925,18 +966,6 @@ void VideoRecode::recode()
                 av_packet_free(&input_packet);
                 input_packet = nullptr;
             }
-
-            avformat_free_context(decoder->avfc); decoder->avfc = nullptr;
-            avformat_free_context(encoder->avfc); encoder->avfc = nullptr;
-
-            avcodec_free_context(&decoder->video_avcc); decoder->video_avcc = nullptr;
-            avcodec_free_context(&decoder->audio_avcc); decoder->audio_avcc = nullptr;
-
-			delete encoder->video_codec; encoder->video_codec = nullptr;
-			delete encoder->audio_codec; encoder->audio_codec = nullptr;
-
-            delete decoder; decoder = nullptr;
-			delete encoder; encoder = nullptr;
 
             emit recodeProgress(100);
 			emit recodeFinished();

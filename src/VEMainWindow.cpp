@@ -1,6 +1,8 @@
 #include "VEMainWindow.h"
 #include "./ui_VEMainWindow.h"
 #include <QFileDialog>
+#include <QTimer>
+#include <QProgressBar>
 #include <SettingsDialog.h>
 #include <VideoRecode.h>
 #include <../version.h>
@@ -221,7 +223,8 @@ void VEMainWindow::Convert()
         //std::tuple<bool, int, int, QString> scaling = FFMPEG::getScalingTuple(ui->grpScaling->isChecked(), ui->valScaleWidth->value(), ui->valScaleHeight->value(), ui->cbxScalingFlags->currentIndex());
         //theFFMPEG->Convert(currentVideoFile.absoluteFilePath(), codec.CommandLine, &theMarks, scaling, outFilename);
 
-		VideoRecode* recode = new VideoRecode(this);
+		std::unique_ptr<VideoRecode> recode(new VideoRecode(this));
+		//VideoRecode* recode = new VideoRecode(this);
         VideoPreset codec = ui->cbxPresets->currentData().value<VideoPreset>();
 		recode->setInputPath(currentVideoFile.absoluteFilePath());
 		recode->setOutputPath(outFilename);
@@ -240,10 +243,27 @@ void VEMainWindow::Convert()
         {
             recode->setScalingEnabled(false);
 		}
-        connect(recode, &VideoRecode::recodeProgress, this, [=](int progress) 
+        //ui->statusbar->addWidget(new QProgressBar(ui->statusbar));
+        connect(recode.get(), &VideoRecode::recodeProgress, this, [=](int progress)
             {
             ui->statusbar->showMessage(tr("Recode progress: %1%").arg(progress));
 			});
+        connect(recode.get(), &VideoRecode::recodeFinished, this, [=]()
+            {
+            ui->statusbar->showMessage(tr("Recode finished"));
+            QTimer::singleShot(2000, this, [=]()
+                {
+                    ui->statusbar->showMessage(QString("%1").arg(PROJECT_VERSION_STRING_FULL));
+				});
+            });
+        connect(recode.get(), &VideoRecode::recodeError, this, [=](const QString& errorMessage)
+            {
+            ui->statusbar->showMessage(tr("Recode error: %1").arg(errorMessage));
+            QTimer::singleShot(2000, this, [=]()
+                {
+                    ui->statusbar->showMessage(QString("%1").arg(PROJECT_VERSION_STRING_FULL));
+                });
+            });
 		recode->recode();
     }
 

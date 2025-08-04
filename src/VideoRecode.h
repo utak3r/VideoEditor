@@ -38,8 +38,8 @@ public:
 
     struct StreamContext
     {
-		Codec* video_codec;
-		Codec* audio_codec;
+        std::unique_ptr<Codec> video_codec;
+        std::unique_ptr<Codec> audio_codec;
         AVFormatContext* avfc;
         const AVCodec* video_avc;
         const AVCodec* audio_avc;
@@ -51,6 +51,8 @@ public:
         int audio_index;
         QString filename;
 		SwsContext* swsc;
+
+        ~StreamContext();
     };
 
     struct EncodingParams
