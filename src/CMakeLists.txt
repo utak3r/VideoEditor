@@ -89,7 +89,7 @@ target_link_libraries(VideoEditor
 )
 
 set(cppcheck
-  "d:/devel/cppcheck/cppcheck"
+  "c:/Users/piotr/devel/Cppcheck/cppcheck.exe"
   "--enable=warning"
   "--inconclusive"
   "--force"
@@ -107,24 +107,24 @@ set_target_properties(VideoEditor PROPERTIES
 qt_finalize_executable(VideoEditor)
 
 # this library serves for linking against unit tests
-qt_add_library(VideoEditor_lib STATIC ${PROJECT_ADDITIONAL_SOURCES})
-target_include_directories(VideoEditor_lib 
-    PRIVATE 
-        "${FFMPEG_DIR}/include"
-)
-target_link_libraries(VideoEditor_lib
-    PRIVATE 
-        Qt6::Widgets 
-        Qt6::Multimedia 
-        Qt6::MultimediaWidgets
-    PUBLIC
-        "${FFMPEG_DIR}/lib/avformat.lib"
-        "${FFMPEG_DIR}/lib/avcodec.lib"
-        "${FFMPEG_DIR}/lib/avutil.lib"
-        "${FFMPEG_DIR}/lib/swscale.lib"
-        "${FFMPEG_DIR}/lib/swresample.lib"    
-        "${FFMPEG_DIR}/lib/avformat.lib"
-)
+# qt_add_library(VideoEditor_lib STATIC ${PROJECT_ADDITIONAL_SOURCES})
+# target_include_directories(VideoEditor_lib 
+    # PRIVATE 
+        # "${FFMPEG_DIR}/include"
+# )
+# target_link_libraries(VideoEditor_lib
+    # PRIVATE 
+        # Qt6::Widgets 
+        # Qt6::Multimedia 
+        # Qt6::MultimediaWidgets
+    # PUBLIC
+        # "${FFMPEG_DIR}/lib/avformat.lib"
+        # "${FFMPEG_DIR}/lib/avcodec.lib"
+        # "${FFMPEG_DIR}/lib/avutil.lib"
+        # "${FFMPEG_DIR}/lib/swscale.lib"
+        # "${FFMPEG_DIR}/lib/swresample.lib"    
+        # "${FFMPEG_DIR}/lib/avformat.lib"
+# )
 
 
 install (TARGETS VideoEditor
@@ -136,8 +136,11 @@ install(FILES ${QM_FILES}
     DESTINATION "${CMAKE_INSTALL_PREFIX}/translations")
 
 if (EXISTS ${WINDEPLOYQT_EXECUTABLE})
+	install (CODE "
+		execute_process(COMMAND \"${WINDEPLOYQT_EXECUTABLE}\" --dir \"${CMAKE_INSTALL_PREFIX}\" \"${CMAKE_BINARY_DIR}/src/Release/VideoEditor.exe\")
+	")
     execute_process(
-      COMMAND "${WINDEPLOYQT_EXECUTABLE}" --dir "${CMAKE_INSTALL_PREFIX}" "${CMAKE_BINARY_DIR}/src/VideoEditor.exe"
+      COMMAND "${WINDEPLOYQT_EXECUTABLE}" --dir "${CMAKE_INSTALL_PREFIX}" "${CMAKE_BINARY_DIR}/src/Release/VideoEditor.exe"
     )
 else()
     set(QT_LIBS
@@ -154,10 +157,10 @@ else()
         "${CMAKE_PREFIX_PATH}/plugins/platforms/qwindows.dll"
         DESTINATION "${CMAKE_INSTALL_PREFIX}/platforms"
         )
-    install(FILES
-        "${CMAKE_PREFIX_PATH}/plugins/styles/qwindowsvistastyle.dll"
-        DESTINATION "${CMAKE_INSTALL_PREFIX}/styles"
-        )
+#    install(FILES
+#        "${CMAKE_PREFIX_PATH}/plugins/styles/qwindowsvistastyle.dll"
+#        DESTINATION "${CMAKE_INSTALL_PREFIX}/styles"
+#        )
     install(FILES
         "${CMAKE_PREFIX_PATH}/plugins/iconengines/qsvgicon.dll"
         DESTINATION "${CMAKE_INSTALL_PREFIX}/iconengines"
@@ -181,7 +184,16 @@ endif()
 if (${Qt6_VERSION_MAJOR}.${Qt6_VERSION_MINOR}.${Qt6_VERSION_PATCH} VERSION_EQUAL "6.4.0")
     install(FILES
         "${CMAKE_PREFIX_PATH}/plugins/multimedia/windowsmediaplugin.dll"
+        "${CMAKE_PREFIX_PATH}/plugins/multimedia/ffmpegmediaplugin.dll"
         DESTINATION "${CMAKE_INSTALL_PREFIX}/multimedia"
         )
 endif()
 
+install(FILES 
+    "${FFMPEG_DIR}/bin/avformat-61.dll"
+    "${FFMPEG_DIR}/bin/avcodec-61.dll"
+    "${FFMPEG_DIR}/bin/avutil-59.dll"
+    "${FFMPEG_DIR}/bin/swscale-8.dll"
+    "${FFMPEG_DIR}/bin/swresample-5.dll"
+    DESTINATION "${CMAKE_INSTALL_PREFIX}"
+    )

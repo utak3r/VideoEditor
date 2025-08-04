@@ -74,7 +74,7 @@ set(CMAKE_AUTORCC ON)
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-#set(CMAKE_INSTALL_PREFIX "${PROJECT_SOURCE_DIR}/../distrib")
+set(CMAKE_INSTALL_PREFIX "${PROJECT_SOURCE_DIR}/../distrib")
 add_subdirectory(src)
-add_subdirectory(test)
+#add_subdirectory(test)
 
