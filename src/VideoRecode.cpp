@@ -390,8 +390,28 @@ int VideoRecode::prepareVideoEncoder(StreamContext* sc, AVCodecContext* decoder_
 
     if (theScalingEnabled)
     {
-        sc->video_avcc->height = theScalingSize.height();
-        sc->video_avcc->width = theScalingSize.width();
+		int targetWidth = theScalingSize.width();
+		int targetHeight = theScalingSize.height();
+        if (targetWidth == -1 && targetHeight == -1)
+        {
+			qDebug() << "Invalid scaling size specified, using original video size";
+            targetWidth = decoder_ctx->width;
+            targetHeight = decoder_ctx->height;
+        }
+        else if (targetWidth == -1)
+        {
+			double aspectRatio = static_cast<double>(decoder_ctx->width) / decoder_ctx->height;
+			targetWidth = static_cast<int>(theScalingSize.height() * aspectRatio);
+			theScalingSize.setWidth(targetWidth);
+		}
+        else if (targetHeight == -1)
+        {
+            double aspectRatio = static_cast<double>(decoder_ctx->height) / decoder_ctx->width;
+            targetHeight = static_cast<int>(theScalingSize.width() * aspectRatio);
+			theScalingSize.setHeight(targetHeight);
+        }
+        sc->video_avcc->height = targetHeight;
+        sc->video_avcc->width = targetWidth;
     }
     else
     {
