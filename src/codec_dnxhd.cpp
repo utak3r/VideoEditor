@@ -1,4 +1,4 @@
-// https://trac.ffmpeg.org/wiki/Encode/H.264
+// 
 
 #include "codec_dnxhd.h"
 extern "C" {
@@ -12,7 +12,7 @@ Codec::CodecType CodecDnXHD::type() const
 
 QString CodecDnXHD::name() const
 {
-	return "VC3/DNxHD";
+	return "SMPTE VC-3/DNxHD";
 }
 
 const AVCodec* CodecDnXHD::getAVCodec() const
@@ -35,29 +35,37 @@ void CodecDnXHD::setPreset(const QString& preset, AVCodecContext* codecContext)
 		if (preset == "1280x720p 90Mbps yuv422p10")
 		{
 			av_opt_set(codecContext->priv_data, "profile", "dnxhr_90", 0);
-			av_opt_set(codecContext->priv_data, "pix_fmt", "yuv422p10", 0);
-			av_opt_set(codecContext->priv_data, "s", "1280x720", 0);
+			//av_opt_set(codecContext->priv_data, "pix_fmt", "yuv422p10", 0);
+			//av_opt_set(codecContext->priv_data, "b", "90000000", 0);
+			codecContext->pix_fmt = AV_PIX_FMT_YUV422P10LE;
+			codecContext->bit_rate = 90000000;
 			codecContext->framerate = AVRational({ 60000, 1001 });
 		}
 		else if (preset == "1280x720p 220Mbps yuv422p")
 		{
 			av_opt_set(codecContext->priv_data, "profile", "dnxhr_hq", 0);
-			av_opt_set(codecContext->priv_data, "pix_fmt", "yuv422p", 0);
-			av_opt_set(codecContext->priv_data, "s", "1280x720", 0);
+			//av_opt_set(codecContext->priv_data, "pix_fmt", "yuv422p", 0);
+			//av_opt_set(codecContext->priv_data, "b", "220000000", 0);
+			codecContext->pix_fmt = AV_PIX_FMT_YUV422P;
+			codecContext->bit_rate = 220000000;
 			codecContext->framerate = AVRational({ 60000, 1001 });
 		}
 		else if (preset == "1920x1080p 185Mbps yuv422p10")
 		{
 			av_opt_set(codecContext->priv_data, "profile", "dnxhr_185", 0);
-			av_opt_set(codecContext->priv_data, "pix_fmt", "yuv422p10", 0);
-			av_opt_set(codecContext->priv_data, "s", "1920x1080", 0);
+			//av_opt_set(codecContext->priv_data, "pix_fmt", "yuv422p10", 0);
+			//av_opt_set(codecContext->priv_data, "b", "185000000", 0);
+			codecContext->pix_fmt = AV_PIX_FMT_YUV422P10LE;
+			codecContext->bit_rate = 185000000;
 			codecContext->framerate = AVRational({ 60000, 1001 });
 		}
 		else if (preset == "1920x1080p 365Mbps yuv422p10")
 		{
 			av_opt_set(codecContext->priv_data, "profile", "dnxhr_444", 0);
-			av_opt_set(codecContext->priv_data, "pix_fmt", "yuv422p10", 0);
-			av_opt_set(codecContext->priv_data, "s", "1920x1080", 0);
+			//av_opt_set(codecContext->priv_data, "pix_fmt", "yuv422p10", 0);
+			//av_opt_set(codecContext->priv_data, "b", "365000000", 0);
+			codecContext->pix_fmt = AV_PIX_FMT_YUV422P10LE;
+			codecContext->bit_rate = 365000000;
 			codecContext->framerate = AVRational({ 60000, 1001 });
 		}
 	}

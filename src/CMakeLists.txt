@@ -47,6 +47,8 @@ set(PROJECT_ADDITIONAL_SOURCES
     codec_aac.h
     codec_dnxhd.cpp
     codec_dnxhd.h
+    codec_pcms24le.cpp
+    codec_pcms24le.h
 )
 set(PROJECT_SOURCES
     ${CMAKE_BINARY_DIR}/version.rc
