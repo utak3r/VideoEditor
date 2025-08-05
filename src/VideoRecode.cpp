@@ -370,28 +370,22 @@ int VideoRecode::prepareDecoder(StreamContext* sc)
 
 int VideoRecode::prepareVideoEncoder(StreamContext* sc, AVCodecContext* decoder_ctx, AVRational input_framerate, EncodingParams params)
 {
-    sc->video_avs = avformat_new_stream(sc->avfc, NULL);
-
     if (sc->video_codec)
     {
-		sc->video_avc = sc->video_codec->getAVCodec();
+        sc->video_avc = sc->video_codec->getAVCodec();
         if (!sc->video_avc)
         {
             qDebug() << "Failed to find the proper codec" << sc->video_codec->name();
         }
     }
 
+    sc->video_avs = avformat_new_stream(sc->avfc, NULL);
+
     sc->video_avcc = avcodec_alloc_context3(sc->video_avc);
     if (!sc->video_avcc)
     {
 		qDebug() << "Failed to allocate codec context for video encoder";
         return -1;
-    }
-
-    if (!params.video_codec_preset.isEmpty())
-    {
-		// Set the preset for the video codec
-		sc->video_codec->setPreset(params.video_codec_preset, sc->video_avcc);
     }
 
     if (theScalingEnabled)
@@ -414,6 +408,12 @@ int VideoRecode::prepareVideoEncoder(StreamContext* sc, AVCodecContext* decoder_
     sc->video_avs->time_base = sc->video_avcc->time_base;
     sc->video_avs->duration = AV_NOPTS_VALUE;
 
+    if (!params.video_codec_preset.isEmpty())
+    {
+        // Set the preset for the video codec
+        sc->video_codec->setPreset(params.video_codec_preset, sc->video_avcc);
+    }
+
     if (avcodec_open2(sc->video_avcc, sc->video_avc, NULL) < 0)
     {
 		qDebug() << "Failed to open video codec" << sc->video_avc->long_name << 
@@ -427,8 +427,6 @@ int VideoRecode::prepareVideoEncoder(StreamContext* sc, AVCodecContext* decoder_
 
 int VideoRecode::prepareAudioEncoder(StreamContext* sc, int sample_rate, EncodingParams sp)
 {
-    sc->audio_avs = avformat_new_stream(sc->avfc, NULL);
-
     if (sc->audio_codec)
     {
         sc->audio_avc = sc->audio_codec->getAVCodec();
@@ -438,6 +436,8 @@ int VideoRecode::prepareAudioEncoder(StreamContext* sc, int sample_rate, Encodin
         }
     }
 
+    sc->audio_avs = avformat_new_stream(sc->avfc, NULL);
+
 
     sc->audio_avcc = avcodec_alloc_context3(sc->audio_avc);
     if (!sc->audio_avcc)
@@ -446,21 +446,19 @@ int VideoRecode::prepareAudioEncoder(StreamContext* sc, int sample_rate, Encodin
         return -1;
     }
 
+    sc->audio_avcc->sample_rate = sample_rate;
+    if (sc->audio_avc)
+        sc->audio_avcc->sample_fmt = sc->audio_avc->sample_fmts[0];
+    sc->audio_avcc->time_base = AVRational{ 1, sample_rate };
+    sc->audio_avs->time_base = sc->audio_avcc->time_base;
+
+    //sc->audio_avcc->strict_std_compliance = FF_COMPLIANCE_EXPERIMENTAL;
+
     if (!sp.audio_codec_preset.isEmpty())
     {
         // Set the preset for the video codec
         sc->audio_codec->setPreset(sp.audio_codec_preset, sc->audio_avcc);
     }
-
-
-    sc->audio_avcc->sample_rate = sample_rate;
-    if (sc->audio_avc)
-        sc->audio_avcc->sample_fmt = sc->audio_avc->sample_fmts[0];
-    sc->audio_avcc->time_base = AVRational{ 1, sample_rate };
-
-    //sc->audio_avcc->strict_std_compliance = FF_COMPLIANCE_EXPERIMENTAL;
-
-    sc->audio_avs->time_base = sc->audio_avcc->time_base;
 
     if (avcodec_open2(sc->audio_avcc, sc->audio_avc, NULL) < 0)
     {
