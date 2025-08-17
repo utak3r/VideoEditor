@@ -19,6 +19,7 @@ extern "C" {
 #include <libswscale/swscale.h>
 #include <libavutil/imgutils.h>
 #include <libavcodec/codec_par.h>
+#include <libswresample/swresample.h>
 }
 
 #include "VideoRecode.h"
@@ -467,6 +468,7 @@ int VideoRecode::prepareAudioEncoder(StreamContext* sc, int sample_rate, Encodin
     }
 
     sc->audio_avcc->sample_rate = sample_rate;
+    sc->audio_avcc->bit_rate = 196000;
     if (sc->audio_avc)
         sc->audio_avcc->sample_fmt = sc->audio_avc->sample_fmts[0];
     sc->audio_avcc->time_base = AVRational{ 1, sample_rate };
@@ -479,6 +481,15 @@ int VideoRecode::prepareAudioEncoder(StreamContext* sc, int sample_rate, Encodin
         // Set the preset for the video codec
         sc->audio_codec->setPreset(sp.audio_codec_preset, sc->audio_avcc);
     }
+
+    if (sc->audio_avcc->sample_rate != sample_rate)
+    {
+        sc->audio_avcc->time_base = AVRational{ 1, sc->audio_avcc->sample_rate };
+        sc->audio_avs->time_base = sc->audio_avcc->time_base;
+    }
+
+    if (sc->avfc->oformat->flags & AVFMT_GLOBALHEADER)
+        sc->audio_avcc->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
 
     if (avcodec_open2(sc->audio_avcc, sc->audio_avc, NULL) < 0)
     {
@@ -571,7 +582,7 @@ int VideoRecode::encodeAudio(StreamContext* decoder, StreamContext* encoder, AVF
     }
 
     int response = avcodec_send_frame(encoder->audio_avcc, input_frame);
-
+    
     while (response >= 0)
     {
         response = avcodec_receive_packet(encoder->audio_avcc, output_packet);
@@ -600,7 +611,9 @@ int VideoRecode::encodeAudio(StreamContext* decoder, StreamContext* encoder, AVF
     return 0;
 }
 
-int VideoRecode::transcodeAudio(StreamContext* decoder, StreamContext* encoder, AVPacket* input_packet, AVFrame* input_frame, int64_t pts_start, int64_t pts_end, bool* mark_out_reached)
+int VideoRecode::transcodeAudio(StreamContext* decoder, StreamContext* encoder, 
+                                AVPacket* input_packet, AVFrame* input_frame, AVFrame* resampled_frame,
+                                int64_t pts_start, int64_t pts_end, bool* mark_out_reached)
 {
     int response = avcodec_send_packet(decoder->audio_avcc, input_packet);
     if (response < 0)
@@ -629,7 +642,94 @@ int VideoRecode::transcodeAudio(StreamContext* decoder, StreamContext* encoder, 
             )
         {
 			qDebug() << "Processing audio frame with PTS:" << input_frame->pts;
-            if (encodeAudio(decoder, encoder, input_frame, pts_start)) return -1;
+
+            const AVChannelLayout* input_channel_layout = &input_frame->ch_layout;
+            //const AVChannelLayout* output_channel_layout = &input_frame->ch_layout;
+            const AVChannelLayout* output_channel_layout = encoder->audio_avcc->ch_layout.nb_channels > 0 ?
+				&encoder->audio_avcc->ch_layout : input_channel_layout;
+			AVSampleFormat input_sample_fmt = (AVSampleFormat)input_frame->format;
+            //AVSampleFormat output_sample_fmt = (AVSampleFormat)input_frame->format;
+			AVSampleFormat output_sample_fmt = encoder->audio_avcc->sample_fmt != AV_SAMPLE_FMT_NONE ? 
+                encoder->audio_avcc->sample_fmt : input_sample_fmt;
+			int input_sample_rate = input_frame->sample_rate;
+            //int output_sample_rate = input_frame->sample_rate;
+            int output_sample_rate = encoder->audio_avcc->sample_rate > 0 ? 
+				encoder->audio_avcc->sample_rate : input_sample_rate;
+			int input_channels = input_frame->ch_layout.nb_channels;
+			//int output_channels = input_frame->ch_layout.nb_channels;
+			int output_channels = encoder->audio_avcc->ch_layout.nb_channels > 0 ? 
+				encoder->audio_avcc->ch_layout.nb_channels : input_channels;
+			int input_nb_samples = input_frame->nb_samples;
+			//int output_nb_samples = input_frame->nb_samples;
+			//int output_nb_samples = encoder->audio_avcc->frame_size > 0 ? 
+
+            if (!encoder->swrc || 0 == swr_is_initialized(encoder->swrc))
+            {
+                swr_alloc_set_opts2(
+                    &encoder->swrc,
+                    output_channel_layout,
+                    output_sample_fmt,
+                    output_sample_rate,
+                    input_channel_layout,
+                    input_sample_fmt,
+                    input_sample_rate,
+                    0, nullptr);
+                if (encoder->swrc)
+					swr_init(encoder->swrc);
+            }
+            
+            uint8_t** converted = nullptr;
+            int out_samples = av_rescale_rnd(
+                swr_get_delay(encoder->swrc, input_sample_rate) + input_nb_samples,
+                    output_sample_rate,
+                    input_sample_rate,
+                    AV_ROUND_UP
+                    );
+            int ret = av_samples_alloc_array_and_samples(
+                &converted,
+                nullptr,
+                output_channels,
+                out_samples,
+                output_sample_fmt,
+                0
+                );
+            int samples_converted = swr_convert(
+                encoder->swrc,
+                converted, out_samples,
+                (const uint8_t**)input_frame->data, input_frame->nb_samples
+            );
+
+			AVFrame* resampled_frame = av_frame_alloc();
+            resampled_frame->ch_layout = *output_channel_layout;
+            resampled_frame->sample_rate = output_sample_rate;
+            resampled_frame->format = output_sample_fmt;
+            resampled_frame->nb_samples = samples_converted;
+
+			// converted has samples_converted samples of converted audio data
+            // send it to avcodec_send_frame
+            if (samples_converted > 0)
+            {
+                if (0 <= av_frame_get_buffer(resampled_frame, 0))
+                {
+                    av_samples_copy(
+                        resampled_frame->data,
+                        converted, 0, 0, samples_converted,
+                        output_channels,
+                        output_sample_fmt
+                    );
+                }
+            }
+
+
+			resampled_frame->pts = input_frame->pts;
+			resampled_frame->pkt_dts = input_frame->pts;
+
+            if (encodeAudio(decoder, encoder, resampled_frame, pts_start)) return -1;
+
+			av_frame_free(&resampled_frame);
+            av_freep(&converted[0]);
+            av_freep(&converted);
+
         }
         av_frame_unref(input_frame);
 
@@ -864,6 +964,69 @@ void VideoRecode::recode()
                     theScalingFilter, NULL, NULL, NULL
 			    );
 
+			/*AVFrame* resampled_frame = av_frame_alloc();
+            if (!resampled_frame)
+            {
+                theLastErrorMessage = "Failed to allocate memory for resampled AVFrame";
+                qDebug() << theLastErrorMessage;
+                emit recodeError(theLastErrorMessage);
+                av_frame_free(&scaled_frame);
+                av_frame_free(&input_frame);
+                //delete decoder;
+                //delete encoder;
+                av_dict_free(&muxer_opts);
+                return;
+			}*/
+
+			// create a resampling context for audio
+            encoder->swrc = nullptr;
+            //encoder->swrc = swr_alloc();
+            /*AVChannelLayout output_audio_layout = decoder->audio_avcc->ch_layout;
+            if (swr_alloc_set_opts2(
+                    &encoder->swrc,
+                    &output_audio_layout,
+                    encoder->audio_avcc->sample_fmt,
+                    encoder->audio_avcc->sample_rate,
+                    &decoder->audio_avcc->ch_layout,
+                    decoder->audio_avcc->sample_fmt,
+                    decoder->audio_avcc->sample_rate,
+                    0, NULL) != 0)
+            {
+				theLastErrorMessage = "Failed to allocate memory for audio resampling context";
+                qDebug() << theLastErrorMessage;
+				emit recodeError(theLastErrorMessage);
+				av_frame_free(&scaled_frame);
+				av_frame_free(&input_frame);
+				av_frame_free(&resampled_frame);
+				//delete decoder;
+				//delete encoder;
+                av_dict_free(&muxer_opts);
+				return;
+            }
+			if (swr_init(encoder->swrc) < 0)
+            {
+                theLastErrorMessage = "Failed to initialize audio resampling context";
+                qDebug() << theLastErrorMessage;
+                emit recodeError(theLastErrorMessage);
+                swr_free(&encoder->swrc);
+                av_frame_free(&scaled_frame);
+                av_frame_free(&input_frame);
+                av_frame_free(&resampled_frame);
+                //delete decoder;
+                //delete encoder;
+                av_dict_free(&muxer_opts);
+                return;
+			}*/
+
+            // until audio resampling worka properly, we will copy the data from the source
+			//encoder->audio_avcc->sample_fmt = decoder->audio_avcc->sample_fmt;
+			//encoder->audio_avcc->ch_layout = decoder->audio_avcc->ch_layout;
+			//encoder->audio_avcc->sample_rate = decoder->audio_avcc->sample_rate;
+			//encoder->audio_avcc->bit_rate = decoder->audio_avcc->bit_rate;
+			//encoder->audio_avcc->time_base = decoder->audio_avcc->time_base;
+            //encoder->audio_avs->time_base = decoder->audio_avs->time_base;
+
+			// Allocate an AVPacket for reading input frames
             AVPacket* input_packet = av_packet_alloc();
             if (!input_packet)
             {
@@ -925,7 +1088,7 @@ void VideoRecode::recode()
                 {
                     if (!params.copy_audio)
                     {
-                        if (transcodeAudio(decoder.get(), encoder.get(), input_packet, input_frame, audio_start_pts, end_pts, &audio_mark_out_reached)) return;
+                        if (transcodeAudio(decoder.get(), encoder.get(), input_packet, input_frame, nullptr, audio_start_pts, end_pts, &audio_mark_out_reached)) return;
                         av_packet_unref(input_packet);
                     }
                     else

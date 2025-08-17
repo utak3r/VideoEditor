@@ -23,7 +23,7 @@ const AVCodec* CodecAAC::getAVCodec() const
 QStringList CodecAAC::getAvailablePresets() const
 {
 	return {
-		"low", "medium", "high"
+		"medium"
 	};
 }
 
@@ -35,21 +35,24 @@ void CodecAAC::setPreset(const QString& preset, AVCodecContext* codecContext)
 
 		if (preset == "low")
 		{
-			av_opt_set(codecContext->priv_data, "profile", "aac_low", 0);
-			codecContext->sample_rate = 44100;
-			codecContext->bit_rate = 128000;
+			av_opt_set_int(codecContext->priv_data, "profile", AV_PROFILE_AAC_LOW, 0);
+			codecContext->bit_rate = 64000; // 64 kbps
+			codecContext->sample_rate = 44100; // 44.1 kHz
+			//av_opt_set_int(codecContext, "bit_rate", 64000, 0);
 		}
 		else if (preset == "medium")
 		{
-			av_opt_set(codecContext->priv_data, "profile", "aac_he_v2", 0);
-			codecContext->sample_rate = 44100;
-			codecContext->bit_rate = 160000;
+			av_opt_set_int(codecContext->priv_data, "profile", AV_PROFILE_AAC_HE, 0);
+			codecContext->bit_rate = 128000; // 128 kbps
+			codecContext->sample_rate = 44100; // 44.1 kHz
+			//av_opt_set_int(codecContext, "bit_rate", 128000, 0);
 		}
 		else if (preset == "high")
 		{
-			av_opt_set(codecContext->priv_data, "profile", "aac_he_v2", 0);
-			codecContext->sample_rate = 48000;
-			codecContext->bit_rate = 196000;
+			av_opt_set_int(codecContext->priv_data, "profile", AV_PROFILE_AAC_HE_V2, 0);
+			codecContext->bit_rate = 192000; // 192 kbps
+			codecContext->sample_rate = 48000; // 48 kHz
+			//av_opt_set_int(codecContext, "bit_rate", 192000, 0);
 		}
 
 		codecContext->strict_std_compliance = FF_COMPLIANCE_EXPERIMENTAL;

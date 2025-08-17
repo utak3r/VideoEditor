@@ -14,7 +14,7 @@
 #include "codec_pcms24le.h"
 
 
-#define VIDEO_FILE_EXTENSIONS "*.mp4 *.mov *.avi *.mts *.mxf *.webm"
+#define VIDEO_FILE_EXTENSIONS "*.mp4 *.mov *.avi *.mts *.mxf *.webm *.mkv *.m4v"
 
 VEMainWindow::VEMainWindow(QWidget *parent)
     : QMainWindow(parent)

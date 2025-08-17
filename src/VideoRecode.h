@@ -6,6 +6,7 @@
 struct AVCodecParameters;
 struct AVPacket;
 struct SwsContext;
+struct SwrContext;
 
 class VideoRecode : public QObject
 {
@@ -51,6 +52,7 @@ public:
 		int audio_index = -1;
 		QString filename = QString();
 		SwsContext* swsc = nullptr;
+		SwrContext* swrc = nullptr;
 
         ~StreamContext();
     };
@@ -140,7 +142,11 @@ private:
     int remux(AVPacket** pkt, AVFormatContext** avfc, AVRational decoder_tb, AVRational encoder_tb, int64_t pts_start, int64_t pts_end);
     int encodeVideo(StreamContext* decoder, StreamContext* encoder, AVFrame* input_frame, int64_t pts_start);
     int encodeAudio(StreamContext* decoder, StreamContext* encoder, AVFrame* input_frame, int64_t pts_start);
-    int transcodeAudio(StreamContext* decoder, StreamContext* encoder, AVPacket* input_packet, AVFrame* input_frame, int64_t pts_start, int64_t pts_end, bool* mark_out_reached);
+    int transcodeAudio(StreamContext* decoder, StreamContext* encoder, 
+        AVPacket* input_packet, 
+        AVFrame* input_frame, AVFrame* resampled_frame,
+        int64_t pts_start, int64_t pts_end, 
+        bool* mark_out_reached);
     int transcodeVideo(StreamContext* decoder, StreamContext* encoder, 
         AVPacket* input_packet, 
         AVFrame* input_frame, AVFrame* scaled_frame, 
