@@ -5,6 +5,7 @@
 #include <QProgressBar>
 #include <SettingsDialog.h>
 #include <VideoRecode.h>
+#include <VideoTranscoder.h>
 #include <../version.h>
 #include "Codec.h"
 #include "codec_x264.h"
@@ -224,73 +225,44 @@ void VEMainWindow::Convert()
         tr("Video Files") + QLatin1String(" (") + VIDEO_FILE_EXTENSIONS + QLatin1String(")"));
     if (!outFilename.isEmpty())
     {
-        //std::tuple<bool, int, int, QString> scaling = FFMPEG::getScalingTuple(ui->grpScaling->isChecked(), ui->valScaleWidth->value(), ui->valScaleHeight->value(), ui->cbxScalingFlags->currentIndex());
-        //theFFMPEG->Convert(currentVideoFile.absoluteFilePath(), codec.CommandLine, &theMarks, scaling, outFilename);
+		std::unique_ptr<VideoTranscoder> transcoder(new VideoTranscoder(this));
+		transcoder->setInputFile(currentVideoFile.absoluteFilePath());
+        transcoder->setOutputFile(outFilename);
+		transcoder->setMarks(theMarks);
 
-		std::unique_ptr<VideoRecode> recode(new VideoRecode(this));
-		//VideoRecode* recode = new VideoRecode(this);
         VideoPreset codec = ui->cbxPresets->currentData().value<VideoPreset>();
-		recode->setInputPath(currentVideoFile.absoluteFilePath());
-		recode->setOutputPath(outFilename);
-		recode->setMarks(theMarks);
-		recode->setAudioCodec(codec.AudioCodec);
-		recode->setVideoCodec(codec.VideoCodec);
-		recode->setVideoCodecPreset(codec.VideoCodecPreset);
-		recode->setAudioCodecPreset(codec.AudioCodecPreset);
+		transcoder->setOutputVideoCodecName(codec.VideoCodec);
+        transcoder->setOutputVideoCodecPreset(codec.VideoCodecPreset);
+		transcoder->setOutputAudioCodecName(codec.AudioCodec);
+		transcoder->setOutputAudioCodecPreset(codec.AudioCodecPreset);
+
         if (ui->grpScaling->isChecked())
         {
-            recode->setScalingEnabled(true);
-            recode->setScalingSize(QSize(ui->valScaleWidth->value(), ui->valScaleHeight->value()));
-            recode->setScalingFilter(ui->cbxScalingFlags->currentIndex());
+			transcoder->setOutputResolution(ui->valScaleWidth->value(), ui->valScaleHeight->value());
         }
-        else
-        {
-            recode->setScalingEnabled(false);
-		}
-        //ui->statusbar->addWidget(new QProgressBar(ui->statusbar));
-        connect(recode.get(), &VideoRecode::recodeProgress, this, [=](int progress)
+
+        connect(transcoder.get(), &VideoTranscoder::recodeProgress, this, [=](int progress)
             {
-            ui->statusbar->showMessage(tr("Recode progress: %1%").arg(progress));
+                ui->statusbar->showMessage(tr("Recode progress: %1%").arg(progress));
 			});
-        connect(recode.get(), &VideoRecode::recodeFinished, this, [=]()
+        connect(transcoder.get(), &VideoTranscoder::recodeFinished, this, [=]()
             {
-            ui->statusbar->showMessage(tr("Recode finished"));
-            QTimer::singleShot(2000, this, [=]()
-                {
-                    ui->statusbar->showMessage(QString("%1").arg(PROJECT_VERSION_STRING_FULL));
-				});
-            });
-        connect(recode.get(), &VideoRecode::recodeError, this, [=](const QString& errorMessage)
-            {
-            ui->statusbar->showMessage(tr("Recode error: %1").arg(errorMessage));
-            QTimer::singleShot(2000, this, [=]()
-                {
-                    ui->statusbar->showMessage(QString("%1").arg(PROJECT_VERSION_STRING_FULL));
-                });
-            });
-		recode->recode();
-    }
-
-
-    if (theFFMPEG && 0)
-    {
-        if (!theFFMPEG->binPath().isEmpty())
-        {
-            if (theFFMPEG->state() == FFMPEG::Available)
-            {
-                if (ui->cbxPresets->currentData().canConvert<VideoPreset>())
-                {
-                    VideoPreset codec = ui->cbxPresets->currentData().value<VideoPreset>();
-                    QString outFilename = QFileDialog::getSaveFileName(this, tr("Save video as..."),
-                                                                       currentVideoFile.absoluteFilePath() + "_converted" + codec.Extension,
-                                                                       tr("Video Files") + QLatin1String(" (") + VIDEO_FILE_EXTENSIONS + QLatin1String(")"));
-                    if (!outFilename.isEmpty())
+                ui->statusbar->showMessage(tr("Recode finished"));
+                QTimer::singleShot(2000, this, [=]()
                     {
-                        std::tuple<bool, int, int, QString> scaling = FFMPEG::getScalingTuple(ui->grpScaling->isChecked(), ui->valScaleWidth->value(), ui->valScaleHeight->value(), ui->cbxScalingFlags->currentIndex());
-                        //theFFMPEG->Convert(currentVideoFile.absoluteFilePath(), codec.CommandLine, &theMarks, scaling, outFilename);
-                    }
-                }
-            }
-        }
+                        ui->statusbar->showMessage(QString("%1").arg(PROJECT_VERSION_STRING_FULL));
+                    });
+            });
+        connect(transcoder.get(), &VideoTranscoder::recodeError, this, [=](const QString& errorMessage)
+            {
+                ui->statusbar->showMessage(tr("Recode error: %1").arg(errorMessage));
+                QTimer::singleShot(2000, this, [=]()
+                    {
+                        ui->statusbar->showMessage(QString("%1").arg(PROJECT_VERSION_STRING_FULL));
+                    });
+			});
+
+        transcoder->transcode();
     }
+
 }
