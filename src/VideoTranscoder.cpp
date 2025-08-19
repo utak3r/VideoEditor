@@ -684,40 +684,40 @@ bool VideoTranscoder::transcode()
     emit recodeProgress(0);
     if (!openInput())
     {
-        emit recodeError("Nie mo¿na otworzyæ pliku wejœciowego: " + theDecoder.fileName);
+        emit recodeError("Nie moÅ¼na otworzyÄ‡ pliku wejÅ›ciowego: " + theDecoder.fileName);
 		return false;
     }
     if (!openOutput())
     {
-		emit recodeError("Nie mo¿na otworzyæ pliku wyjœciowego: " + theEncoder.fileName);
+		emit recodeError("Nie moÅ¼na otworzyÄ‡ pliku wyjÅ›ciowego: " + theEncoder.fileName);
 		return false;
     }
 
     if (!prepareVideoDecoder())
     {
-        emit recodeError("Nie mo¿na otworzyæ dekodera wideo: " + theDecoder.fileName);
+        emit recodeError("Nie moÅ¼na otworzyÄ‡ dekodera wideo: " + theDecoder.fileName);
 		return false;
     }
     if (!prepareAudioDecoder())
     {
-		emit recodeError("Nie mo¿na otworzyæ dekodera audio: " + theDecoder.fileName);
+		emit recodeError("Nie moÅ¼na otworzyÄ‡ dekodera audio: " + theDecoder.fileName);
 		return false;
 	}
     if (!prepareVideoEncoder())
     {
-		emit recodeError("Nie mo¿na otworzyæ enkodera wideo: " + theEncoder.videoCodecName);
+		emit recodeError("Nie moÅ¼na otworzyÄ‡ enkodera wideo: " + theEncoder.videoCodecName);
 		return false;
     }
     if (!prepareAudioEncoder())
     {
-		emit recodeError("Nie mo¿na otworzyæ enkodera audio: " + theEncoder.audioCodecName);
+		emit recodeError("Nie moÅ¼na otworzyÄ‡ enkodera audio: " + theEncoder.audioCodecName);
 		return false;
     }
     if (!(theEncoder.formatContext->oformat->flags & AVFMT_NOFILE))
     {
         if (avio_open(&theEncoder.formatContext->pb, theEncoder.fileName.toStdString().c_str(), AVIO_FLAG_WRITE) < 0)
         {
-            emit recodeError("Nie mo¿na otworzyæ pliku wyjœciowego: " + theEncoder.fileName);
+            emit recodeError("Nie moÅ¼na otworzyÄ‡ pliku wyjÅ›ciowego: " + theEncoder.fileName);
 			return false;
         }
     }
