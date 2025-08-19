@@ -35,7 +35,7 @@ public:
     void setInputFile(const QString& filename);
 	QString outputFile() const;
     void setOutputFile(const QString& filename);
-
+    void setMetadata(const QString& key, const QString& value);
     void setOutputFramerate(int num, int den = 1);
     void setOutputResolution(int w, int h);
     void setOutputVideoCodecName(const QString& n);
@@ -88,6 +88,7 @@ private:
     CodecHandlers theDecoder;
 	CodecHandlers theEncoder;
     TimelineMarks theMarks;
+    QMap<QString, QString> theMetadata;
 
     int64_t theVideoPts = -1;
     int64_t theAudioPts = 0;
@@ -119,5 +120,6 @@ private:
     int64_t calculatePts(AVStream* stream, int64_t ms);
     AVRational pickInputFramerate() const;
     QSize calculateOutputSize(int src_width, int src_height, QSize target_size) const;
+    void applyMetadata();
     void cleanup();
 };

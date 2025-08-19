@@ -236,6 +236,9 @@ void VEMainWindow::Convert()
 		transcoder->setOutputAudioCodecName(codec.AudioCodec);
 		transcoder->setOutputAudioCodecPreset(codec.AudioCodecPreset);
 
+        transcoder->setMetadata("encoder", QString("%1").arg(PROJECT_VERSION_STRING_FULL));
+        transcoder->setMetadata("comment", QString("Processed with %1").arg(PROJECT_VERSION_STRING_FULL));
+
         if (ui->grpScaling->isChecked())
         {
 			transcoder->setOutputResolution(ui->valScaleWidth->value(), ui->valScaleHeight->value());

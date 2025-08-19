@@ -82,6 +82,24 @@ void VideoTranscoder::setOutputFile(const QString& filename)
     }
 }
 
+void VideoTranscoder::setMetadata(const QString& key, const QString& value)
+{
+    theMetadata.insert(key, value);
+}
+
+void VideoTranscoder::applyMetadata()
+{
+    QMapIterator<QString, QString> iter(theMetadata);
+    while (iter.hasNext())
+    {
+        iter.next();
+        av_dict_set(&theEncoder.formatContext->metadata, 
+            iter.key().toStdString().c_str(), 
+            iter.value().toStdString().c_str(),
+            0);
+    }
+}
+
 void VideoTranscoder::setOutputFramerate(int num, int den)
 {
     if (num > 0 && den > 0)
@@ -659,6 +677,7 @@ bool VideoTranscoder::transcode()
     // faststart
     AVDictionary* mux_opts = nullptr;
     av_dict_set(&mux_opts, "movflags", "faststart", 0);
+    applyMetadata();
     if (avformat_write_header(theEncoder.formatContext, &mux_opts) < 0) { av_dict_free(&mux_opts); return false; }
     av_dict_free(&mux_opts);
 
