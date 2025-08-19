@@ -118,5 +118,6 @@ private:
     int64_t seekStream(AVFormatContext* fmt_ctx, int stream_index, int64_t ms, AVRational timebase, AVCodecContext* codec_ctx);
     int64_t calculatePts(AVStream* stream, int64_t ms);
     AVRational pickInputFramerate() const;
+    QSize calculateOutputSize(int src_width, int src_height, QSize target_size) const;
     void cleanup();
 };

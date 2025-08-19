@@ -206,6 +206,32 @@ bool VideoTranscoder::prepareAudioDecoder()
     return true;
 }
 
+QSize VideoTranscoder::calculateOutputSize(int src_width, int src_height, QSize target_size) const
+{
+    int target_width = target_size.width();
+    int target_height = target_size.height();
+    if (target_width == -1 && target_height == -1)
+    {
+        // No scaling specified, use original video size
+        target_width = src_width;
+        target_height = src_height;
+    }
+    else if (target_width == -1)
+    {
+        // Use aspect ratio to calculate width, specified height
+        target_width = src_width * target_height / src_height;
+    }
+    else if (target_height == -1)
+    {
+        // Use aspect ratio to calculate height, specified width
+        target_height = src_height * target_width / src_width;
+    }
+    // use original size if target is zero
+    if (target_width == 0) target_width = src_width;
+    if (target_height == 0) target_height = src_height;
+    return QSize(target_width, target_height);
+}
+
 bool VideoTranscoder::prepareVideoEncoder()
 {
     if (!theDecoder.videoStream) return true;
@@ -222,10 +248,12 @@ bool VideoTranscoder::prepareVideoEncoder()
     theEncoder.videoCodecContext = avcodec_alloc_context3(enc);
     if (!theEncoder.videoCodecContext) return false;
 
-    const int src_w = theDecoder.videoCodecContext->width;
-    const int src_h = theDecoder.videoCodecContext->height;
-    theEncoder.videoCodecContext->width = (theEncoder.videoSize.width() > 0) ? theEncoder.videoSize.width() : src_w;
-    theEncoder.videoCodecContext->height = (theEncoder.videoSize.height() > 0) ? theEncoder.videoSize.height() : src_h;
+    QSize targetSize = calculateOutputSize(
+		theDecoder.videoCodecContext->width, 
+        theDecoder.videoCodecContext->height, 
+        theEncoder.videoSize);
+    theEncoder.videoCodecContext->width = targetSize.width();
+    theEncoder.videoCodecContext->height = targetSize.height();
 
     AVRational fps = theEncoder.customFramerate ? theEncoder.framerate : pickInputFramerate();
     theEncoder.videoCodecContext->time_base = av_inv_q(fps);
