@@ -38,6 +38,7 @@ public:
     void setMetadata(const QString& key, const QString& value);
     void setOutputFramerate(int num, int den = 1);
     void setOutputResolution(int w, int h);
+    void setOutputScalingFilter(int filter);
     void setOutputVideoCodecName(const QString& n);
 	void setOutputVideoCodecPreset(const QString& preset);
     void setOutputAudioCodecName(const QString& n);
@@ -74,6 +75,7 @@ public:
 		AVFrame* resampledFrame = nullptr;
 		AVAudioFifo* audioFifo = nullptr;
 		QSize videoSize{ 0, 0 };
+        int scalingFilter = SWS_BILINEAR;
         bool customFramerate = false;
         AVRational framerate;
         int64_t videoStartPts = 0;

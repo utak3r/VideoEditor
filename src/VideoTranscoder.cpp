@@ -119,6 +119,23 @@ void VideoTranscoder::setOutputResolution(int w, int h)
 	theEncoder.videoSize = QSize(w, h);
 }
 
+void VideoTranscoder::setOutputScalingFilter(int filter)
+{
+    int sws_filter = SWS_BILINEAR;
+    switch (filter)
+    {
+    case 0: sws_filter = SWS_FAST_BILINEAR; break;
+    case 1: sws_filter = SWS_BILINEAR; break;
+    case 2: sws_filter = SWS_BICUBIC; break;
+    case 3: sws_filter = SWS_AREA; break;
+    case 4: sws_filter = SWS_GAUSS; break;
+    case 5: sws_filter = SWS_LANCZOS; break;
+    default: sws_filter = SWS_BILINEAR;
+    }
+    if (theEncoder.scalingFilter != sws_filter)
+        theEncoder.scalingFilter = sws_filter;
+}
+
 void VideoTranscoder::setOutputVideoCodecName(const QString& n)
 {
     if (theEncoder.videoCodecName != n)
@@ -345,7 +362,7 @@ void VideoTranscoder::initScaler()
 {
     theEncoder.scalingContext = sws_getContext(theDecoder.videoCodecContext->width, theDecoder.videoCodecContext->height, theDecoder.videoCodecContext->pix_fmt,
         theEncoder.videoCodecContext->width, theEncoder.videoCodecContext->height, theEncoder.videoCodecContext->pix_fmt,
-        SWS_BICUBIC, nullptr, nullptr, nullptr);
+        theEncoder.scalingFilter, nullptr, nullptr, nullptr);
 
     theEncoder.rescaledFrame = av_frame_alloc();
     theEncoder.rescaledFrame->format = theEncoder.videoCodecContext->pix_fmt;

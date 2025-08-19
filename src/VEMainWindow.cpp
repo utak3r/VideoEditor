@@ -242,6 +242,7 @@ void VEMainWindow::Convert()
         if (ui->grpScaling->isChecked())
         {
 			transcoder->setOutputResolution(ui->valScaleWidth->value(), ui->valScaleHeight->value());
+            transcoder->setOutputScalingFilter(ui->cbxScalingFlags->currentIndex());
         }
 
         connect(transcoder.get(), &VideoTranscoder::recodeProgress, this, [=](int progress)
