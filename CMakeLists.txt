@@ -76,14 +76,6 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 set(CMAKE_INSTALL_PREFIX "${PROJECT_SOURCE_DIR}/../distrib")
 
-if(MSVC)
-    target_compile_definitions(${PROJECT_NAME}
-        PRIVATE
-            "_UNICODE"
-            "UNICODE"
-    )
-endif()
-
 add_subdirectory(src)
 #add_subdirectory(test)
 
