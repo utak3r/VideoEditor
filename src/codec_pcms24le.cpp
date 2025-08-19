@@ -1,5 +1,3 @@
-// 
-
 #include "codec_pcms24le.h"
 extern "C" {
 #include <libavutil/opt.h>
@@ -35,12 +33,9 @@ void CodecPCMs24le::setPreset(const QString& preset, AVCodecContext* codecContex
 
 		if (preset == "normal")
 		{
-			//av_opt_set(codecContext->priv_data, "profile", "aac_he_v2", 0);
 			codecContext->sample_rate = 48000;
+			codecContext->time_base = AVRational{ 1, codecContext->sample_rate };
 			codecContext->sample_fmt = AV_SAMPLE_FMT_S32;
-			//codecContext->bit_rate = 196000;
 		}
-
-		//codecContext->strict_std_compliance = FF_COMPLIANCE_EXPERIMENTAL;
 	}
 }

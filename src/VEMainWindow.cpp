@@ -59,7 +59,7 @@ VEMainWindow::VEMainWindow(QWidget *parent)
     static CodecRegistrar<CodecX265> registrarX265("libx265 H.265 / HEVC");
 	//static CodecRegistrar<CodecDnXHD> registrarDnXHD("SMPTE VC-3/DNxHD");
     static CodecRegistrar<CodecAAC> registrarAAC("AAC (Advanced Audio Coding)");
-	//static CodecRegistrar<CodecPCMs24le> registrarPCMs24le("PCM signed 24-bit little-endian");
+	static CodecRegistrar<CodecPCMs24le> registrarPCMs24le("PCM signed 24-bit little-endian");
 
     for (const auto& name : CodecFactory::instance().availablePlugins())
     {
