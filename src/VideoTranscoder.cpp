@@ -741,3 +741,22 @@ bool VideoTranscoder::transcode()
 	emit recodeFinished();
     return true;
 }
+
+void VideoTranscoder::getAvailableEncoders(QStringList& videoCodecs, QStringList& audioCodecs)
+{
+    const AVCodec* codec;
+    void* iter = nullptr;
+    while ((codec = av_codec_iterate(&iter)))
+    {
+        if (codec->type == AVMEDIA_TYPE_VIDEO)
+        {
+            if (av_codec_is_encoder(codec))
+                videoCodecs.append(QString("%1: %2").arg(codec->name, codec->long_name));
+        }
+        else if (codec->type == AVMEDIA_TYPE_AUDIO)
+        {
+            if (av_codec_is_encoder(codec))
+                audioCodecs.append(QString("%1: %2").arg(codec->name, codec->long_name));
+        }
+    }
+}

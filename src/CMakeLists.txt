@@ -35,8 +35,6 @@ set(PROJECT_ADDITIONAL_SOURCES
     SettingsDialog.ui
     VideoTranscoder.cpp
     VideoTranscoder.h
-    VideoRecode.cpp
-    VideoRecode.h
     EncodingPreset.cpp
     EncodingPreset.h
     EncodingPreset.ui
