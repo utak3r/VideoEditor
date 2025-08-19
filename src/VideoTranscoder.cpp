@@ -337,14 +337,14 @@ bool VideoTranscoder::prepareVideoEncoder()
     if (theEncoder.formatContext->oformat->flags & AVFMT_GLOBALHEADER)
         theEncoder.videoCodecContext->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
 
-    theEncoder.videoStream = avformat_new_stream(theEncoder.formatContext, nullptr);
-    if (!theEncoder.videoStream) return false;
-    theEncoder.videoStream->time_base = theEncoder.videoCodecContext->time_base;
-
     if (!theEncoder.videoCodecPreset.isEmpty())
     {
         theEncoder.videoCodec->setPreset(theEncoder.videoCodecPreset, theEncoder.videoCodecContext);
-	}
+    }
+
+    theEncoder.videoStream = avformat_new_stream(theEncoder.formatContext, nullptr);
+    if (!theEncoder.videoStream) return false;
+    theEncoder.videoStream->time_base = theEncoder.videoCodecContext->time_base;
 
     if (avcodec_open2(theEncoder.videoCodecContext, enc, nullptr) < 0) return false;
     if (avcodec_parameters_from_context(theEncoder.videoStream->codecpar, theEncoder.videoCodecContext) < 0) return false;
