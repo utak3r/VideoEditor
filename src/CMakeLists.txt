@@ -71,7 +71,8 @@ if(Qt6LinguistTools_FOUND)
 endif()
 
 
-set(FFMPEG_DIR "C:/tools/ffmpeg")
+#set(FFMPEG_DIR "C:/tools/ffmpeg")
+find_path(FFMPEG_DIR include/libavcodec/avcodec.h)
 
 target_include_directories(VideoEditor 
     PRIVATE 
@@ -89,7 +90,6 @@ target_link_libraries(VideoEditor
         "${FFMPEG_DIR}/lib/avutil.lib"
         "${FFMPEG_DIR}/lib/swscale.lib"
         "${FFMPEG_DIR}/lib/swresample.lib"
-        "${FFMPEG_DIR}/lib/avformat.lib"
 )
 
 set(cppcheck
