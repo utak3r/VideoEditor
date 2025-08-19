@@ -373,14 +373,14 @@ bool VideoTranscoder::prepareAudioEncoder()
     if (theEncoder.formatContext->oformat->flags & AVFMT_GLOBALHEADER)
         theEncoder.audioCodecContext->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
 
-    theEncoder.audioStream = avformat_new_stream(theEncoder.formatContext, nullptr);
-    if (!theEncoder.audioStream) return false;
-    theEncoder.audioStream->time_base = theEncoder.audioCodecContext->time_base;
-
     if (!theEncoder.audioCodecPreset.isEmpty())
     {
         theEncoder.audioCodec->setPreset(theEncoder.audioCodecPreset, theEncoder.audioCodecContext);
     }
+
+    theEncoder.audioStream = avformat_new_stream(theEncoder.formatContext, nullptr);
+    if (!theEncoder.audioStream) return false;
+    theEncoder.audioStream->time_base = theEncoder.audioCodecContext->time_base;
 
     if (avcodec_open2(theEncoder.audioCodecContext, enc, nullptr) < 0) return false;
     if (avcodec_parameters_from_context(theEncoder.audioStream->codecpar, theEncoder.audioCodecContext) < 0) return false;
