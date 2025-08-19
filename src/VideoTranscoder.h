@@ -120,6 +120,8 @@ private:
     void flushAudio();
     void writePacket(AVPacket* pkt, AVCodecContext* src_enc, AVStream* out_stream);
 
+    AVPixelFormat getFirstSupportedPixelFormat(const AVCodecContext* codec_ctx, const AVCodec* codec);
+    AVSampleFormat getFirstSupportedSampleFormat(const AVCodecContext* codec_ctx, const AVCodec* codec);
 	int64_t millisecondsToTimestamp(qint64 msecs, AVRational timeBase) const;
     int64_t seekStream(AVFormatContext* fmt_ctx, int stream_index, int64_t ms, AVRational timebase, AVCodecContext* codec_ctx);
     int64_t calculatePts(AVStream* stream, int64_t ms);

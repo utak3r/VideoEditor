@@ -181,6 +181,48 @@ void VideoTranscoder::setMarks(const TimelineMarks& marks)
         theMarks = marks;
 }
 
+AVPixelFormat VideoTranscoder::getFirstSupportedPixelFormat(const AVCodecContext* codec_ctx, const AVCodec* codec)
+{
+    const void* values;
+    int nb_values;
+    AVPixelFormat pixelFormat = AV_PIX_FMT_NONE;
+    int ret = avcodec_get_supported_config(codec_ctx, codec,
+        AV_CODEC_CONFIG_PIX_FORMAT, 0,
+        &values,
+        &nb_values);
+    if (ret >= 0)
+    {
+        const enum AVPixelFormat* fmts = (const enum AVPixelFormat*)values;
+        pixelFormat = fmts[0];
+    }
+    else
+    {
+        pixelFormat = AV_PIX_FMT_YUV420P;
+    }
+    return pixelFormat;
+}
+
+AVSampleFormat VideoTranscoder::getFirstSupportedSampleFormat(const AVCodecContext* codec_ctx, const AVCodec* codec)
+{
+    const void* values;
+    int nb_values;
+    AVSampleFormat sampleFormat = AV_SAMPLE_FMT_NONE;
+    int ret = avcodec_get_supported_config(codec_ctx, codec,
+        AV_CODEC_CONFIG_SAMPLE_FORMAT, 0,
+        &values,
+        &nb_values);
+    if (ret >= 0)
+    {
+        const enum AVSampleFormat* fmts = (const enum AVSampleFormat*)values;
+        sampleFormat = fmts[0];
+    }
+    else
+    {
+        sampleFormat = AV_SAMPLE_FMT_FLTP;
+    }
+    return sampleFormat;
+}
+
 int64_t VideoTranscoder::millisecondsToTimestamp(qint64 msecs, AVRational timeBase) const
 {
 	double time = (double)msecs / 1000.0; // convert milliseconds to seconds
@@ -274,11 +316,6 @@ bool VideoTranscoder::prepareVideoEncoder()
 	theEncoder.videoCodec = std::unique_ptr<Codec>(CodecFactory::instance().create(theEncoder.videoCodecName));
 
     const AVCodec* enc = theEncoder.videoCodec->getAVCodec();
-    /*if (!theEncoder.videoCodecName.isEmpty())
-        enc = avcodec_find_encoder_by_name(theEncoder.videoCodecName.toStdString().c_str());
-    if (!enc)
-        enc = avcodec_find_encoder(AV_CODEC_ID_H264);
-    if (!enc) return false;*/
 
     theEncoder.videoCodecContext = avcodec_alloc_context3(enc);
     if (!theEncoder.videoCodecContext) return false;
@@ -294,8 +331,7 @@ bool VideoTranscoder::prepareVideoEncoder()
     theEncoder.videoCodecContext->time_base = av_inv_q(fps);
     theEncoder.videoCodecContext->framerate = fps;
 
-    if (enc->pix_fmts) theEncoder.videoCodecContext->pix_fmt = enc->pix_fmts[0];
-    else               theEncoder.videoCodecContext->pix_fmt = AV_PIX_FMT_YUV420P;
+    theEncoder.videoCodecContext->pix_fmt = getFirstSupportedPixelFormat(theEncoder.videoCodecContext, enc);
 
     theEncoder.videoCodecContext->gop_size = 12;
     if (theEncoder.formatContext->oformat->flags & AVFMT_GLOBALHEADER)
@@ -324,11 +360,6 @@ bool VideoTranscoder::prepareAudioEncoder()
 	theEncoder.audioCodec = std::unique_ptr<Codec>(CodecFactory::instance().create(theEncoder.audioCodecName));
 
 	const AVCodec* enc = theEncoder.audioCodec->getAVCodec();
-    /*if (!theEncoder.audioCodecName.isEmpty())
-        enc = avcodec_find_encoder_by_name(theEncoder.audioCodecName.toStdString().c_str());
-    if (!enc)
-        enc = avcodec_find_encoder(AV_CODEC_ID_AAC);
-    if (!enc) return false;*/
 
     theEncoder.audioCodecContext = avcodec_alloc_context3(enc);
     if (!theEncoder.audioCodecContext) return false;
@@ -337,7 +368,7 @@ bool VideoTranscoder::prepareAudioEncoder()
     av_channel_layout_copy(&theEncoder.audioCodecContext->ch_layout, &theDecoder.audioCodecContext->ch_layout);
     theEncoder.audioCodecContext->time_base = AVRational{ 1, theEncoder.audioCodecContext->sample_rate };
 
-    theEncoder.audioCodecContext->sample_fmt = enc->sample_fmts ? enc->sample_fmts[0] : AV_SAMPLE_FMT_FLTP;
+    theEncoder.audioCodecContext->sample_fmt = getFirstSupportedSampleFormat(theEncoder.audioCodecContext, enc);
 
     if (theEncoder.formatContext->oformat->flags & AVFMT_GLOBALHEADER)
         theEncoder.audioCodecContext->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
