@@ -57,7 +57,7 @@ VEMainWindow::VEMainWindow(QWidget *parent)
     // Register codecs
     static CodecRegistrar<CodecX264> registrarX264("libx264 H.264 / AVC / MPEG-4 AVC / MPEG-4 part 10");
     static CodecRegistrar<CodecX265> registrarX265("libx265 H.265 / HEVC");
-	//static CodecRegistrar<CodecDnXHD> registrarDnXHD("SMPTE VC-3/DNxHD");
+	static CodecRegistrar<CodecDnXHD> registrarDnXHD("SMPTE VC-3/DNxHD");
     static CodecRegistrar<CodecAAC> registrarAAC("AAC (Advanced Audio Coding)");
 	static CodecRegistrar<CodecPCMs24le> registrarPCMs24le("PCM signed 24-bit little-endian");
 

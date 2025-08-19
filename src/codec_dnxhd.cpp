@@ -40,6 +40,7 @@ void CodecDnXHD::setPreset(const QString& preset, AVCodecContext* codecContext)
 			codecContext->pix_fmt = AV_PIX_FMT_YUV422P10LE;
 			codecContext->bit_rate = 90000000;
 			codecContext->framerate = AVRational({ 60000, 1001 });
+			codecContext->time_base = av_inv_q(codecContext->framerate);
 		}
 		else if (preset == "1280x720p 220Mbps yuv422p")
 		{
@@ -49,6 +50,7 @@ void CodecDnXHD::setPreset(const QString& preset, AVCodecContext* codecContext)
 			codecContext->pix_fmt = AV_PIX_FMT_YUV422P;
 			codecContext->bit_rate = 220000000;
 			codecContext->framerate = AVRational({ 60000, 1001 });
+			codecContext->time_base = av_inv_q(codecContext->framerate);
 		}
 		else if (preset == "1920x1080p 185Mbps yuv422p10")
 		{
@@ -58,6 +60,7 @@ void CodecDnXHD::setPreset(const QString& preset, AVCodecContext* codecContext)
 			codecContext->pix_fmt = AV_PIX_FMT_YUV422P10LE;
 			codecContext->bit_rate = 185000000;
 			codecContext->framerate = AVRational({ 60000, 1001 });
+			codecContext->time_base = av_inv_q(codecContext->framerate);
 		}
 		else if (preset == "1920x1080p 365Mbps yuv422p10")
 		{
@@ -67,6 +70,7 @@ void CodecDnXHD::setPreset(const QString& preset, AVCodecContext* codecContext)
 			codecContext->pix_fmt = AV_PIX_FMT_YUV422P10LE;
 			codecContext->bit_rate = 365000000;
 			codecContext->framerate = AVRational({ 60000, 1001 });
+			codecContext->time_base = av_inv_q(codecContext->framerate);
 		}
 	}
 }
