@@ -1,139 +1,89 @@
-#ifndef VIDEOPLAYER_H
-#define VIDEOPLAYER_H
+#pragma once
+// https://doc.qt.io/qt-6/graphicsview.html
 
 #include <QGraphicsView>
 #include <QGraphicsScene>
-
-
-struct AVFormatContext;
-struct AVCodec;
-struct AVCodecContext;
-struct AVFrame;
-struct AVStream;
-struct AVRational;
+#include <QGraphicsVideoItem>
+#include <QGraphicsTextItem>
+#include <QGraphicsRectItem>
+#include <QMediaPlayer>
+#include <QAudioOutput>
+#include <QResizeEvent>
+#include <QTime>
+#include "CropRectangle.h"
 
 class VideoPlayer : public QGraphicsView
 {
-	Q_OBJECT
-	Q_PROPERTY(qint64 duration READ duration NOTIFY durationChanged)
-	Q_PROPERTY(qint64 position READ position NOTIFY positionChanged)
-	Q_PROPERTY(VideoPlayer::PlaybackState playbackState READ playbackState NOTIFY playbackStateChanged)
-	Q_PROPERTY(bool CropEnabled READ getCropEnabled WRITE setCropEnabled NOTIFY CropEnabledChanged)
+    Q_OBJECT
+        Q_PROPERTY(qint64 duration READ duration NOTIFY durationChanged)
+        Q_PROPERTY(qint64 position READ position NOTIFY positionChanged)
+        Q_PROPERTY(VideoPlayer::PlaybackState playbackState READ playbackState NOTIFY playbackStateChanged)
+        Q_PROPERTY(bool CropEnabled READ getCropEnabled WRITE setCropEnabled NOTIFY CropEnabledChanged)
 
 public:
-	VideoPlayer(QWidget* parent = nullptr);
-	~VideoPlayer();
+    enum AspectMode
+    {
+        FitInView,
+        CropToFill
+    };
+	Q_ENUM(VideoPlayer::AspectMode)
 
-	enum PlaybackState
-	{
-		StoppedState,
-		PlayingState,
-		PausedState
-	};
-	Q_ENUM(VideoPlayer::PlaybackState)
+    enum PlaybackState
+    {
+        StoppedState,
+        PlayingState,
+        PausedState
+    };
+    Q_ENUM(VideoPlayer::PlaybackState)
 
-	enum VideoPlayerCropHandle
-	{
-		VPCropHandle_None,
-		VPCropHandle_TopLeft,
-		VPCropHandle_TopRight,
-		VPCropHandle_BottomLeft,
-		VPCropHandle_BottomRight
-	};
-	Q_ENUM(VideoPlayer::VideoPlayerCropHandle)
+    explicit VideoPlayer(QWidget* parent = nullptr);
 
-	enum VideoPlayerCropState
-	{
-		VPCropState_Inactive,
-		VPCropState_Active,
-		VPCropState_ResizingTL,
-		VPCropState_ResizingTR,
-		VPCropState_ResizingBL,
-		VPCropState_ResizingBR,
-		VPCropState_Translating
-	};
-	Q_ENUM(VideoPlayer::VideoPlayerCropState)
+    QMediaPlayer* player() const;
+    QAudioOutput* audioOutput() const;
 
-	VideoPlayer::PlaybackState playbackState() const { return thePlaybackState; }
-	qint64 duration() const;
-	qint64 position() const;
-	QSize sizeHint() const override;
-	bool getCropEnabled() { return theCropEnabled; }
-	void setCropEnabled(bool enabled);
-	QPointF mapToVideo(QPointF point);
-	QPointF mapFromVideo(QPointF point);
+    void setAspectMode(AspectMode mode);
+    VideoPlayer::PlaybackState playbackState() const;
+    qint64 position() const;
+    qint64 duration() const;
+    bool getCropEnabled();
+    void setCropEnabled(bool enabled);
 
 signals:
+    void playbackStateChanged(VideoPlayer::PlaybackState newState);
+    void positionChanged(qint64 position);
 	void durationChanged(qint64 duration);
-	void positionChanged(qint64 position);
-	void playbackStateChanged(VideoPlayer::PlaybackState newState);
-	void CropEnabledChanged(bool enabled);
+    void CropEnabledChanged(bool enabled);
 
 public slots:
-	bool openFile(const QString filename);
-	void setSource(const QUrl& source);
-	void closeFile();
-	void play();
-	void pause();
-	void stop();
-	void setPosition(qint64 position);
-	void setMarkers(const QString& range);
-
-	void resizeEvent(QResizeEvent* event) override;
-	void paintEvent(QPaintEvent* event) override;
-	void mousePressEvent(QMouseEvent* event) override;
-	void mouseReleaseEvent(QMouseEvent* event) override;
-	void mouseMoveEvent(QMouseEvent* event) override;
+    void openFile(const QString& filename);
+    void play();
+    void pause();
+    void stop();
+    void setPosition(qint64 position);
+    void setMarkers(const QString& range);
 
 protected:
-	QImage getImageFromFrame(const AVFrame* frame, const QSize dstSize) const;
-	int64_t millisecondsToTimestamp(qint64 msecs, AVRational timeBase);
-	qint64 timestampToMilliseconds(int64_t timestamp, AVRational timeBase);
-	int64_t frameToTimestamp(int64_t frame);
-	int64_t timestampToFrame(int64_t timestamp);
-	qint64 frameToMilliseconds(qint64 frame, double fps) const;
-	bool isInsideCrop(QPointF point);
-	std::tuple<bool, VideoPlayerCropHandle> isOverCropHandle(QPointF point);
-	void paintCrop(QPainter* painter);
-	void paintCropRectangle(QPainter* painter);
-	void paintCropHandles(QPainter* painter);
-	QRect cropHandleTLRect();
-	QRect cropHandleTRRect();
-	QRect cropHandleBLRect();
-	QRect cropHandleBRRect();
-	void paintTimestamps(QPainter* painter);
+    void resizeEvent(QResizeEvent* event) override;
+
+private slots:
+    void updateTimestamp(qint64 ms);
+	void updatePosition(qint64 position);
+    void updateDuration(qint64 duration);
 
 private:
-	QGraphicsScene* theScene;
-	void decodeAndDisplayFrame();
+    void resizeScene();
+    void repositionTimestamp();
 
-private:
-	QTimer* thePlayerTimer;
-	VideoPlayer::PlaybackState thePlaybackState;
-	QSize theViewSize;
-	QString theVideoFormatName;
-	QString theVideoCodecName;
-	QSize theVideoSize;
-	int theVideoStreamIndex;
-	double theVideoFPS;
-	int theVideoPixelFormat;
-	qint64 theCurrentPosition;
-	qint64 theVideoFrameCount;
-	QString theAudioCodecName;
-	int theAudioCodecSampleRate;
-	AVFormatContext* theFormatContext;
-	const AVCodec* theVideoCodec;
-	AVCodecContext* theCodecContext;
-	AVStream* theVideoStream;
-	QString theMarksRange;
-
-private:
-	bool theCropEnabled;
-	VideoPlayer::VideoPlayerCropState theCurrentCropState;
-	QRectF theVideoImageRectF;
-	QRectF theCropRectF;
-	QColor theCropColor;
-	int theCropHandleSize;
+    QGraphicsScene* theScene;
+    QMediaPlayer* theMediaPlayer;
+    QAudioOutput* theAudioOutput;
+    QGraphicsVideoItem* theVideoItem;
+    QGraphicsTextItem* theTimestampItem;
+    QGraphicsRectItem* theTimestampBgItem;
+    AspectMode theAspectMode;
+    qint64 theDuration;
+    QString theMarksRange;
+    bool theCropEnabled;
+	CropRectangle* theCropRectItem;
+    QRectF theCropRectF;
 };
-
-#endif // VIDEOPLAYER_H

@@ -23,6 +23,8 @@ set(PROJECT_ADDITIONAL_SOURCES
     VideoPlayer.h
     VideoSlider.cpp
     VideoSlider.h
+    CropRectangle.cpp
+    CropRectangle.h
     Tools.cpp
     Tools.h
     ffmpeg.cpp
