@@ -49,9 +49,6 @@ public:
 
     bool transcode();
 
-    // helper, not to be used normally
-    static void getAvailableEncoders(QStringList& videoCodecs, QStringList& audioCodecs);
-
     Q_SIGNAL void recodeProgress(int progress);
     Q_SIGNAL void recodeFinished();
     Q_SIGNAL void recodeError(const QString& errorMessage);

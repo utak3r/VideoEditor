@@ -4,6 +4,7 @@
 #include <QTimer>
 #include <QProgressBar>
 #include <SettingsDialog.h>
+#include <Tools.h>
 #include <VideoTranscoder.h>
 #include <../version.h>
 #include "Codec.h"
@@ -74,7 +75,7 @@ VEMainWindow::VEMainWindow(QWidget *parent)
     theVideoPlayer->play();
 
 	QStringList videoCodecs, audioCodecs;
-    VideoTranscoder::getAvailableEncoders(videoCodecs, audioCodecs);
+    Tools::getAvailableEncoders(videoCodecs, audioCodecs);
 #endif
 }
 
