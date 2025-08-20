@@ -23,6 +23,8 @@ set(PROJECT_ADDITIONAL_SOURCES
     VideoPlayer.h
     VideoSlider.cpp
     VideoSlider.h
+    Tools.cpp
+    Tools.h
     ffmpeg.cpp
     ffmpeg.h
     Settings.cpp
