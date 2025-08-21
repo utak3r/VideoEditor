@@ -4,6 +4,12 @@ VideoEditor is a simple application for quick format conversions and easy trimmi
 
 ![Video Editor screenshot](/docs/screenshot.png?raw=true "Video Editor screenshot")
 
+### Scaling output
+If you want to rescale the output video, check *Scaling* and set your desired video size. If you set one of the dimensions to *-1*. it will be calculated with an aspect ratio to the other dimension - so that's the preferred way of using it. You can also set your chosen scaling filter. There're few of them available: fast bilinear, bilinear, bicubic, area, gaussian and lanczos.
+
+![Video Editor screenshot](/docs/scaling.png?raw=true "Video scaling options")
+
+
 ### Building
 VideoEditor is a Qt based app, built using CMake.
 
