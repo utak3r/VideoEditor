@@ -10,6 +10,7 @@ VideoPlayer::VideoPlayer(QWidget* parent)
     setScene(theScene);
     setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+	setViewportUpdateMode(QGraphicsView::FullViewportUpdate);
 
 	// Media player with video and audio output
     theMediaPlayer = new QMediaPlayer(this);
@@ -18,7 +19,6 @@ VideoPlayer::VideoPlayer(QWidget* parent)
 
     theVideoItem = new QGraphicsVideoItem();
     theScene->addItem(theVideoItem);
-    theVideoItem->setZValue(1);
     theMediaPlayer->setVideoOutput(theVideoItem);
 
 	// Timestamp item
@@ -44,6 +44,8 @@ VideoPlayer::VideoPlayer(QWidget* parent)
     theScene->addItem(theTimestampBgItem);
     theScene->addItem(theTimestampItem);
 
+	// Set Z-values for proper stacking order
+    theVideoItem->setZValue(1);
     theTimestampBgItem->setZValue(2);
     theTimestampItem->setZValue(3);
     theCropRectItem->setZValue(4);
@@ -235,12 +237,13 @@ void VideoPlayer::setCropEnabled(bool enabled)
     if (theCropEnabled != enabled)
     {
         theCropEnabled = enabled;
-        if (theCropRectItem->rect().isEmpty())
-        {
-            // If crop rectangle is empty, set it to the video item size
-            QRectF videoRect = theVideoItem->boundingRect();
-            theCropRectItem->setRect(videoRect);
-		}
+        if (theCropEnabled)
+            if (theCropRectItem->rect().isEmpty())
+            {
+                // If crop rectangle is empty, set it to the video item size
+                QRectF videoRect = QRectF(theVideoItem->pos() + theVideoItem->offset(), theVideoItem->size());
+                theCropRectItem->setRect(videoRect);
+		    }
 		theCropRectItem->setEnabled(enabled);
         emit CropEnabledChanged(enabled);
 	}
@@ -248,22 +251,24 @@ void VideoPlayer::setCropEnabled(bool enabled)
 
 QRect VideoPlayer::getCropWindow() const
 {
-	QRect retrect = theCropRectItem->rect().toRect();
+	this->scene()->update();
+    QRect retrect = QRectF(theCropRectItem->scenePos(), theCropRectItem->rect().size()).toRect();
 
-	auto videoItemRect = theVideoItem->boundingRect().toRect();
-	retrect.setX(static_cast<int>(retrect.x() - videoItemRect.x()));
-	retrect.setY(static_cast<int>(retrect.y() - videoItemRect.y()));
+	QPointF videoPos = theVideoItem->pos() + theVideoItem->offset();
+    QRectF videoRect = QRectF(videoPos, theVideoItem->size());
 
-    QSize videoSize = theMediaPlayer->metaData().value(QMediaMetaData::Resolution).toSize();
-    if (videoSize.isValid() && !videoItemRect.isEmpty())
+	retrect.moveTopLeft(QPoint(retrect.x() - videoPos.x(), retrect.y() - videoPos.y()));
+
+    QSize videoSize = theVideoItem->nativeSize().toSize();
+    if (videoSize.isValid() && !videoRect.isEmpty())
     {
-		double scaleX = static_cast<double>(videoSize.width()) / videoItemRect.width();
-		double scaleY = static_cast<double>(videoSize.height()) / videoItemRect.height();
+		double scaleX = static_cast<double>(videoSize.width()) / videoRect.width();
+		double scaleY = static_cast<double>(videoSize.height()) / videoRect.height();
 		double scale = qMax(scaleX, scaleY);
-		int width = static_cast<int>(retrect.width() * scale);
-		int height = static_cast<int>(retrect.height() * scale);
-        retrect.setX(static_cast<int>(retrect.x() * scale));
-		retrect.setY(static_cast<int>(retrect.y() * scale));
+		int width = static_cast<int>(retrect.width() * scaleX);
+		int height = static_cast<int>(retrect.height() * scaleY);
+        retrect.setX(static_cast<int>(retrect.x() * scaleX));
+		retrect.setY(static_cast<int>(retrect.y() * scaleY));
         retrect.setWidth(width);
         retrect.setHeight(height);
     }
