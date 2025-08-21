@@ -5,7 +5,7 @@ project(VideoEditor VERSION 0.1 LANGUAGES CXX)
 set (PROJECT_NAME "VideoEditor")
 set (PROJECT_VERSION_MAJOR 1)
 set (PROJECT_VERSION_MINOR 2)
-set (PROJECT_VERSION_PATCH 0)
+set (PROJECT_VERSION_PATCH 1)
 set (PROJECT_COPYRIGHT "Piotr 'utak3r' Borys")
 
 find_package(Git)
