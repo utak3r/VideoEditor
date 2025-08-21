@@ -47,6 +47,7 @@ public:
     qint64 duration() const;
     bool getCropEnabled();
     void setCropEnabled(bool enabled);
+    QRect getCropWindow() const;
 
 signals:
     void playbackStateChanged(VideoPlayer::PlaybackState newState);

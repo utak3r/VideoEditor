@@ -245,6 +245,14 @@ void VEMainWindow::Convert()
             transcoder->setOutputScalingFilter(ui->cbxScalingFlags->currentIndex());
         }
 
+        if (theVideoPlayer->getCropEnabled())
+        {
+            QRect cropRect = theVideoPlayer->getCropWindow();
+            transcoder->setCropWindow(cropRect);
+		}
+        else
+			transcoder->setCropWindow(QRect(0, 0, 0, 0));
+
         connect(transcoder.get(), &VideoTranscoder::recodeProgress, this, [=](int progress)
             {
                 ui->statusbar->showMessage(tr("Recode progress: %1%").arg(progress));

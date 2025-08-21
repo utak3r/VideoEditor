@@ -2,6 +2,7 @@
 
 #include <QObject>
 #include <QSize>
+#include <QRect>
 #include "TimelineMarks.h"
 #include "Codec.h"
 
@@ -14,6 +15,9 @@ extern "C" {
 #include <libavcodec/avcodec.h>
 #include <libswresample/swresample.h>
 #include <libswscale/swscale.h>
+#include <libavfilter/avfilter.h>
+#include <libavfilter/buffersrc.h>
+#include <libavfilter/buffersink.h>
 #include <libavutil/opt.h>
 #include <libavutil/audio_fifo.h>
 #include <libavutil/channel_layout.h>
@@ -43,6 +47,7 @@ public:
 	void setOutputVideoCodecPreset(const QString& preset);
     void setOutputAudioCodecName(const QString& n);
 	void setOutputAudioCodecPreset(const QString& preset);
+	void setCropWindow(const QRect& rect);
 
     TimelineMarks marks();
     void setMarks(const TimelineMarks& marks);
@@ -71,11 +76,15 @@ public:
 		AVCodecContext* audioCodecContext = nullptr;
 		SwsContext* scalingContext = nullptr;
 		SwrContext* resamplingContext = nullptr;
+		AVFilterGraph* cropFilterGraph = nullptr;
+		AVFilterContext* cropFilterSrc = nullptr;
+		AVFilterContext* cropFilterSink = nullptr;
         AVFrame* rescaledFrame = nullptr;
 		AVFrame* resampledFrame = nullptr;
 		AVAudioFifo* audioFifo = nullptr;
 		QSize videoSize{ 0, 0 };
         int scalingFilter = SWS_BILINEAR;
+		QRect cropWindow;
         bool customFramerate = false;
         AVRational framerate;
         int64_t videoStartPts = 0;
@@ -104,6 +113,7 @@ private:
     bool prepareAudioEncoder();
     void initScaler();
     void initResampler();
+	void initCropFilter();
 
     void handleVideoPacket(AVPacket* pkt);
     void handleAudioPacket(AVPacket* pkt);

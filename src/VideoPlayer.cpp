@@ -1,4 +1,5 @@
 #include "VideoPlayer.h"
+#include <QMediaMetaData>
 
 VideoPlayer::VideoPlayer(QWidget* parent)
 : QGraphicsView(parent)
@@ -34,7 +35,7 @@ VideoPlayer::VideoPlayer(QWidget* parent)
     theTimestampBgItem->setPen(Qt::NoPen);
 
 	// Crop rectangle
-    theCropRectItem = new CropRectangle(QRectF(0, 0, 300, 300));
+    theCropRectItem = new CropRectangle(QRectF(0, 0, 0, 0));
     theCropRectItem->setColor(Qt::blue);
     theCropRectItem->setOpacity(50);
     theCropRectItem->setEnabled(false);
@@ -234,7 +235,38 @@ void VideoPlayer::setCropEnabled(bool enabled)
     if (theCropEnabled != enabled)
     {
         theCropEnabled = enabled;
+        if (theCropRectItem->rect().isEmpty())
+        {
+            // If crop rectangle is empty, set it to the video item size
+            QRectF videoRect = theVideoItem->boundingRect();
+            theCropRectItem->setRect(videoRect);
+		}
 		theCropRectItem->setEnabled(enabled);
         emit CropEnabledChanged(enabled);
 	}
+}
+
+QRect VideoPlayer::getCropWindow() const
+{
+	QRect retrect = theCropRectItem->rect().toRect();
+
+	auto videoItemRect = theVideoItem->boundingRect().toRect();
+	retrect.setX(static_cast<int>(retrect.x() - videoItemRect.x()));
+	retrect.setY(static_cast<int>(retrect.y() - videoItemRect.y()));
+
+    QSize videoSize = theMediaPlayer->metaData().value(QMediaMetaData::Resolution).toSize();
+    if (videoSize.isValid() && !videoItemRect.isEmpty())
+    {
+		double scaleX = static_cast<double>(videoSize.width()) / videoItemRect.width();
+		double scaleY = static_cast<double>(videoSize.height()) / videoItemRect.height();
+		double scale = qMax(scaleX, scaleY);
+		int width = static_cast<int>(retrect.width() * scale);
+		int height = static_cast<int>(retrect.height() * scale);
+        retrect.setX(static_cast<int>(retrect.x() * scale));
+		retrect.setY(static_cast<int>(retrect.y() * scale));
+        retrect.setWidth(width);
+        retrect.setHeight(height);
+    }
+
+    return retrect;
 }

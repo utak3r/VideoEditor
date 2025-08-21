@@ -94,6 +94,7 @@ target_link_libraries(VideoEditor
         "${FFMPEG_DIR}/lib/avutil.lib"
         "${FFMPEG_DIR}/lib/swscale.lib"
         "${FFMPEG_DIR}/lib/swresample.lib"
+        "${FFMPEG_DIR}/lib/avfilter.lib"
 )
 
 set(cppcheck

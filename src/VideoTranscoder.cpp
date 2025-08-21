@@ -170,6 +170,12 @@ void VideoTranscoder::setOutputAudioCodecPreset(const QString& preset)
 	}
 }
 
+void VideoTranscoder::setCropWindow(const QRect& rect)
+{
+    if (theEncoder.cropWindow != rect)
+        theEncoder.cropWindow = rect;
+}
+
 TimelineMarks VideoTranscoder::marks()
 {
 	return theMarks;
@@ -287,25 +293,38 @@ QSize VideoTranscoder::calculateOutputSize(int src_width, int src_height, QSize 
 {
     int target_width = target_size.width();
     int target_height = target_size.height();
+    int source_width = src_width;
+	int source_height = src_height;
+
+    // Cropping, if needed.
+    // Also, for now the offsets are implemented only for YUV420P pixel format.
+    if (theEncoder.cropWindow.width() > 0 &&
+        theEncoder.cropWindow.height() > 0 &&
+        theEncoder.videoCodecContext->pix_fmt == AV_PIX_FMT_YUV420P)
+    {
+        source_width = theEncoder.cropWindow.width();
+        source_height = theEncoder.cropWindow.height();
+    }
+
     if (target_width == -1 && target_height == -1)
     {
         // No scaling specified, use original video size
-        target_width = src_width;
-        target_height = src_height;
+        target_width = source_width;
+        target_height = source_height;
     }
     else if (target_width == -1)
     {
         // Use aspect ratio to calculate width, specified height
-        target_width = src_width * target_height / src_height;
+        target_width = source_width * target_height / source_height;
     }
     else if (target_height == -1)
     {
         // Use aspect ratio to calculate height, specified width
-        target_height = src_height * target_width / src_width;
+        target_height = source_height * target_width / source_width;
     }
     // use original size if target is zero
-    if (target_width == 0) target_width = src_width;
-    if (target_height == 0) target_height = src_height;
+    if (target_width == 0) target_width = source_width;
+    if (target_height == 0) target_height = source_height;
     return QSize(target_width, target_height);
 }
 
@@ -320,18 +339,18 @@ bool VideoTranscoder::prepareVideoEncoder()
     theEncoder.videoCodecContext = avcodec_alloc_context3(enc);
     if (!theEncoder.videoCodecContext) return false;
 
-    QSize targetSize = calculateOutputSize(
-		theDecoder.videoCodecContext->width, 
-        theDecoder.videoCodecContext->height, 
-        theEncoder.videoSize);
-    theEncoder.videoCodecContext->width = targetSize.width();
-    theEncoder.videoCodecContext->height = targetSize.height();
-
     AVRational fps = theEncoder.customFramerate ? theEncoder.framerate : pickInputFramerate();
     theEncoder.videoCodecContext->time_base = av_inv_q(fps);
     theEncoder.videoCodecContext->framerate = fps;
 
     theEncoder.videoCodecContext->pix_fmt = getFirstSupportedPixelFormat(theEncoder.videoCodecContext, enc);
+
+    QSize targetSize = calculateOutputSize(
+        theDecoder.videoCodecContext->width,
+        theDecoder.videoCodecContext->height,
+        theEncoder.videoSize);
+    theEncoder.videoCodecContext->width = targetSize.width();
+    theEncoder.videoCodecContext->height = targetSize.height();
 
     theEncoder.videoCodecContext->gop_size = 12;
     if (theEncoder.formatContext->oformat->flags & AVFMT_GLOBALHEADER)
@@ -350,6 +369,9 @@ bool VideoTranscoder::prepareVideoEncoder()
     if (avcodec_parameters_from_context(theEncoder.videoStream->codecpar, theEncoder.videoCodecContext) < 0) return false;
 
     initScaler();
+    if (theEncoder.cropWindow.width() > 0 && theEncoder.cropWindow.height() > 0)
+        initCropFilter();
+
     return true;
 }
 
@@ -426,6 +448,70 @@ void VideoTranscoder::initResampler()
     av_channel_layout_copy(&theEncoder.resampledFrame->ch_layout, &theEncoder.audioCodecContext->ch_layout);
 }
 
+void VideoTranscoder::initCropFilter()
+{
+    char args[512];
+    int ret = 0;
+
+    theDecoder.cropFilterGraph = avfilter_graph_alloc();
+    if (!theDecoder.cropFilterGraph) return;
+
+    // Input to a filtergraph
+    const AVFilter* buffersrc = avfilter_get_by_name("buffer");
+    const AVFilter* buffersink = avfilter_get_by_name("buffersink");
+    if (!buffersrc || !buffersink) return;
+
+	// Set up the buffer source filter arguments
+	AVRational time_base = theDecoder.videoCodecContext->time_base;
+    if (time_base.num <= 0 || time_base.den <= 0)
+    {
+		time_base = theDecoder.videoStream->time_base;
+	}
+    snprintf(args, sizeof(args),
+        "video_size=%dx%d:pix_fmt=%d:time_base=%d/%d:pixel_aspect=%d/%d",
+        theDecoder.videoCodecContext->width, theDecoder.videoCodecContext->height, theDecoder.videoCodecContext->pix_fmt,
+        time_base.num, time_base.den,
+        theDecoder.videoCodecContext->sample_aspect_ratio.num, theDecoder.videoCodecContext->sample_aspect_ratio.den);
+	qDebug() << "Crop filter args:" << args;
+
+    ret = avfilter_graph_create_filter(&theDecoder.cropFilterSrc, buffersrc, "in",
+        args, nullptr, theDecoder.cropFilterGraph);
+    if (ret < 0) return;
+
+    ret = avfilter_graph_create_filter(&theDecoder.cropFilterSink, buffersink, "out",
+        nullptr, nullptr, theDecoder.cropFilterGraph);
+    if (ret < 0) return;
+
+    // crop filter
+    char filterDesc[128];
+    snprintf(filterDesc, sizeof(filterDesc),
+        "crop=%d:%d:%d:%d",
+        theEncoder.cropWindow.width(), theEncoder.cropWindow.height(),
+        theEncoder.cropWindow.x(), theEncoder.cropWindow.y());
+
+    AVFilterInOut* inputs = avfilter_inout_alloc();
+    AVFilterInOut* outputs = avfilter_inout_alloc();
+
+    outputs->name = av_strdup("in");
+    outputs->filter_ctx = theDecoder.cropFilterSrc;
+    outputs->pad_idx = 0;
+    outputs->next = nullptr;
+
+    inputs->name = av_strdup("out");
+    inputs->filter_ctx = theDecoder.cropFilterSink;
+    inputs->pad_idx = 0;
+    inputs->next = nullptr;
+
+    ret = avfilter_graph_parse_ptr(theDecoder.cropFilterGraph, filterDesc, &inputs, &outputs, nullptr);
+    if (ret < 0) return;
+
+    ret = avfilter_graph_config(theDecoder.cropFilterGraph, nullptr);
+    if (ret < 0) return;
+
+    avfilter_inout_free(&inputs);
+    avfilter_inout_free(&outputs);
+}
+
 void VideoTranscoder::handleVideoPacket(AVPacket* pkt)
 {
     if (!theDecoder.videoCodecContext) return;
@@ -477,10 +563,29 @@ int64_t VideoTranscoder::assignVideoPts(const AVFrame* in_frame)
 
 void VideoTranscoder::processDecodedVideo(AVFrame* in)
 {
-    if (av_frame_make_writable(theEncoder.rescaledFrame) < 0) return;
-
-    sws_scale(theEncoder.scalingContext, in->data, in->linesize, 0, theDecoder.videoCodecContext->height,
-        theEncoder.rescaledFrame->data, theEncoder.rescaledFrame->linesize);
+    if (theEncoder.cropWindow.width() > 0 && theEncoder.cropWindow.height() > 0 &&
+		theDecoder.cropFilterGraph && theDecoder.cropFilterSrc && theDecoder.cropFilterSink)
+    {
+        if (av_buffersrc_add_frame(theDecoder.cropFilterSrc, in) < 0) return;
+        AVFrame* filtFrame = av_frame_alloc();
+        while (av_buffersink_get_frame(theDecoder.cropFilterSink, filtFrame) >= 0)
+        {
+            if (av_frame_make_writable(theEncoder.rescaledFrame) < 0) return;
+            sws_scale(theEncoder.scalingContext,
+                filtFrame->data, filtFrame->linesize,
+                0, filtFrame->height,
+                theEncoder.rescaledFrame->data,
+                theEncoder.rescaledFrame->linesize);
+        }
+        av_frame_unref(filtFrame);
+        av_frame_free(&filtFrame);
+    }
+    else
+    {
+        if (av_frame_make_writable(theEncoder.rescaledFrame) < 0) return;
+        sws_scale(theEncoder.scalingContext, in->data, in->linesize, 0, theDecoder.videoCodecContext->height,
+            theEncoder.rescaledFrame->data, theEncoder.rescaledFrame->linesize);
+    }
 
     theEncoder.rescaledFrame->pts = assignVideoPts(in);
 
