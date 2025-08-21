@@ -204,5 +204,6 @@ install(FILES
     "${FFMPEG_DIR}/bin/avutil-59.dll"
     "${FFMPEG_DIR}/bin/swscale-8.dll"
     "${FFMPEG_DIR}/bin/swresample-5.dll"
+    "${FFMPEG_DIR}/bin/avfilter-10.dll"
     DESTINATION "${CMAKE_INSTALL_PREFIX}"
     )
