@@ -274,7 +274,9 @@ void VEMainWindow::Convert()
                     });
 			});
 
+        theVideoPlayer->pause();
         transcoder->transcode();
+        theVideoPlayer->play();
     }
 
 }
