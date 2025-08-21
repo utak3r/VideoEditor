@@ -864,7 +864,8 @@ bool VideoTranscoder::transcode()
             emit recodeProgress(100);
             break;
 		}
-        emit recodeProgress((int)((double)frame_count / (double)total_frames * 100.0));
+        if (total_frames > 0)
+            emit recodeProgress((int)(((double)frame_count / (double)total_frames) * 100.0));
         qApp->processEvents();
     }
     av_packet_free(&pkt);
