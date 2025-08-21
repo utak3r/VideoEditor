@@ -28,7 +28,7 @@ VEMainWindow::VEMainWindow(QWidget *parent)
     setWindowTitle(PROJECT_VERSION_STRING_SHORT);
 
     // until cropping tool is finished
-    //ui->grpCropping->hide();
+    ui->grpCropping->hide();
 
     theVideoPlayer = ui->videoPlayer;
 
