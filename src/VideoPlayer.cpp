@@ -1,5 +1,12 @@
-#include "VideoPlayer.h"
+﻿#include "VideoPlayer.h"
 #include <QMediaMetaData>
+#include <QVideoSink>
+
+// https://doc.qt.io/qt-6/qgraphicsview.html
+// https://doc.qt.io/qt-6/qgraphicsscene.html
+// https://doc.qt.io/qt-6/qmediaplayer.html
+// https://doc.qt.io/qt-6/qgraphicsvideoitem.html
+// https://doc.qt.io/qt-6/qgraphicsrectitem.html
 
 VideoPlayer::VideoPlayer(QWidget* parent)
 : QGraphicsView(parent)
@@ -18,6 +25,8 @@ VideoPlayer::VideoPlayer(QWidget* parent)
     theMediaPlayer->setAudioOutput(theAudioOutput);
 
     theVideoItem = new QGraphicsVideoItem();
+	theVideoItem->setOffset(QPointF(0, 0));
+	theVideoItem->setAspectRatioMode(Qt::KeepAspectRatio);
     theScene->addItem(theVideoItem);
     theMediaPlayer->setVideoOutput(theVideoItem);
 
@@ -63,8 +72,17 @@ VideoPlayer::VideoPlayer(QWidget* parent)
 
 	theMediaPlayer->setLoops(QMediaPlayer::Infinite);
 
-    resizeScene();
+    //resizeScene();
     repositionTimestamp();
+
+	// properly resize the scene when the video size changes (or it's being loaded for the first time)
+    connect(theMediaPlayer->videoSink(), &QVideoSink::videoSizeChanged, this, &VideoPlayer::resizeScene);
+
+    connect(scene(), &QGraphicsScene::changed, this, [=](const QList<QRectF>& rects)
+        {
+            emit CropWindowChanged(getCropWindow());
+        });
+
 }
 
 void VideoPlayer::openFile(const QString& filename)
@@ -173,34 +191,40 @@ void VideoPlayer::setPosition(qint64 position)
 
 void VideoPlayer::resizeScene()
 {
-    QSizeF sceneSize = size();
-    theScene->setSceneRect(QRectF(QPointF(0, 0), sceneSize));
+    QSizeF viewSize = viewport()->size();
+    QSize videoSize = theMediaPlayer->videoSink()->videoSize();
 
-    if (!theVideoItem) return;
-
-    QSizeF videoSize(640, 360);
-    qreal scaleFactor;
-
-    if (theAspectMode == AspectMode::FitInView) {
-        scaleFactor = qMin(sceneSize.width() / videoSize.width(),
-            sceneSize.height() / videoSize.height());
-    }
-    else {
-        scaleFactor = qMax(sceneSize.width() / videoSize.width(),
-            sceneSize.height() / videoSize.height());
+    if (!videoSize.isValid())
+    {
+        theScene->setSceneRect(QRectF(QPointF(0, 0), viewSize));
+        return;
     }
 
-    QSizeF finalSize = videoSize * scaleFactor;
+    qreal videoAspect = qreal(videoSize.width()) / qreal(videoSize.height());
+    qreal viewAspect = viewSize.width() / viewSize.height();
 
-    QRectF rect(
-        (sceneSize.width() - finalSize.width()) / 2,
-        (sceneSize.height() - finalSize.height()) / 2,
-        finalSize.width(),
-        finalSize.height()
-    );
+    QRectF targetRect;
+    if (videoAspect > viewAspect)
+    {
+        // dopasuj do szerokości
+        qreal w = viewSize.width();
+        qreal h = w / videoAspect;
+        qreal y = (viewSize.height() - h) / 2.0;
+        targetRect = QRectF(0, y, w, h);
+    }
+    else
+    {
+        // dopasuj do wysokości
+        qreal h = viewSize.height();
+        qreal w = h * videoAspect;
+        qreal x = (viewSize.width() - w) / 2.0;
+        targetRect = QRectF(x, 0, w, h);
+    }
 
-    theVideoItem->setPos(rect.topLeft());
-    theVideoItem->setSize(rect.size());
+    theVideoItem->setSize(targetRect.size());
+    theVideoItem->setPos(targetRect.topLeft());
+
+    theScene->setSceneRect(QRectF(QPointF(0, 0), viewSize));
 }
 
 void VideoPlayer::repositionTimestamp()
@@ -241,9 +265,10 @@ void VideoPlayer::setCropEnabled(bool enabled)
             if (theCropRectItem->rect().isEmpty())
             {
                 // If crop rectangle is empty, set it to the video item size
-                QRectF videoRect = QRectF(theVideoItem->pos() + theVideoItem->offset(), theVideoItem->size());
+                QRectF videoRect = QRectF(theVideoItem->pos() /* + theVideoItem->offset()*/, theVideoItem->size());
                 theCropRectItem->setRect(videoRect);
 		    }
+        theCropRectItem->setBoundingBorders(QRectF(theVideoItem->pos() /* + theVideoItem->offset()*/, theVideoItem->size()));
 		theCropRectItem->setEnabled(enabled);
         emit CropEnabledChanged(enabled);
 	}
@@ -274,4 +299,25 @@ QRect VideoPlayer::getCropWindow() const
     }
 
     return retrect;
+}
+
+void VideoPlayer::setCropWindow(const QRect& cropRect)
+{
+    if (theCropRectItem)
+    {
+        // real video values to scene coordinates
+        QRect retrect = cropRect;
+        QSize videoSize = theVideoItem->nativeSize().toSize();
+        QSize videoSceneSize = theVideoItem->size().toSize();
+        double scaleX = static_cast<double>(videoSize.width()) / videoSceneSize.width();
+        double scaleY = static_cast<double>(videoSize.height()) / videoSceneSize.height();
+        int width = static_cast<int>(retrect.width() / scaleX);
+        int height = static_cast<int>(retrect.height() / scaleY);
+        retrect.setX(static_cast<int>(retrect.x() / scaleX) + theVideoItem->pos().x());
+        retrect.setY(static_cast<int>(retrect.y() / scaleY) + theVideoItem->pos().y());
+        retrect.setWidth(width);
+        retrect.setHeight(height);
+
+        theCropRectItem->setRect(QRectF(retrect));
+    }
 }

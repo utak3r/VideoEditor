@@ -38,6 +38,8 @@ private slots:
     void SetMarkIn();
     void SetMarkOut();
     void ResetMarks();
+	void CropWindowChanged(const QRect& cropRect);
+    void CropValueChanged(int value);
 
 private:
     Ui::VEMainWindow *ui;

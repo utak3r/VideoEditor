@@ -53,7 +53,18 @@ VEMainWindow::VEMainWindow(QWidget *parent)
     connect(ui->btnConvert, &QPushButton::clicked, this, &VEMainWindow::Convert);
     connect(ui->btnSettings, &QPushButton::clicked, this, &VEMainWindow::ShowSettings);
 //    connect(ui->videoPlayer, &VideoPlayer::VideoSizeChanged, this, &VEMainWindow::VideoSizeChanged);
-    connect(ui->grpCropping, &QGroupBox::toggled, this, [=](bool on) { theVideoPlayer->setCropEnabled(on); });
+    connect(ui->grpCropping, &QGroupBox::toggled, this, [=](bool on)
+        {
+            theVideoPlayer->setCropEnabled(on);
+            if (on)
+			    connect(theVideoPlayer, &VideoPlayer::CropWindowChanged, this, &VEMainWindow::CropWindowChanged);
+			else
+                disconnect(theVideoPlayer, &VideoPlayer::CropWindowChanged, this, &VEMainWindow::CropWindowChanged);   
+        });
+	connect(ui->valCropPosX, &QSpinBox::valueChanged, this, &VEMainWindow::CropValueChanged);
+    connect(ui->valCropPosY, &QSpinBox::valueChanged, this, &VEMainWindow::CropValueChanged);
+    connect(ui->valCropWidth, &QSpinBox::valueChanged, this, &VEMainWindow::CropValueChanged);
+    connect(ui->valCropHeight, &QSpinBox::valueChanged, this, &VEMainWindow::CropValueChanged);
 
     // Register codecs
     static CodecRegistrar<CodecX264> registrarX264("libx264 H.264 / AVC / MPEG-4 AVC / MPEG-4 part 10");
@@ -218,8 +229,23 @@ void VEMainWindow::ResetMarks()
     theVideoPlayer->setMarkers(theMarks.CurrentRange(1));
 }
 
+void VEMainWindow::CropWindowChanged(const QRect& cropRect)
+{
+
+}
+
+void VEMainWindow::CropValueChanged(int value)
+{
+    QRect cropRect = QRect(ui->valCropPosX->value(),
+        ui->valCropPosY->value(),
+        ui->valCropWidth->value(),
+		ui->valCropHeight->value());
+	theVideoPlayer->setCropWindow(cropRect);
+}
+
 void VEMainWindow::Convert()
 {
+    QRect cropRect = theVideoPlayer->getCropWindow();
     QString outFilename = QFileDialog::getSaveFileName(this, tr("Save video as..."),
         currentVideoFile.absoluteFilePath() + "_converted.mp4",
         tr("Video Files") + QLatin1String(" (") + VIDEO_FILE_EXTENSIONS + QLatin1String(")"));

@@ -10,8 +10,9 @@ CropRectangle::CropRectangle(QGraphicsItem* parent)
 	, theBorderWidth(2)
 	, theCornerHandleSize(20)
 	, theCropState(CropState_Inactive)
+	, theBoundingBorders(QRectF(0, 0, 0, 0))
 {
-	setRect(0, 0, 300, 300);
+	setRect(0, 0, 0, 0);
 	setPen(QPen(theColor, theBorderWidth));
 	setBrush(QColor(theColor.red(), theColor.green(), theColor.blue(), theOpacity));
 }
@@ -28,6 +29,8 @@ void CropRectangle::setEnabled(bool enabled)
 		theCropState = CropState_Active;
 	else
 		theCropState = CropState_Inactive;
+	
+	setVisible(enabled);
 }
 
 QColor CropRectangle::color() const
@@ -62,6 +65,16 @@ void CropRectangle::setBorderWidth(int width)
 {
 	theBorderWidth = width;
 	setPen(QPen(theColor, theBorderWidth));
+}
+
+void CropRectangle::setBoundingBorders(QRectF brect)
+{
+	if (brect.isValid())
+	{
+		theBoundingBorders = brect;
+		//setPos(theBoundingBorders.topLeft());
+		//setRect(theBoundingBorders);
+	}
 }
 
 void CropRectangle::paint(QPainter* painter, const QStyleOptionGraphicsItem* option, QWidget* widget)
@@ -111,6 +124,12 @@ CropRectangle::CropHandle CropRectangle::getInsideCropHandle(QPointF point)
 	return handle;
 }
 
+bool CropRectangle::isInsideVideo(const QPointF& point) const
+{
+	return (point.x() >= theBoundingBorders.left() && point.x() <= theBoundingBorders.right() &&
+		point.y() >= theBoundingBorders.top() && point.y() <= theBoundingBorders.bottom());
+}
+
 void CropRectangle::mousePressEvent(QGraphicsSceneMouseEvent* event)
 {
 	switch (theCropState)
@@ -147,6 +166,7 @@ void CropRectangle::mouseMoveEvent(QGraphicsSceneMouseEvent* event)
 {
 	QPointF tl = rect().topLeft();
 	QPointF br = rect().bottomRight();
+	QRectF realrect = QRectF(pos(), rect().size());
 	qreal dx = event->scenePos().x() - event->lastScenePos().x();
 	qreal dy = event->scenePos().y() - event->lastScenePos().y();
 	switch (theCropState)
@@ -157,27 +177,46 @@ void CropRectangle::mouseMoveEvent(QGraphicsSceneMouseEvent* event)
 	case CropState_Active:
 		break;
 	case CropState_ResizingTL:
-		tl.setX(tl.x() + dx);
-		tl.setY(tl.y() + dy);
-		setRect(QRectF(tl, br));
+		if (isInsideVideo(realrect.topLeft() + QPointF(dx, dy)))
+		{
+			tl.setX(tl.x() + dx);
+			tl.setY(tl.y() + dy);
+			setRect(QRectF(tl, br));
+		}
 		break;
 	case CropState_ResizingTR:
-		tl.setY(tl.y() + dy);
-		br.setX(br.x() + dx);
-		setRect(QRectF(tl, br));
+		if (isInsideVideo(realrect.topRight() + QPointF(dx, dy)))
+		{
+			tl.setY(tl.y() + dy);
+			br.setX(br.x() + dx);
+			setRect(QRectF(tl, br));
+		}
 		break;
 	case CropState_ResizingBL:
-		tl.setX(tl.x() + dx);
-		br.setY(br.y() + dy);
-		setRect(QRectF(tl, br));
+		if (isInsideVideo(realrect.bottomLeft() + QPointF(dx, dy)))
+		{
+			tl.setX(tl.x() + dx);
+			br.setY(br.y() + dy);
+			setRect(QRectF(tl, br));
+		}
 		break;
 	case CropState_ResizingBR:
-		br.setX(br.x() + dx);
-		br.setY(br.y() + dy);
-		setRect(QRectF(tl, br));
+		if (isInsideVideo(realrect.bottomRight() + QPointF(dx, dy)))
+		{
+			br.setX(br.x() + dx);
+			br.setY(br.y() + dy);
+			setRect(QRectF(tl, br));
+		}
 		break;
 	case CropState_Translating:
-		moveBy(dx, dy);
+		if (isInsideVideo(realrect.topLeft() + QPointF(dx, dy)) &&
+			isInsideVideo(realrect.topRight() + QPointF(dx, dy)) &&
+			isInsideVideo(realrect.bottomLeft() + QPointF(dx, dy)) &&
+			isInsideVideo(realrect.bottomRight() + QPointF(dx, dy))
+			)
+		{
+			moveBy(dx, dy);
+		}
 		break;
 	}
 }

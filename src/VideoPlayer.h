@@ -48,12 +48,14 @@ public:
     bool getCropEnabled();
     void setCropEnabled(bool enabled);
     QRect getCropWindow() const;
+	void setCropWindow(const QRect& cropRect);
 
 signals:
     void playbackStateChanged(VideoPlayer::PlaybackState newState);
     void positionChanged(qint64 position);
 	void durationChanged(qint64 duration);
     void CropEnabledChanged(bool enabled);
+	void CropWindowChanged(const QRect& cropRect);
 
 public slots:
     void openFile(const QString& filename);

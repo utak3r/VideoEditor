@@ -22,6 +22,8 @@ public:
 	int borderWidth() const;
 	void setBorderWidth(int width);
 
+	void setBoundingBorders(QRectF brect);
+
 	enum CropHandle
 	{
 		CropHandle_None,
@@ -50,10 +52,12 @@ protected:
 
 private:
 	CropRectangle::CropHandle getInsideCropHandle(QPointF point);
+	bool isInsideVideo(const QPointF& point) const;
 
 	QColor theColor;
 	int theOpacity;
 	int theBorderWidth;
 	int theCornerHandleSize;
 	CropState theCropState;
+	QRectF theBoundingBorders;
 };
