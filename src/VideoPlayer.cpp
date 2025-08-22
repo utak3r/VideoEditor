@@ -6,6 +6,7 @@
 // https://doc.qt.io/qt-6/qgraphicsscene.html
 // https://doc.qt.io/qt-6/qmediaplayer.html
 // https://doc.qt.io/qt-6/qgraphicsvideoitem.html
+// https://doc.qt.io/qt-6/qgraphicsitem.html
 // https://doc.qt.io/qt-6/qgraphicsrectitem.html
 
 VideoPlayer::VideoPlayer(QWidget* parent)
@@ -206,7 +207,7 @@ void VideoPlayer::resizeScene()
     QRectF targetRect;
     if (videoAspect > viewAspect)
     {
-        // dopasuj do szerokości
+        // fit to width
         qreal w = viewSize.width();
         qreal h = w / videoAspect;
         qreal y = (viewSize.height() - h) / 2.0;
@@ -214,7 +215,7 @@ void VideoPlayer::resizeScene()
     }
     else
     {
-        // dopasuj do wysokości
+        // fit to height
         qreal h = viewSize.height();
         qreal w = h * videoAspect;
         qreal x = (viewSize.width() - w) / 2.0;

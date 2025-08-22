@@ -165,8 +165,10 @@ void CropRectangle::mousePressEvent(QGraphicsSceneMouseEvent* event)
 void CropRectangle::mouseMoveEvent(QGraphicsSceneMouseEvent* event)
 {
 	QPointF tl = rect().topLeft();
+	QPointF tr = rect().topRight();
+	QPointF bl = rect().bottomLeft();
 	QPointF br = rect().bottomRight();
-	QRectF realrect = QRectF(pos(), rect().size());
+	QRectF realrect = rect();
 	qreal dx = event->scenePos().x() - event->lastScenePos().x();
 	qreal dy = event->scenePos().y() - event->lastScenePos().y();
 	switch (theCropState)
@@ -215,7 +217,11 @@ void CropRectangle::mouseMoveEvent(QGraphicsSceneMouseEvent* event)
 			isInsideVideo(realrect.bottomRight() + QPointF(dx, dy))
 			)
 		{
-			moveBy(dx, dy);
+			tl += QPointF(dx, dy);
+			tr += QPointF(dx, dy);
+			bl += QPointF(dx, dy);
+			br += QPointF(dx, dy);
+			setRect(QRectF(tl.x(), tl.y(), tr.x() - tl.x(), bl.y() - tl.y()));
 		}
 		break;
 	}
