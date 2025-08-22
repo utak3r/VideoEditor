@@ -566,7 +566,7 @@ void VideoTranscoder::processDecodedVideo(AVFrame* in)
     if (theEncoder.cropWindow.width() > 0 && theEncoder.cropWindow.height() > 0 &&
 		theDecoder.cropFilterGraph && theDecoder.cropFilterSrc && theDecoder.cropFilterSink)
     {
-        if (av_buffersrc_add_frame(theDecoder.cropFilterSrc, in) < 0) return;
+        if (av_buffersrc_add_frame_flags(theDecoder.cropFilterSrc, in, AV_BUFFERSRC_FLAG_KEEP_REF) < 0) return;
         AVFrame* filtFrame = av_frame_alloc();
         while (av_buffersink_get_frame(theDecoder.cropFilterSink, filtFrame) >= 0)
         {
