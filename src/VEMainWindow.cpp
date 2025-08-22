@@ -53,18 +53,19 @@ VEMainWindow::VEMainWindow(QWidget *parent)
     connect(ui->btnConvert, &QPushButton::clicked, this, &VEMainWindow::Convert);
     connect(ui->btnSettings, &QPushButton::clicked, this, &VEMainWindow::ShowSettings);
 //    connect(ui->videoPlayer, &VideoPlayer::VideoSizeChanged, this, &VEMainWindow::VideoSizeChanged);
-    connect(ui->grpCropping, &QGroupBox::toggled, this, [=](bool on)
-        {
-            theVideoPlayer->setCropEnabled(on);
-            if (on)
-			    connect(theVideoPlayer, &VideoPlayer::CropWindowChanged, this, &VEMainWindow::CropWindowChanged);
-			else
-                disconnect(theVideoPlayer, &VideoPlayer::CropWindowChanged, this, &VEMainWindow::CropWindowChanged);   
-        });
 	connect(ui->valCropPosX, &QSpinBox::valueChanged, this, &VEMainWindow::CropValueChanged);
     connect(ui->valCropPosY, &QSpinBox::valueChanged, this, &VEMainWindow::CropValueChanged);
     connect(ui->valCropWidth, &QSpinBox::valueChanged, this, &VEMainWindow::CropValueChanged);
     connect(ui->valCropHeight, &QSpinBox::valueChanged, this, &VEMainWindow::CropValueChanged);
+    connect(theVideoPlayer, &VideoPlayer::CropWindowChanged, this, &VEMainWindow::CropWindowChanged);
+    connect(ui->grpCropping, &QGroupBox::toggled, this, [=](bool on)
+        {
+            theVideoPlayer->setCropEnabled(on);
+            /*if (on)
+                connect(theVideoPlayer, &VideoPlayer::CropWindowChanged, this, &VEMainWindow::CropWindowChanged);
+            else
+                disconnect(theVideoPlayer, &VideoPlayer::CropWindowChanged, this, &VEMainWindow::CropWindowChanged);*/
+        });
 
     // Register codecs
     static CodecRegistrar<CodecX264> registrarX264("libx264 H.264 / AVC / MPEG-4 AVC / MPEG-4 part 10");
@@ -231,7 +232,20 @@ void VEMainWindow::ResetMarks()
 
 void VEMainWindow::CropWindowChanged(const QRect& cropRect)
 {
+    QSignalBlocker b1(ui->valCropPosX);
+    QSignalBlocker b2(ui->valCropPosY);
+    QSignalBlocker b3(ui->valCropWidth);
+    QSignalBlocker b4(ui->valCropHeight);
 
+    int x = cropRect.topLeft().x();
+    int y = cropRect.topLeft().y();
+    int w = cropRect.width();
+    int h = cropRect.height();
+
+    ui->valCropPosX->setValue(x);
+    ui->valCropPosY->setValue(y);
+    ui->valCropWidth->setValue(w);
+    ui->valCropHeight->setValue(h);
 }
 
 void VEMainWindow::CropValueChanged(int value)

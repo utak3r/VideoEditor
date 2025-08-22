@@ -3,12 +3,12 @@
 #include <QPainter>
 
 
-class CropRectangle : public QGraphicsRectItem
+class CropRectangle : public QObject, public QGraphicsRectItem
 {
-	//Q_OBJECT
-	//Q_PROPERTY(QColor color READ color WRITE setColor)
-	//Q_PROPERTY(int opacity READ opacity WRITE setOpacity)
-	//Q_PROPERTY(int borderWidth READ borderWidth WRITE setBorderWidth)
+	Q_OBJECT
+	Q_PROPERTY(QColor color READ color WRITE setColor)
+	Q_PROPERTY(int opacity READ opacity WRITE setOpacity)
+	Q_PROPERTY(int borderWidth READ borderWidth WRITE setBorderWidth)
 
 public:
 	explicit CropRectangle(QGraphicsItem* parent = nullptr);
@@ -43,6 +43,9 @@ public:
 		CropState_ResizingBR,
 		CropState_Translating
 	};
+
+signals:
+	void rectChanged(const QRectF& rect);
 
 protected:
 	void paint(QPainter* painter, const QStyleOptionGraphicsItem* option, QWidget* widget = nullptr) override;

@@ -76,6 +76,8 @@ private slots:
 private:
     void resizeScene();
     void repositionTimestamp();
+    QRect sceneRectToVideoRect(QRectF sceneRect) const;
+    QRectF videoRectToSceneRect(QRect videoRect) const;
 
     QGraphicsScene* theScene;
     QMediaPlayer* theMediaPlayer;

@@ -183,7 +183,9 @@ void CropRectangle::mouseMoveEvent(QGraphicsSceneMouseEvent* event)
 		{
 			tl.setX(tl.x() + dx);
 			tl.setY(tl.y() + dy);
-			setRect(QRectF(tl, br));
+			QRectF newRect = QRectF(tl, br);
+			setRect(newRect);
+			emit rectChanged(newRect);
 		}
 		break;
 	case CropState_ResizingTR:
@@ -191,7 +193,9 @@ void CropRectangle::mouseMoveEvent(QGraphicsSceneMouseEvent* event)
 		{
 			tl.setY(tl.y() + dy);
 			br.setX(br.x() + dx);
-			setRect(QRectF(tl, br));
+			QRectF newRect = QRectF(tl, br);
+			setRect(newRect);
+			emit rectChanged(newRect);
 		}
 		break;
 	case CropState_ResizingBL:
@@ -199,7 +203,9 @@ void CropRectangle::mouseMoveEvent(QGraphicsSceneMouseEvent* event)
 		{
 			tl.setX(tl.x() + dx);
 			br.setY(br.y() + dy);
-			setRect(QRectF(tl, br));
+			QRectF newRect = QRectF(tl, br);
+			setRect(newRect);
+			emit rectChanged(newRect);
 		}
 		break;
 	case CropState_ResizingBR:
@@ -207,7 +213,9 @@ void CropRectangle::mouseMoveEvent(QGraphicsSceneMouseEvent* event)
 		{
 			br.setX(br.x() + dx);
 			br.setY(br.y() + dy);
-			setRect(QRectF(tl, br));
+			QRectF newRect = QRectF(tl, br);
+			setRect(newRect);
+			emit rectChanged(newRect);
 		}
 		break;
 	case CropState_Translating:
@@ -221,7 +229,9 @@ void CropRectangle::mouseMoveEvent(QGraphicsSceneMouseEvent* event)
 			tr += QPointF(dx, dy);
 			bl += QPointF(dx, dy);
 			br += QPointF(dx, dy);
-			setRect(QRectF(tl.x(), tl.y(), tr.x() - tl.x(), bl.y() - tl.y()));
+			QRectF newRect = QRectF(tl.x(), tl.y(), tr.x() - tl.x(), bl.y() - tl.y());
+			setRect(newRect);
+			emit rectChanged(newRect);
 		}
 		break;
 	}
