@@ -3,6 +3,7 @@
 #include <QFileDialog>
 #include <QTimer>
 #include <QProgressBar>
+#include <QMessageBox>
 #include <SettingsDialog.h>
 #include <Tools.h>
 #include <VideoTranscoder.h>
@@ -289,21 +290,22 @@ void VEMainWindow::Convert()
         else
 			transcoder->setCropWindow(QRect(0, 0, 0, 0));
 
-        connect(transcoder.get(), &VideoTranscoder::recodeProgress, this, [=](int progress)
+        connect(transcoder.get(), &VideoTranscoder::transcodingProgress, this, [=](int progress)
             {
-                ui->statusbar->showMessage(tr("Recode progress: %1%").arg(progress));
+                ui->statusbar->showMessage(tr("Transcoding progress: %1%").arg(progress));
 			});
-        connect(transcoder.get(), &VideoTranscoder::recodeFinished, this, [=]()
+        connect(transcoder.get(), &VideoTranscoder::transcodingFinished, this, [=]()
             {
-                ui->statusbar->showMessage(tr("Recode finished"));
+                ui->statusbar->showMessage(tr("Transcoding finished"));
                 QTimer::singleShot(2000, this, [=]()
                     {
                         ui->statusbar->showMessage(QString("%1").arg(PROJECT_VERSION_STRING_FULL));
                     });
             });
-        connect(transcoder.get(), &VideoTranscoder::recodeError, this, [=](const QString& errorMessage)
+        connect(transcoder.get(), &VideoTranscoder::transcodingError, this, [=](const QString& errorMessage)
             {
-                ui->statusbar->showMessage(tr("Recode error: %1").arg(errorMessage));
+				QMessageBox::warning(this, tr("Transcoding error"), tr("Error during transcoding: %1").arg(errorMessage));
+                ui->statusbar->showMessage(tr("Error during transcoding: %1").arg(errorMessage));
                 QTimer::singleShot(2000, this, [=]()
                     {
                         ui->statusbar->showMessage(QString("%1").arg(PROJECT_VERSION_STRING_FULL));

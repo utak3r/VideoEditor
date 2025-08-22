@@ -323,7 +323,7 @@ QRectF VideoPlayer::videoRectToSceneRect(QRect videoRect) const
 QRect VideoPlayer::getCropWindow() const
 {
 	this->scene()->update();
-    return sceneRectToVideoRect(QRectF(theCropRectItem->scenePos(), theCropRectItem->rect().size()));
+    return sceneRectToVideoRect(QRectF(theCropRectItem->rect().topLeft(), theCropRectItem->rect().size()));
 }
 
 void VideoPlayer::setCropWindow(const QRect& cropRect)

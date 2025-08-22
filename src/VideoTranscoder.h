@@ -54,9 +54,9 @@ public:
 
     bool transcode();
 
-    Q_SIGNAL void recodeProgress(int progress);
-    Q_SIGNAL void recodeFinished();
-    Q_SIGNAL void recodeError(const QString& errorMessage);
+    Q_SIGNAL void transcodingProgress(int progress);
+    Q_SIGNAL void transcodingFinished();
+    Q_SIGNAL void transcodingError(const QString& errorMessage);
 
     struct CodecHandlers
     {

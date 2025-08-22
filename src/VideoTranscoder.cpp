@@ -1,4 +1,5 @@
 #include "VideoTranscoder.h"
+#include "Tools.h"
 #include <QApplication>
 
 VideoTranscoder::VideoTranscoder(QObject* parent)
@@ -365,12 +366,20 @@ bool VideoTranscoder::prepareVideoEncoder()
     if (!theEncoder.videoStream) return false;
     theEncoder.videoStream->time_base = theEncoder.videoCodecContext->time_base;
 
-    if (avcodec_open2(theEncoder.videoCodecContext, enc, nullptr) < 0) return false;
-    if (avcodec_parameters_from_context(theEncoder.videoStream->codecpar, theEncoder.videoCodecContext) < 0) return false;
+    if (int ret = avcodec_open2(theEncoder.videoCodecContext, enc, nullptr); ret < 0)
+    {
+		emit transcodingError(tr("Could not open video encoder: %1").arg(Tools::ffmpegErrorString(ret)));
+        return false;
+    }
+    if (int ret = avcodec_parameters_from_context(theEncoder.videoStream->codecpar, theEncoder.videoCodecContext); ret < 0)
+    {
+		emit transcodingError(tr("Could not initialize video stream parameters: %1").arg(Tools::ffmpegErrorString(ret)));
+        return false;
+    }
 
-    initScaler();
     if (theEncoder.cropWindow.width() > 0 && theEncoder.cropWindow.height() > 0)
         initCropFilter();
+    initScaler();
 
     return true;
 }
@@ -411,9 +420,87 @@ bool VideoTranscoder::prepareAudioEncoder()
     return true;
 }
 
+void VideoTranscoder::initCropFilter()
+{
+    char args[512];
+    int ret = 0;
+
+    theDecoder.cropFilterGraph = avfilter_graph_alloc();
+    if (!theDecoder.cropFilterGraph) return;
+
+    // Input to a filtergraph
+    const AVFilter* buffersrc = avfilter_get_by_name("buffer");
+    const AVFilter* buffersink = avfilter_get_by_name("buffersink");
+    if (!buffersrc || !buffersink) return;
+
+    // Set up the buffer source filter arguments
+    AVRational time_base = theDecoder.videoCodecContext->time_base;
+    if (time_base.num <= 0 || time_base.den <= 0)
+    {
+        time_base = theDecoder.videoStream->time_base;
+    }
+    snprintf(args, sizeof(args),
+        "video_size=%dx%d:pix_fmt=%d:time_base=%d/%d:pixel_aspect=%d/%d",
+        theDecoder.videoCodecContext->width, theDecoder.videoCodecContext->height, theDecoder.videoCodecContext->pix_fmt,
+        time_base.num, time_base.den,
+        theDecoder.videoCodecContext->sample_aspect_ratio.num, theDecoder.videoCodecContext->sample_aspect_ratio.den);
+    qDebug() << "Crop filter args:" << args;
+
+    ret = avfilter_graph_create_filter(&theDecoder.cropFilterSrc, buffersrc, "in",
+        args, nullptr, theDecoder.cropFilterGraph);
+    if (ret < 0) return;
+
+    ret = avfilter_graph_create_filter(&theDecoder.cropFilterSink, buffersink, "out",
+        nullptr, nullptr, theDecoder.cropFilterGraph);
+    if (ret < 0) return;
+
+    // crop filter
+    // crop=w:h:x:y
+    char filterDesc[128];
+    snprintf(filterDesc, sizeof(filterDesc),
+        "crop=%d:%d:%d:%d",
+        theEncoder.cropWindow.width(), theEncoder.cropWindow.height(),
+        theEncoder.cropWindow.x(), theEncoder.cropWindow.y());
+    qDebug() << "Crop filter definition: " << filterDesc;
+
+    AVFilterInOut* inputs = avfilter_inout_alloc();
+    AVFilterInOut* outputs = avfilter_inout_alloc();
+
+    outputs->name = av_strdup("in");
+    outputs->filter_ctx = theDecoder.cropFilterSrc;
+    outputs->pad_idx = 0;
+    outputs->next = nullptr;
+
+    inputs->name = av_strdup("out");
+    inputs->filter_ctx = theDecoder.cropFilterSink;
+    inputs->pad_idx = 0;
+    inputs->next = nullptr;
+
+    ret = avfilter_graph_parse_ptr(theDecoder.cropFilterGraph, filterDesc, &inputs, &outputs, nullptr);
+    if (ret < 0) return;
+
+    ret = avfilter_graph_config(theDecoder.cropFilterGraph, nullptr);
+    if (ret < 0) return;
+
+    avfilter_inout_free(&inputs);
+    avfilter_inout_free(&outputs);
+}
+
 void VideoTranscoder::initScaler()
 {
-    theEncoder.scalingContext = sws_getContext(theDecoder.videoCodecContext->width, theDecoder.videoCodecContext->height, theDecoder.videoCodecContext->pix_fmt,
+    int width = theDecoder.videoCodecContext->width;
+	int height = theDecoder.videoCodecContext->height;
+	AVPixelFormat srcPixFmt = theDecoder.videoCodecContext->pix_fmt;
+
+    if (theEncoder.cropWindow.width() > 0 && theEncoder.cropWindow.height() > 0 &&
+        theDecoder.cropFilterGraph && theDecoder.cropFilterSrc && theDecoder.cropFilterSink)
+    {
+		width = theEncoder.cropWindow.width();
+		height = theEncoder.cropWindow.height();
+        srcPixFmt = (AVPixelFormat)av_buffersink_get_format(theDecoder.cropFilterSink);
+    }
+
+    theEncoder.scalingContext = sws_getContext(width, width, srcPixFmt,
         theEncoder.videoCodecContext->width, theEncoder.videoCodecContext->height, theEncoder.videoCodecContext->pix_fmt,
         theEncoder.scalingFilter, nullptr, nullptr, nullptr);
 
@@ -446,70 +533,6 @@ void VideoTranscoder::initResampler()
     theEncoder.resampledFrame->format = theEncoder.audioCodecContext->sample_fmt;
     theEncoder.resampledFrame->sample_rate = theEncoder.audioCodecContext->sample_rate;
     av_channel_layout_copy(&theEncoder.resampledFrame->ch_layout, &theEncoder.audioCodecContext->ch_layout);
-}
-
-void VideoTranscoder::initCropFilter()
-{
-    char args[512];
-    int ret = 0;
-
-    theDecoder.cropFilterGraph = avfilter_graph_alloc();
-    if (!theDecoder.cropFilterGraph) return;
-
-    // Input to a filtergraph
-    const AVFilter* buffersrc = avfilter_get_by_name("buffer");
-    const AVFilter* buffersink = avfilter_get_by_name("buffersink");
-    if (!buffersrc || !buffersink) return;
-
-	// Set up the buffer source filter arguments
-	AVRational time_base = theDecoder.videoCodecContext->time_base;
-    if (time_base.num <= 0 || time_base.den <= 0)
-    {
-		time_base = theDecoder.videoStream->time_base;
-	}
-    snprintf(args, sizeof(args),
-        "video_size=%dx%d:pix_fmt=%d:time_base=%d/%d:pixel_aspect=%d/%d",
-        theDecoder.videoCodecContext->width, theDecoder.videoCodecContext->height, theDecoder.videoCodecContext->pix_fmt,
-        time_base.num, time_base.den,
-        theDecoder.videoCodecContext->sample_aspect_ratio.num, theDecoder.videoCodecContext->sample_aspect_ratio.den);
-	qDebug() << "Crop filter args:" << args;
-
-    ret = avfilter_graph_create_filter(&theDecoder.cropFilterSrc, buffersrc, "in",
-        args, nullptr, theDecoder.cropFilterGraph);
-    if (ret < 0) return;
-
-    ret = avfilter_graph_create_filter(&theDecoder.cropFilterSink, buffersink, "out",
-        nullptr, nullptr, theDecoder.cropFilterGraph);
-    if (ret < 0) return;
-
-    // crop filter
-    char filterDesc[128];
-    snprintf(filterDesc, sizeof(filterDesc),
-        "crop=%d:%d:%d:%d",
-        theEncoder.cropWindow.width(), theEncoder.cropWindow.height(),
-        theEncoder.cropWindow.x(), theEncoder.cropWindow.y());
-
-    AVFilterInOut* inputs = avfilter_inout_alloc();
-    AVFilterInOut* outputs = avfilter_inout_alloc();
-
-    outputs->name = av_strdup("in");
-    outputs->filter_ctx = theDecoder.cropFilterSrc;
-    outputs->pad_idx = 0;
-    outputs->next = nullptr;
-
-    inputs->name = av_strdup("out");
-    inputs->filter_ctx = theDecoder.cropFilterSink;
-    inputs->pad_idx = 0;
-    inputs->next = nullptr;
-
-    ret = avfilter_graph_parse_ptr(theDecoder.cropFilterGraph, filterDesc, &inputs, &outputs, nullptr);
-    if (ret < 0) return;
-
-    ret = avfilter_graph_config(theDecoder.cropFilterGraph, nullptr);
-    if (ret < 0) return;
-
-    avfilter_inout_free(&inputs);
-    avfilter_inout_free(&outputs);
 }
 
 void VideoTranscoder::handleVideoPacket(AVPacket* pkt)
@@ -786,43 +809,43 @@ int64_t VideoTranscoder::calculatePts(AVStream* stream, int64_t ms)
 
 bool VideoTranscoder::transcode()
 {
-    emit recodeProgress(0);
+    emit transcodingProgress(0);
     if (!openInput())
     {
-        emit recodeError("Nie można otworzyć pliku wejściowego: " + theDecoder.fileName);
+        emit transcodingError("Nie można otworzyć pliku wejściowego: " + theDecoder.fileName);
 		return false;
     }
     if (!openOutput())
     {
-		emit recodeError("Nie można otworzyć pliku wyjściowego: " + theEncoder.fileName);
+		emit transcodingError("Nie można otworzyć pliku wyjściowego: " + theEncoder.fileName);
 		return false;
     }
 
     if (!prepareVideoDecoder())
     {
-        emit recodeError("Nie można otworzyć dekodera wideo: " + theDecoder.fileName);
+        emit transcodingError("Nie można otworzyć dekodera wideo: " + theDecoder.fileName);
 		return false;
     }
     if (!prepareAudioDecoder())
     {
-		emit recodeError("Nie można otworzyć dekodera audio: " + theDecoder.fileName);
+		emit transcodingError("Nie można otworzyć dekodera audio: " + theDecoder.fileName);
 		return false;
 	}
     if (!prepareVideoEncoder())
     {
-		emit recodeError("Nie można otworzyć enkodera wideo: " + theEncoder.videoCodecName);
+		emit transcodingError("Nie można otworzyć enkodera wideo: " + theEncoder.videoCodecName);
 		return false;
     }
     if (!prepareAudioEncoder())
     {
-		emit recodeError("Nie można otworzyć enkodera audio: " + theEncoder.audioCodecName);
+		emit transcodingError("Nie można otworzyć enkodera audio: " + theEncoder.audioCodecName);
 		return false;
     }
     if (!(theEncoder.formatContext->oformat->flags & AVFMT_NOFILE))
     {
         if (avio_open(&theEncoder.formatContext->pb, theEncoder.fileName.toStdString().c_str(), AVIO_FLAG_WRITE) < 0)
         {
-            emit recodeError("Nie można otworzyć pliku wyjściowego: " + theEncoder.fileName);
+            emit transcodingError("Nie można otworzyć pliku wyjściowego: " + theEncoder.fileName);
 			return false;
         }
     }
@@ -861,11 +884,11 @@ bool VideoTranscoder::transcode()
         if (theEncoder.videoMarkOutReached)
         {
 			// break if mark out is reached
-            emit recodeProgress(100);
+            emit transcodingProgress(100);
             break;
 		}
         if (total_frames > 0)
-            emit recodeProgress((int)(((double)frame_count / (double)total_frames) * 100.0));
+            emit transcodingProgress((int)(((double)frame_count / (double)total_frames) * 100.0));
         qApp->processEvents();
     }
     av_packet_free(&pkt);
@@ -874,7 +897,7 @@ bool VideoTranscoder::transcode()
     flushAudio();
 
     av_write_trailer(theEncoder.formatContext);
-    emit recodeProgress(100);
-	emit recodeFinished();
+    emit transcodingProgress(100);
+	emit transcodingFinished();
     return true;
 }
