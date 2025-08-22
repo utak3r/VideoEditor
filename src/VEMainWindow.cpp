@@ -61,10 +61,6 @@ VEMainWindow::VEMainWindow(QWidget *parent)
     connect(ui->grpCropping, &QGroupBox::toggled, this, [=](bool on)
         {
             theVideoPlayer->setCropEnabled(on);
-            /*if (on)
-                connect(theVideoPlayer, &VideoPlayer::CropWindowChanged, this, &VEMainWindow::CropWindowChanged);
-            else
-                disconnect(theVideoPlayer, &VideoPlayer::CropWindowChanged, this, &VEMainWindow::CropWindowChanged);*/
         });
 
     // Register codecs
