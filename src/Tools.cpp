@@ -41,3 +41,10 @@ qint64 Tools::seekStreamExactAnyFrame(AVFormatContext* fmt_ctx, int stream_index
     if (seek_ret >= 0) avcodec_flush_buffers(codec_ctx);
     return start_pts;
 }
+
+QString Tools::ffmpegErrorString(int errnum)
+{
+    char buf[AV_ERROR_MAX_STRING_SIZE] = { 0 };
+    av_strerror(errnum, buf, sizeof(buf));
+    return QString::fromUtf8(buf);
+}

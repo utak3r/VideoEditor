@@ -4,6 +4,7 @@
 extern "C" {
 #include <libavcodec/avcodec.h>
 #include <libavformat/avformat.h>
+#include <libavutil/error.h>
 }
 
 class Tools
@@ -29,4 +30,8 @@ public:
 	*/
 	static qint64 seekStreamExactAnyFrame(AVFormatContext* fmt_ctx, int stream_index, qint64 ms, AVRational timebase, AVCodecContext* codec_ctx);
 
+	/**
+	* Returns a human-readable error string for the given FFmpeg error code.
+	*/
+	static QString ffmpegErrorString(int errnum);
 };
