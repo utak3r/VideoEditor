@@ -1,4 +1,5 @@
 #include "Tools.h"
+#include <QSize>
 
 void Tools::getAvailableEncoders(QStringList& videoCodecs, QStringList& audioCodecs)
 {
@@ -47,4 +48,20 @@ QString Tools::ffmpegErrorString(int errnum)
     char buf[AV_ERROR_MAX_STRING_SIZE] = { 0 };
     av_strerror(errnum, buf, sizeof(buf));
     return QString::fromUtf8(buf);
+}
+
+QSize Tools::forceSizeMultipleOf16(const QSize& size)
+{
+	if (size.width() <= 0 || size.height() <= 0) return QSize(0, 0);
+    int w = (size.width() / 16) * 16;
+    int h = (size.height() / 16) * 16;
+	return QSize(w, h);
+}
+
+QSize Tools::forceSizeEven(const QSize& size)
+{
+    if (size.width() <= 0 || size.height() <= 0) return QSize(0, 0);
+    int w = (size.width() / 2) * 2;
+    int h = (size.height() / 2) * 2;
+	return QSize(w, h);
 }

@@ -34,4 +34,15 @@ public:
 	* Returns a human-readable error string for the given FFmpeg error code.
 	*/
 	static QString ffmpegErrorString(int errnum);
+
+	/**
+	* Forces the given size to have both width and height as multiples of 16.
+	*/
+	static QSize forceSizeMultipleOf16(const QSize& size);
+
+	/**
+	* Forces the given size to have both width and height as even numbers.
+	*/
+	static QSize forceSizeEven(const QSize& size);
+
 };

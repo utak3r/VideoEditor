@@ -2,6 +2,8 @@
 #include "Tools.h"
 #include <QApplication>
 
+// https://ffmpeg.org/doxygen/2.0/group__lavfi.html
+
 VideoTranscoder::VideoTranscoder(QObject* parent)
 {
 }
@@ -298,10 +300,8 @@ QSize VideoTranscoder::calculateOutputSize(int src_width, int src_height, QSize 
 	int source_height = src_height;
 
     // Cropping, if needed.
-    // Also, for now the offsets are implemented only for YUV420P pixel format.
     if (theEncoder.cropWindow.width() > 0 &&
-        theEncoder.cropWindow.height() > 0 &&
-        theEncoder.videoCodecContext->pix_fmt == AV_PIX_FMT_YUV420P)
+        theEncoder.cropWindow.height() > 0)
     {
         source_width = theEncoder.cropWindow.width();
         source_height = theEncoder.cropWindow.height();
@@ -477,7 +477,11 @@ void VideoTranscoder::initCropFilter()
     inputs->next = nullptr;
 
     ret = avfilter_graph_parse_ptr(theDecoder.cropFilterGraph, filterDesc, &inputs, &outputs, nullptr);
-    if (ret < 0) return;
+    if (ret < 0)
+    {
+		emit transcodingError(tr("Could not parse crop filter: %1\nCrop filter: %2").arg(Tools::ffmpegErrorString(ret)).arg(filterDesc));
+        return;
+    }
 
     ret = avfilter_graph_config(theDecoder.cropFilterGraph, nullptr);
     if (ret < 0) return;

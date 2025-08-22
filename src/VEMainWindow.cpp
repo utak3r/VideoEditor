@@ -285,6 +285,22 @@ void VEMainWindow::Convert()
         if (theVideoPlayer->getCropEnabled())
         {
             QRect cropRect = theVideoPlayer->getCropWindow();
+			int newWidth = cropRect.width();
+			int newHeight = cropRect.height();
+            if (cropRect.width() % 16)
+				newWidth = (cropRect.width() / 16) * 16;
+            if (cropRect.height() % 16)
+				newHeight = (cropRect.height() / 16) * 16;
+            if (newWidth != cropRect.width() || newHeight != cropRect.height())
+            {
+                cropRect.setWidth(newWidth);
+                cropRect.setHeight(newHeight);
+                QMessageBox::information(this, tr("Crop rectangle adjusted"),
+                    tr("Crop rectangle width and height must be multiples of 16.\n"
+                        "Crop rectangle adjusted to %1x%2.")
+					.arg(newWidth).arg(newHeight));
+			}
+
             transcoder->setCropWindow(cropRect);
 		}
         else
