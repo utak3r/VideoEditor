@@ -285,23 +285,32 @@ void VEMainWindow::Convert()
         if (theVideoPlayer->getCropEnabled())
         {
             QRect cropRect = theVideoPlayer->getCropWindow();
-			int newWidth = cropRect.width();
-			int newHeight = cropRect.height();
-            if (cropRect.width() % 16)
-				newWidth = (cropRect.width() / 16) * 16;
-            if (cropRect.height() % 16)
-				newHeight = (cropRect.height() / 16) * 16;
-            if (newWidth != cropRect.width() || newHeight != cropRect.height())
-            {
-                cropRect.setWidth(newWidth);
-                cropRect.setHeight(newHeight);
-                QMessageBox::information(this, tr("Crop rectangle adjusted"),
-                    tr("Crop rectangle width and height must be multiples of 16.\n"
-                        "Crop rectangle adjusted to %1x%2.")
-					.arg(newWidth).arg(newHeight));
-			}
+            QRect newRect = Tools::makeRectYUVCompliant(cropRect, AV_PIX_FMT_YUV420P, false, true);
 
+            if (newRect != cropRect)
+            {
+                QMessageBox::information(this, tr("Crop rectangle adjusted"),
+                    tr("Crop rectangle doesn't follow YUV constraints.\n"
+                        "Crop rectangle adjusted to %1x%2, w=%3, h=%4.")
+                    .arg(newRect.x()).arg(newRect.y()).arg(newRect.width()).arg(newRect.height()));
+
+                cropRect = newRect;
+				theVideoPlayer->setCropWindow(cropRect);
+
+                QSignalBlocker b1(ui->valCropPosX);
+                QSignalBlocker b2(ui->valCropPosY);
+                QSignalBlocker b3(ui->valCropWidth);
+                QSignalBlocker b4(ui->valCropHeight);
+                ui->valCropPosX->setValue(cropRect.topLeft().x());
+                ui->valCropPosY->setValue(cropRect.topLeft().y());
+                ui->valCropWidth->setValue(cropRect.width());
+                ui->valCropHeight->setValue(cropRect.height());
+            }
+
+			// set crop rectangle and output resolution
             transcoder->setCropWindow(cropRect);
+            if (!ui->grpScaling->isChecked())
+                transcoder->setOutputResolution(cropRect.width(), cropRect.height());
 		}
         else
 			transcoder->setCropWindow(QRect(0, 0, 0, 0));

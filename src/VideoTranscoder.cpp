@@ -345,6 +345,7 @@ bool VideoTranscoder::prepareVideoEncoder()
     theEncoder.videoCodecContext->framerate = fps;
 
     theEncoder.videoCodecContext->pix_fmt = getFirstSupportedPixelFormat(theEncoder.videoCodecContext, enc);
+    theEncoder.videoCodecContext->sample_aspect_ratio = av_make_q(1, 1);
 
     QSize targetSize = calculateOutputSize(
         theDecoder.videoCodecContext->width,
@@ -458,9 +459,10 @@ void VideoTranscoder::initCropFilter()
     // crop=w:h:x:y
     char filterDesc[128];
     snprintf(filterDesc, sizeof(filterDesc),
-        "crop=%d:%d:%d:%d",
+        "crop=%d:%d:%d:%d,setsar=1,scale=%d:%d",
         theEncoder.cropWindow.width(), theEncoder.cropWindow.height(),
-        theEncoder.cropWindow.x(), theEncoder.cropWindow.y());
+        theEncoder.cropWindow.x(), theEncoder.cropWindow.y(), 
+        theEncoder.cropWindow.width(), theEncoder.cropWindow.height());
     qDebug() << "Crop filter definition: " << filterDesc;
 
     AVFilterInOut* inputs = avfilter_inout_alloc();
@@ -504,7 +506,7 @@ void VideoTranscoder::initScaler()
         srcPixFmt = (AVPixelFormat)av_buffersink_get_format(theDecoder.cropFilterSink);
     }
 
-    theEncoder.scalingContext = sws_getContext(width, width, srcPixFmt,
+    theEncoder.scalingContext = sws_getContext(width, height, srcPixFmt,
         theEncoder.videoCodecContext->width, theEncoder.videoCodecContext->height, theEncoder.videoCodecContext->pix_fmt,
         theEncoder.scalingFilter, nullptr, nullptr, nullptr);
 
@@ -598,6 +600,9 @@ void VideoTranscoder::processDecodedVideo(AVFrame* in)
         while (av_buffersink_get_frame(theDecoder.cropFilterSink, filtFrame) >= 0)
         {
             if (av_frame_make_writable(theEncoder.rescaledFrame) < 0) return;
+            qDebug() << "crop frame format:" << av_get_pix_fmt_name((AVPixelFormat)filtFrame->format);
+            qDebug() << "crop frame size:" << filtFrame->width << "x" << filtFrame->height;
+            filtFrame->sample_aspect_ratio = av_make_q(1, 1);
             sws_scale(theEncoder.scalingContext,
                 filtFrame->data, filtFrame->linesize,
                 0, filtFrame->height,
@@ -616,6 +621,8 @@ void VideoTranscoder::processDecodedVideo(AVFrame* in)
 
     theEncoder.rescaledFrame->pts = assignVideoPts(in);
 
+    qDebug() << "Sending to codec frame format:" << av_get_pix_fmt_name((AVPixelFormat)theEncoder.rescaledFrame->format);
+    qDebug() << "Sending to codec frame size:" << theEncoder.rescaledFrame->width << "x" << theEncoder.rescaledFrame->height;
     if (avcodec_send_frame(theEncoder.videoCodecContext, theEncoder.rescaledFrame) < 0) return;
 
     AVPacket* pkt = av_packet_alloc();

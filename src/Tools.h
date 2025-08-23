@@ -36,13 +36,15 @@ public:
 	static QString ffmpegErrorString(int errnum);
 
 	/**
-	* Forces the given size to have both width and height as multiples of 16.
+	* Make given rectangle compliant with YUV420P planes
+	* 
+	* YUV420P format requires width and height to be even numbers,
+	* YUV422P format requires width to be even number.
+	* YUV444P no requirements.
+	* NV12 requires width and height to be even numbers.
+	* RGB formats have no requirements.
+	* YUVJ420P requires width and height to be even numbers.
 	*/
-	static QSize forceSizeMultipleOf16(const QSize& size);
-
-	/**
-	* Forces the given size to have both width and height as even numbers.
-	*/
-	static QSize forceSizeEven(const QSize& size);
+	static QRect makeRectYUVCompliant(const QRect& rect, AVPixelFormat format, bool forceHeight4 = false, bool forceHeight16 = false);
 
 };

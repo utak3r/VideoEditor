@@ -1,5 +1,6 @@
 #include "Tools.h"
 #include <QSize>
+#include <QRect>
 
 void Tools::getAvailableEncoders(QStringList& videoCodecs, QStringList& audioCodecs)
 {
@@ -50,18 +51,56 @@ QString Tools::ffmpegErrorString(int errnum)
     return QString::fromUtf8(buf);
 }
 
-QSize Tools::forceSizeMultipleOf16(const QSize& size)
+QRect Tools::makeRectYUVCompliant(const QRect& rect, 
+                                AVPixelFormat format, 
+                                bool forceHeight4, 
+                                bool forceHeight16)
 {
-	if (size.width() <= 0 || size.height() <= 0) return QSize(0, 0);
-    int w = (size.width() / 16) * 16;
-    int h = (size.height() / 16) * 16;
-	return QSize(w, h);
-}
+    int x = rect.x();
+    int y = rect.y();
+    int w = rect.width();
+    int h = rect.height();
 
-QSize Tools::forceSizeEven(const QSize& size)
-{
-    if (size.width() <= 0 || size.height() <= 0) return QSize(0, 0);
-    int w = (size.width() / 2) * 2;
-    int h = (size.height() / 2) * 2;
-	return QSize(w, h);
+    switch (format)
+    {
+	case AV_PIX_FMT_YUV420P:
+	case AV_PIX_FMT_YUVJ420P:
+    case AV_PIX_FMT_NV12:
+		if (x % 2 != 0) x--;
+		if (y % 2 != 0) y--;
+        if (w % 2 != 0) w--;
+        if (h % 2 != 0) h--;
+		break;
+    case AV_PIX_FMT_YUV422P:
+        if (x % 2 != 0) x--;
+        if (w % 2 != 0) w--;
+		break;
+	case AV_PIX_FMT_YUV444P:
+	case AV_PIX_FMT_RGB24:
+	case AV_PIX_FMT_BGR24:
+	case AV_PIX_FMT_ARGB:
+	case AV_PIX_FMT_ABGR:
+	case AV_PIX_FMT_RGBA:
+	case AV_PIX_FMT_BGRA:
+		// no requirements
+        break;
+    default:
+        // unknown format, assume YUV420P
+        if (x % 2 != 0) x--;
+        if (y % 2 != 0) y--;
+        if (w % 2 != 0) w--;
+        if (h % 2 != 0) h--;
+        break;
+    }
+
+    if (forceHeight4)
+    {
+        while (h % 4 != 0) h--;
+	}
+    if (forceHeight16)
+    {
+        while (h % 16 != 0) h--;
+	}
+
+    return QRect(x, y, w, h);
 }
