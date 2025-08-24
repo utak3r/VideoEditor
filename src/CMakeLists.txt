@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.30)
 
 project(VideoEditorEXE VERSION 1.0 LANGUAGES CXX)
 
@@ -6,7 +6,7 @@ set(CMAKE_INCLUDE_CURRENT_DIR ON)
 set(CMAKE_AUTOUIC ON)
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 set(TS_FILES ${CMAKE_SOURCE_DIR}/translations/VideoEditor_pl.ts)
@@ -27,6 +27,7 @@ set(PROJECT_ADDITIONAL_SOURCES
     CropRectangle.h
     Tools.cpp
     Tools.h
+    ffmpegWrapper.h
     ffmpeg.cpp
     ffmpeg.h
     Settings.cpp
@@ -57,7 +58,7 @@ set(PROJECT_ADDITIONAL_SOURCES
 set(PROJECT_SOURCES
     ${CMAKE_BINARY_DIR}/version.rc
     ${CMAKE_BINARY_DIR}/version.h
-    main.cpp
+    ffmpegWrapper.cpp
     ${CMAKE_SOURCE_DIR}/VideoEditor.qrc
     ${PROJECT_ADDITIONAL_SOURCES}
 )
@@ -116,24 +117,27 @@ set_target_properties(VideoEditor PROPERTIES
 qt_finalize_executable(VideoEditor)
 
 # this library serves for linking against unit tests
-# qt_add_library(VideoEditor_lib STATIC ${PROJECT_ADDITIONAL_SOURCES})
-# target_include_directories(VideoEditor_lib 
-    # PRIVATE 
-        # "${FFMPEG_DIR}/include"
-# )
-# target_link_libraries(VideoEditor_lib
-    # PRIVATE 
-        # Qt6::Widgets 
-        # Qt6::Multimedia 
-        # Qt6::MultimediaWidgets
-    # PUBLIC
-        # "${FFMPEG_DIR}/lib/avformat.lib"
-        # "${FFMPEG_DIR}/lib/avcodec.lib"
-        # "${FFMPEG_DIR}/lib/avutil.lib"
-        # "${FFMPEG_DIR}/lib/swscale.lib"
-        # "${FFMPEG_DIR}/lib/swresample.lib"    
-        # "${FFMPEG_DIR}/lib/avformat.lib"
-# )
+qt_add_library(VideoEditor_lib STATIC 
+    ${PROJECT_ADDITIONAL_SOURCES}
+)
+set_target_properties(VideoEditor_lib PROPERTIES LINKER_LANGUAGE CXX)
+target_include_directories(VideoEditor_lib 
+    PRIVATE 
+        "${FFMPEG_DIR}/include"
+)
+target_link_libraries(VideoEditor_lib
+    PRIVATE 
+        Qt6::Widgets 
+        Qt6::Multimedia 
+        Qt6::MultimediaWidgets
+    PUBLIC
+        "${FFMPEG_DIR}/lib/avformat.lib"
+        "${FFMPEG_DIR}/lib/avcodec.lib"
+        "${FFMPEG_DIR}/lib/avutil.lib"
+        "${FFMPEG_DIR}/lib/swscale.lib"
+        "${FFMPEG_DIR}/lib/swresample.lib"
+        "${FFMPEG_DIR}/lib/avfilter.lib"
+)
 
 
 install (TARGETS VideoEditor

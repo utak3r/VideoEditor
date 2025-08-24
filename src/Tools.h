@@ -44,6 +44,9 @@ public:
 	* NV12 requires width and height to be even numbers.
 	* RGB formats have no requirements.
 	* YUVJ420P requires width and height to be even numbers.
+	* 
+	* Also some codecs require height to be multiple of 4 or even 16
+	* in order to achieve macroblocks.
 	*/
 	static QRect makeRectYUVCompliant(const QRect& rect, AVPixelFormat format, bool forceHeight4 = false, bool forceHeight16 = false);
 
