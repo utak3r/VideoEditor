@@ -67,6 +67,7 @@ set(app_icon_resource_windows "${CMAKE_SOURCE_DIR}/VideoEditor.rc")
 
 qt_add_executable(VideoEditor
     MANUAL_FINALIZATION
+    main.cpp
     ${PROJECT_SOURCES}
     ${app_icon_resource_windows}
 )

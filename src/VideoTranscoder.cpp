@@ -15,21 +15,21 @@ VideoTranscoder::~VideoTranscoder()
 
 VideoTranscoder::CodecHandlers::~CodecHandlers()
 {
-	if (scalingContext) sws_freeContext(scalingContext);
-	if (resamplingContext) swr_free(&resamplingContext);
-	if (audioFifo) av_audio_fifo_free(audioFifo);
+	if (scalingContext) FfmpegWrapper::u3_sws_freeContext(scalingContext);
+	if (resamplingContext) FfmpegWrapper::u3_swr_free(&resamplingContext);
+	if (audioFifo) FfmpegWrapper::u3_av_audio_fifo_free(audioFifo);
 
-	av_frame_free(&rescaledFrame);
-	av_frame_free(&resampledFrame);
+    FfmpegWrapper::u3_av_frame_free(&rescaledFrame);
+    FfmpegWrapper::u3_av_frame_free(&resampledFrame);
 
-    if (videoCodecContext) avcodec_free_context(&videoCodecContext);
-    if (audioCodecContext) avcodec_free_context(&audioCodecContext);
+    if (videoCodecContext) FfmpegWrapper::u3_avcodec_free_context(&videoCodecContext);
+    if (audioCodecContext) FfmpegWrapper::u3_avcodec_free_context(&audioCodecContext);
     if (formatContext)
     {
         if (formatContext->oformat && !(formatContext->oformat->flags & AVFMT_NOFILE))
-            avio_closep(&formatContext->pb);
-		avformat_close_input(&formatContext);
-        avformat_free_context(formatContext);
+            FfmpegWrapper::u3_avio_closep(&formatContext->pb);
+        FfmpegWrapper::u3_avformat_close_input(&formatContext);
+        FfmpegWrapper::u3_avformat_free_context(formatContext);
 		formatContext = nullptr;
     }
     //videoStream = nullptr;
@@ -96,7 +96,7 @@ void VideoTranscoder::applyMetadata()
     while (iter.hasNext())
     {
         iter.next();
-        av_dict_set(&theEncoder.formatContext->metadata, 
+        FfmpegWrapper::u3_av_dict_set(&theEncoder.formatContext->metadata,
             iter.key().toStdString().c_str(), 
             iter.value().toStdString().c_str(),
             0);
@@ -195,7 +195,7 @@ AVPixelFormat VideoTranscoder::getFirstSupportedPixelFormat(const AVCodecContext
     const void* values;
     int nb_values;
     AVPixelFormat pixelFormat = AV_PIX_FMT_NONE;
-    int ret = avcodec_get_supported_config(codec_ctx, codec,
+    int ret = FfmpegWrapper::u3_avcodec_get_supported_config(codec_ctx, codec,
         AV_CODEC_CONFIG_PIX_FORMAT, 0,
         &values,
         &nb_values);
@@ -216,7 +216,7 @@ AVSampleFormat VideoTranscoder::getFirstSupportedSampleFormat(const AVCodecConte
     const void* values;
     int nb_values;
     AVSampleFormat sampleFormat = AV_SAMPLE_FMT_NONE;
-    int ret = avcodec_get_supported_config(codec_ctx, codec,
+    int ret = FfmpegWrapper::u3_avcodec_get_supported_config(codec_ctx, codec,
         AV_CODEC_CONFIG_SAMPLE_FORMAT, 0,
         &values,
         &nb_values);
@@ -235,13 +235,13 @@ AVSampleFormat VideoTranscoder::getFirstSupportedSampleFormat(const AVCodecConte
 int64_t VideoTranscoder::millisecondsToTimestamp(qint64 msecs, AVRational timeBase) const
 {
 	double time = (double)msecs / 1000.0; // convert milliseconds to seconds
-    double stream_time_base = av_q2d(timeBase);
+    double stream_time_base = FfmpegWrapper::u3_av_q2d(timeBase);
     return (int64_t)(time / stream_time_base);
 }
 
 AVRational VideoTranscoder::pickInputFramerate() const
 {
-    AVRational fr = av_guess_frame_rate(theDecoder.formatContext, theDecoder.videoStream, nullptr);
+    AVRational fr = FfmpegWrapper::u3_av_guess_frame_rate(theDecoder.formatContext, theDecoder.videoStream, nullptr);
     if (fr.num && fr.den) return fr;
     if (theDecoder.videoStream->r_frame_rate.num && theDecoder.videoStream->r_frame_rate.den) return theDecoder.videoStream->r_frame_rate;
     if (theDecoder.videoStream->avg_frame_rate.num && theDecoder.videoStream->avg_frame_rate.den) return theDecoder.videoStream->avg_frame_rate;
@@ -250,12 +250,12 @@ AVRational VideoTranscoder::pickInputFramerate() const
 
 bool VideoTranscoder::openInput()
 {
-    if (avformat_open_input(&theDecoder.formatContext, theDecoder.fileName.toStdString().c_str(), nullptr, nullptr) < 0) return false;
-    if (avformat_find_stream_info(theDecoder.formatContext, nullptr) < 0) return false;
+    if (FfmpegWrapper::u3_avformat_open_input(&theDecoder.formatContext, theDecoder.fileName.toStdString().c_str(), nullptr, nullptr) < 0) return false;
+    if (FfmpegWrapper::u3_avformat_find_stream_info(theDecoder.formatContext, nullptr) < 0) return false;
 
-    int v_idx = av_find_best_stream(theDecoder.formatContext, AVMEDIA_TYPE_VIDEO, -1, -1, nullptr, 0);
+    int v_idx = FfmpegWrapper::u3_av_find_best_stream(theDecoder.formatContext, AVMEDIA_TYPE_VIDEO, -1, -1, nullptr, 0);
     if (v_idx >= 0) theDecoder.videoStream = theDecoder.formatContext->streams[v_idx];
-    int a_idx = av_find_best_stream(theDecoder.formatContext, AVMEDIA_TYPE_AUDIO, -1, -1, nullptr, 0);
+    int a_idx = FfmpegWrapper::u3_av_find_best_stream(theDecoder.formatContext, AVMEDIA_TYPE_AUDIO, -1, -1, nullptr, 0);
     if (a_idx >= 0) theDecoder.audioStream = theDecoder.formatContext->streams[a_idx];
 
     return theDecoder.videoStream || theDecoder.audioStream;
@@ -263,7 +263,7 @@ bool VideoTranscoder::openInput()
 
 bool VideoTranscoder::openOutput()
 {
-    if (avformat_alloc_output_context2(&theEncoder.formatContext, nullptr, nullptr, theEncoder.fileName.toStdString().c_str()) < 0 || !theEncoder.formatContext)
+    if (FfmpegWrapper::u3_avformat_alloc_output_context2(&theEncoder.formatContext, nullptr, nullptr, theEncoder.fileName.toStdString().c_str()) < 0 || !theEncoder.formatContext)
         return false;
     return true;
 }
@@ -271,24 +271,24 @@ bool VideoTranscoder::openOutput()
 bool VideoTranscoder::prepareVideoDecoder()
 {
     if (!theDecoder.videoStream) return true;
-    const AVCodec* dec = avcodec_find_decoder(theDecoder.videoStream->codecpar->codec_id);
+    const AVCodec* dec = FfmpegWrapper::u3_avcodec_find_decoder(theDecoder.videoStream->codecpar->codec_id);
     if (!dec) return false;
-    theDecoder.videoCodecContext = avcodec_alloc_context3(dec);
+    theDecoder.videoCodecContext = FfmpegWrapper::u3_avcodec_alloc_context3(dec);
     if (!theDecoder.videoCodecContext) return false;
-    if (avcodec_parameters_to_context(theDecoder.videoCodecContext, theDecoder.videoStream->codecpar) < 0) return false;
-    if (avcodec_open2(theDecoder.videoCodecContext, dec, nullptr) < 0) return false;
+    if (FfmpegWrapper::u3_avcodec_parameters_to_context(theDecoder.videoCodecContext, theDecoder.videoStream->codecpar) < 0) return false;
+    if (FfmpegWrapper::u3_avcodec_open2(theDecoder.videoCodecContext, dec, nullptr) < 0) return false;
     return true;
 }
 
 bool VideoTranscoder::prepareAudioDecoder()
 {
     if (!theDecoder.audioStream) return true;
-    const AVCodec* dec = avcodec_find_decoder(theDecoder.audioStream->codecpar->codec_id);
+    const AVCodec* dec = FfmpegWrapper::u3_avcodec_find_decoder(theDecoder.audioStream->codecpar->codec_id);
     if (!dec) return false;
-    theDecoder.audioCodecContext = avcodec_alloc_context3(dec);
+    theDecoder.audioCodecContext = FfmpegWrapper::u3_avcodec_alloc_context3(dec);
     if (!theDecoder.audioCodecContext) return false;
-    if (avcodec_parameters_to_context(theDecoder.audioCodecContext, theDecoder.audioStream->codecpar) < 0) return false;
-    if (avcodec_open2(theDecoder.audioCodecContext, dec, nullptr) < 0) return false;
+    if (FfmpegWrapper::u3_avcodec_parameters_to_context(theDecoder.audioCodecContext, theDecoder.audioStream->codecpar) < 0) return false;
+    if (FfmpegWrapper::u3_avcodec_open2(theDecoder.audioCodecContext, dec, nullptr) < 0) return false;
     return true;
 }
 
@@ -337,15 +337,15 @@ bool VideoTranscoder::prepareVideoEncoder()
 
     const AVCodec* enc = theEncoder.videoCodec->getAVCodec();
 
-    theEncoder.videoCodecContext = avcodec_alloc_context3(enc);
+    theEncoder.videoCodecContext = FfmpegWrapper::u3_avcodec_alloc_context3(enc);
     if (!theEncoder.videoCodecContext) return false;
 
     AVRational fps = theEncoder.customFramerate ? theEncoder.framerate : pickInputFramerate();
-    theEncoder.videoCodecContext->time_base = av_inv_q(fps);
+    theEncoder.videoCodecContext->time_base = FfmpegWrapper::u3_av_inv_q(fps);
     theEncoder.videoCodecContext->framerate = fps;
 
     theEncoder.videoCodecContext->pix_fmt = getFirstSupportedPixelFormat(theEncoder.videoCodecContext, enc);
-    theEncoder.videoCodecContext->sample_aspect_ratio = av_make_q(1, 1);
+    theEncoder.videoCodecContext->sample_aspect_ratio = FfmpegWrapper::u3_av_make_q(1, 1);
 
     QSize targetSize = calculateOutputSize(
         theDecoder.videoCodecContext->width,
@@ -363,11 +363,11 @@ bool VideoTranscoder::prepareVideoEncoder()
         theEncoder.videoCodec->setPreset(theEncoder.videoCodecPreset, theEncoder.videoCodecContext);
     }
 
-    theEncoder.videoStream = avformat_new_stream(theEncoder.formatContext, nullptr);
+    theEncoder.videoStream = FfmpegWrapper::u3_avformat_new_stream(theEncoder.formatContext, nullptr);
     if (!theEncoder.videoStream) return false;
     theEncoder.videoStream->time_base = theEncoder.videoCodecContext->time_base;
 
-    if (int ret = avcodec_open2(theEncoder.videoCodecContext, enc, nullptr); ret < 0)
+    if (int ret = FfmpegWrapper::u3_avcodec_open2(theEncoder.videoCodecContext, enc, nullptr); ret < 0)
     {
 		emit transcodingError(tr("Could not open video encoder: %1").arg(Tools::ffmpegErrorString(ret)));
         return false;
@@ -393,11 +393,11 @@ bool VideoTranscoder::prepareAudioEncoder()
 
 	const AVCodec* enc = theEncoder.audioCodec->getAVCodec();
 
-    theEncoder.audioCodecContext = avcodec_alloc_context3(enc);
+    theEncoder.audioCodecContext = FfmpegWrapper::u3_avcodec_alloc_context3(enc);
     if (!theEncoder.audioCodecContext) return false;
 
     theEncoder.audioCodecContext->sample_rate = theDecoder.audioCodecContext->sample_rate;
-    av_channel_layout_copy(&theEncoder.audioCodecContext->ch_layout, &theDecoder.audioCodecContext->ch_layout);
+    FfmpegWrapper::u3_av_channel_layout_copy(&theEncoder.audioCodecContext->ch_layout, &theDecoder.audioCodecContext->ch_layout);
     theEncoder.audioCodecContext->time_base = AVRational{ 1, theEncoder.audioCodecContext->sample_rate };
 
     theEncoder.audioCodecContext->sample_fmt = getFirstSupportedSampleFormat(theEncoder.audioCodecContext, enc);
@@ -410,12 +410,12 @@ bool VideoTranscoder::prepareAudioEncoder()
         theEncoder.audioCodec->setPreset(theEncoder.audioCodecPreset, theEncoder.audioCodecContext);
     }
 
-    theEncoder.audioStream = avformat_new_stream(theEncoder.formatContext, nullptr);
+    theEncoder.audioStream = FfmpegWrapper::u3_avformat_new_stream(theEncoder.formatContext, nullptr);
     if (!theEncoder.audioStream) return false;
     theEncoder.audioStream->time_base = theEncoder.audioCodecContext->time_base;
 
-    if (avcodec_open2(theEncoder.audioCodecContext, enc, nullptr) < 0) return false;
-    if (avcodec_parameters_from_context(theEncoder.audioStream->codecpar, theEncoder.audioCodecContext) < 0) return false;
+    if (FfmpegWrapper::u3_avcodec_open2(theEncoder.audioCodecContext, enc, nullptr) < 0) return false;
+    if (FfmpegWrapper::u3_avcodec_parameters_from_context(theEncoder.audioStream->codecpar, theEncoder.audioCodecContext) < 0) return false;
 
     initResampler();
     return true;
@@ -426,12 +426,12 @@ void VideoTranscoder::initCropFilter()
     char args[512];
     int ret = 0;
 
-    theDecoder.cropFilterGraph = avfilter_graph_alloc();
+    theDecoder.cropFilterGraph = FfmpegWrapper::u3_avfilter_graph_alloc();
     if (!theDecoder.cropFilterGraph) return;
 
     // Input to a filtergraph
-    const AVFilter* buffersrc = avfilter_get_by_name("buffer");
-    const AVFilter* buffersink = avfilter_get_by_name("buffersink");
+    const AVFilter* buffersrc = FfmpegWrapper::u3_avfilter_get_by_name("buffer");
+    const AVFilter* buffersink = FfmpegWrapper::u3_avfilter_get_by_name("buffersink");
     if (!buffersrc || !buffersink) return;
 
     // Set up the buffer source filter arguments
@@ -447,11 +447,11 @@ void VideoTranscoder::initCropFilter()
         theDecoder.videoCodecContext->sample_aspect_ratio.num, theDecoder.videoCodecContext->sample_aspect_ratio.den);
     qDebug() << "Crop filter args:" << args;
 
-    ret = avfilter_graph_create_filter(&theDecoder.cropFilterSrc, buffersrc, "in",
+    ret = FfmpegWrapper::u3_avfilter_graph_create_filter(&theDecoder.cropFilterSrc, buffersrc, "in",
         args, nullptr, theDecoder.cropFilterGraph);
     if (ret < 0) return;
 
-    ret = avfilter_graph_create_filter(&theDecoder.cropFilterSink, buffersink, "out",
+    ret = FfmpegWrapper::u3_avfilter_graph_create_filter(&theDecoder.cropFilterSink, buffersink, "out",
         nullptr, nullptr, theDecoder.cropFilterGraph);
     if (ret < 0) return;
 
@@ -465,31 +465,31 @@ void VideoTranscoder::initCropFilter()
         theEncoder.cropWindow.width(), theEncoder.cropWindow.height());
     qDebug() << "Crop filter definition: " << filterDesc;
 
-    AVFilterInOut* inputs = avfilter_inout_alloc();
-    AVFilterInOut* outputs = avfilter_inout_alloc();
+    AVFilterInOut* inputs = FfmpegWrapper::u3_avfilter_inout_alloc();
+    AVFilterInOut* outputs = FfmpegWrapper::u3_avfilter_inout_alloc();
 
-    outputs->name = av_strdup("in");
+    outputs->name = FfmpegWrapper::u3_av_strdup("in");
     outputs->filter_ctx = theDecoder.cropFilterSrc;
     outputs->pad_idx = 0;
     outputs->next = nullptr;
 
-    inputs->name = av_strdup("out");
+    inputs->name = FfmpegWrapper::u3_av_strdup("out");
     inputs->filter_ctx = theDecoder.cropFilterSink;
     inputs->pad_idx = 0;
     inputs->next = nullptr;
 
-    ret = avfilter_graph_parse_ptr(theDecoder.cropFilterGraph, filterDesc, &inputs, &outputs, nullptr);
+    ret = FfmpegWrapper::u3_avfilter_graph_parse_ptr(theDecoder.cropFilterGraph, filterDesc, &inputs, &outputs, nullptr);
     if (ret < 0)
     {
 		emit transcodingError(tr("Could not parse crop filter: %1\nCrop filter: %2").arg(Tools::ffmpegErrorString(ret)).arg(filterDesc));
         return;
     }
 
-    ret = avfilter_graph_config(theDecoder.cropFilterGraph, nullptr);
+    ret = FfmpegWrapper::u3_avfilter_graph_config(theDecoder.cropFilterGraph, nullptr);
     if (ret < 0) return;
 
-    avfilter_inout_free(&inputs);
-    avfilter_inout_free(&outputs);
+    FfmpegWrapper::u3_avfilter_inout_free(&inputs);
+    FfmpegWrapper::u3_avfilter_inout_free(&outputs);
 }
 
 void VideoTranscoder::initScaler()
@@ -503,74 +503,74 @@ void VideoTranscoder::initScaler()
     {
 		width = theEncoder.cropWindow.width();
 		height = theEncoder.cropWindow.height();
-        srcPixFmt = (AVPixelFormat)av_buffersink_get_format(theDecoder.cropFilterSink);
+        srcPixFmt = (AVPixelFormat)FfmpegWrapper::u3_av_buffersink_get_format(theDecoder.cropFilterSink);
     }
 
-    theEncoder.scalingContext = sws_getContext(width, height, srcPixFmt,
+    theEncoder.scalingContext = FfmpegWrapper::u3_sws_getContext(width, height, srcPixFmt,
         theEncoder.videoCodecContext->width, theEncoder.videoCodecContext->height, theEncoder.videoCodecContext->pix_fmt,
         theEncoder.scalingFilter, nullptr, nullptr, nullptr);
 
-    theEncoder.rescaledFrame = av_frame_alloc();
+    theEncoder.rescaledFrame = FfmpegWrapper::u3_av_frame_alloc();
     theEncoder.rescaledFrame->format = theEncoder.videoCodecContext->pix_fmt;
     theEncoder.rescaledFrame->width = theEncoder.videoCodecContext->width;
     theEncoder.rescaledFrame->height = theEncoder.videoCodecContext->height;
-    if (av_frame_get_buffer(theEncoder.rescaledFrame, 32) < 0)
+    if (FfmpegWrapper::u3_av_frame_get_buffer(theEncoder.rescaledFrame, 32) < 0)
         throw std::runtime_error("av_frame_get_buffer(v_frame_conv) failed");
 }
 
 void VideoTranscoder::initResampler()
 {
     theEncoder.resamplingContext = nullptr;
-    if (swr_alloc_set_opts2(&theEncoder.resamplingContext,
+    if (FfmpegWrapper::u3_swr_alloc_set_opts2(&theEncoder.resamplingContext,
         &theEncoder.audioCodecContext->ch_layout, theEncoder.audioCodecContext->sample_fmt, theEncoder.audioCodecContext->sample_rate,
         &theDecoder.audioCodecContext->ch_layout, theDecoder.audioCodecContext->sample_fmt, theDecoder.audioCodecContext->sample_rate,
         0, nullptr) < 0)
     {
         throw std::runtime_error("swr_alloc_set_opts2 failed");
     }
-    if (swr_init(theEncoder.resamplingContext) < 0)
+    if (FfmpegWrapper::u3_swr_init(theEncoder.resamplingContext) < 0)
         throw std::runtime_error("swr_init failed");
 
-    theEncoder.audioFifo = av_audio_fifo_alloc(theEncoder.audioCodecContext->sample_fmt, theEncoder.audioCodecContext->ch_layout.nb_channels, 1);
+    theEncoder.audioFifo = FfmpegWrapper::u3_av_audio_fifo_alloc(theEncoder.audioCodecContext->sample_fmt, theEncoder.audioCodecContext->ch_layout.nb_channels, 1);
     if (!theEncoder.audioFifo) throw std::runtime_error("av_audio_fifo_alloc failed");
 
-    theEncoder.resampledFrame = av_frame_alloc();
+    theEncoder.resampledFrame = FfmpegWrapper::u3_av_frame_alloc();
     if (!theEncoder.resampledFrame) throw std::runtime_error("av_frame_alloc a_frame_conv failed");
     theEncoder.resampledFrame->format = theEncoder.audioCodecContext->sample_fmt;
     theEncoder.resampledFrame->sample_rate = theEncoder.audioCodecContext->sample_rate;
-    av_channel_layout_copy(&theEncoder.resampledFrame->ch_layout, &theEncoder.audioCodecContext->ch_layout);
+    FfmpegWrapper::u3_av_channel_layout_copy(&theEncoder.resampledFrame->ch_layout, &theEncoder.audioCodecContext->ch_layout);
 }
 
 void VideoTranscoder::handleVideoPacket(AVPacket* pkt)
 {
     if (!theDecoder.videoCodecContext) return;
-    if (avcodec_send_packet(theDecoder.videoCodecContext, pkt) < 0) return;
+    if (FfmpegWrapper::u3_avcodec_send_packet(theDecoder.videoCodecContext, pkt) < 0) return;
 
-    AVFrame* in = av_frame_alloc();
-    while (avcodec_receive_frame(theDecoder.videoCodecContext, in) == 0)
+    AVFrame* in = FfmpegWrapper::u3_av_frame_alloc();
+    while (FfmpegWrapper::u3_avcodec_receive_frame(theDecoder.videoCodecContext, in) == 0)
     {
         if (in->pts >= theEncoder.videoStartPts && (in->pts <= theEncoder.videoEndPts || in->pts == -1))
             processDecodedVideo(in);
         else if (in->pts > theEncoder.videoEndPts && theEncoder.videoEndPts > 0)
 			theEncoder.videoMarkOutReached = true;
-        av_frame_unref(in);
+        FfmpegWrapper::u3_av_frame_unref(in);
     }
-    av_frame_free(&in);
+    FfmpegWrapper::u3_av_frame_free(&in);
 }
 
 void VideoTranscoder::handleAudioPacket(AVPacket* pkt)
 {
     if (!theDecoder.audioCodecContext) return;
-    if (avcodec_send_packet(theDecoder.audioCodecContext, pkt) < 0) return;
+    if (FfmpegWrapper::u3_avcodec_send_packet(theDecoder.audioCodecContext, pkt) < 0) return;
 
     AVFrame* in = av_frame_alloc();
-    while (avcodec_receive_frame(theDecoder.audioCodecContext, in) == 0)
+    while (FfmpegWrapper::u3_avcodec_receive_frame(theDecoder.audioCodecContext, in) == 0)
     {
 		if (in->pts >= theEncoder.audioStartPts)
             processDecodedAudio(in);
-        av_frame_unref(in);
+        FfmpegWrapper::u3_av_frame_unref(in);
     }
-    av_frame_free(&in);
+    FfmpegWrapper::u3_av_frame_free(&in);
 }
 
 int64_t VideoTranscoder::assignVideoPts(const AVFrame* in_frame)
@@ -579,7 +579,7 @@ int64_t VideoTranscoder::assignVideoPts(const AVFrame* in_frame)
     if (in_frame->pts != AV_NOPTS_VALUE)
     {
 		// Rescale PTS to encoder timebase. Adjust for start PTS if needed.
-        new_pts = av_rescale_q(in_frame->pts - theEncoder.videoStartPts, theDecoder.videoStream->time_base, theEncoder.videoCodecContext->time_base);
+        new_pts = FfmpegWrapper::u3_av_rescale_q(in_frame->pts - theEncoder.videoStartPts, theDecoder.videoStream->time_base, theEncoder.videoCodecContext->time_base);
 		if (theVideoPts >= 0 && new_pts <= theVideoPts) new_pts = theVideoPts + 1; // force monotonic PTS
     }
     else
@@ -595,51 +595,51 @@ void VideoTranscoder::processDecodedVideo(AVFrame* in)
     if (theEncoder.cropWindow.width() > 0 && theEncoder.cropWindow.height() > 0 &&
 		theDecoder.cropFilterGraph && theDecoder.cropFilterSrc && theDecoder.cropFilterSink)
     {
-        if (av_buffersrc_add_frame_flags(theDecoder.cropFilterSrc, in, AV_BUFFERSRC_FLAG_KEEP_REF) < 0) return;
-        AVFrame* filtFrame = av_frame_alloc();
-        while (av_buffersink_get_frame(theDecoder.cropFilterSink, filtFrame) >= 0)
+        if (FfmpegWrapper::u3_av_buffersrc_add_frame_flags(theDecoder.cropFilterSrc, in, AV_BUFFERSRC_FLAG_KEEP_REF) < 0) return;
+        AVFrame* filtFrame = FfmpegWrapper::u3_av_frame_alloc();
+        while (FfmpegWrapper::u3_av_buffersink_get_frame(theDecoder.cropFilterSink, filtFrame) >= 0)
         {
-            if (av_frame_make_writable(theEncoder.rescaledFrame) < 0) return;
-            qDebug() << "crop frame format:" << av_get_pix_fmt_name((AVPixelFormat)filtFrame->format);
+            if (FfmpegWrapper::u3_av_frame_make_writable(theEncoder.rescaledFrame) < 0) return;
+            qDebug() << "crop frame format:" << FfmpegWrapper::u3_av_get_pix_fmt_name((AVPixelFormat)filtFrame->format);
             qDebug() << "crop frame size:" << filtFrame->width << "x" << filtFrame->height;
-            filtFrame->sample_aspect_ratio = av_make_q(1, 1);
-            sws_scale(theEncoder.scalingContext,
+            filtFrame->sample_aspect_ratio = FfmpegWrapper::u3_av_make_q(1, 1);
+            FfmpegWrapper::u3_sws_scale(theEncoder.scalingContext,
                 filtFrame->data, filtFrame->linesize,
                 0, filtFrame->height,
                 theEncoder.rescaledFrame->data,
                 theEncoder.rescaledFrame->linesize);
         }
-        av_frame_unref(filtFrame);
-        av_frame_free(&filtFrame);
+        FfmpegWrapper::u3_av_frame_unref(filtFrame);
+        FfmpegWrapper::u3_av_frame_free(&filtFrame);
     }
     else
     {
-        if (av_frame_make_writable(theEncoder.rescaledFrame) < 0) return;
-        sws_scale(theEncoder.scalingContext, in->data, in->linesize, 0, theDecoder.videoCodecContext->height,
+        if (FfmpegWrapper::u3_av_frame_make_writable(theEncoder.rescaledFrame) < 0) return;
+        FfmpegWrapper::u3_sws_scale(theEncoder.scalingContext, in->data, in->linesize, 0, theDecoder.videoCodecContext->height,
             theEncoder.rescaledFrame->data, theEncoder.rescaledFrame->linesize);
     }
 
     theEncoder.rescaledFrame->pts = assignVideoPts(in);
 
-    qDebug() << "Sending to codec frame format:" << av_get_pix_fmt_name((AVPixelFormat)theEncoder.rescaledFrame->format);
+    qDebug() << "Sending to codec frame format:" << FfmpegWrapper::u3_av_get_pix_fmt_name((AVPixelFormat)theEncoder.rescaledFrame->format);
     qDebug() << "Sending to codec frame size:" << theEncoder.rescaledFrame->width << "x" << theEncoder.rescaledFrame->height;
-    if (avcodec_send_frame(theEncoder.videoCodecContext, theEncoder.rescaledFrame) < 0) return;
+    if (FfmpegWrapper::u3_avcodec_send_frame(theEncoder.videoCodecContext, theEncoder.rescaledFrame) < 0) return;
 
-    AVPacket* pkt = av_packet_alloc();
-    while (avcodec_receive_packet(theEncoder.videoCodecContext, pkt) == 0)
+    AVPacket* pkt = FfmpegWrapper::u3_av_packet_alloc();
+    while (FfmpegWrapper::u3_avcodec_receive_packet(theEncoder.videoCodecContext, pkt) == 0)
     {
         writePacket(pkt, theEncoder.videoCodecContext, theEncoder.videoStream);
-        av_packet_unref(pkt);
+        FfmpegWrapper::u3_av_packet_unref(pkt);
     }
-    av_packet_free(&pkt);
+    FfmpegWrapper::u3_av_packet_free(&pkt);
 }
 
 void VideoTranscoder::processDecodedAudio(AVFrame* in)
 {
     if (!theDecoder.audioCodecContext) return;
 
-    const int64_t delay = swr_get_delay(theEncoder.resamplingContext, theDecoder.audioCodecContext->sample_rate);
-    int dst_nb_samples = (int)av_rescale_rnd(delay + in->nb_samples,
+    const int64_t delay = FfmpegWrapper::u3_swr_get_delay(theEncoder.resamplingContext, theDecoder.audioCodecContext->sample_rate);
+    int dst_nb_samples = (int)FfmpegWrapper::u3_av_rescale_rnd(delay + in->nb_samples,
         theEncoder.audioCodecContext->sample_rate,
         theDecoder.audioCodecContext->sample_rate,
         AV_ROUND_UP);
@@ -649,19 +649,19 @@ void VideoTranscoder::processDecodedAudio(AVFrame* in)
         return;
     }
 
-    av_frame_unref(theEncoder.resampledFrame);
+    FfmpegWrapper::u3_av_frame_unref(theEncoder.resampledFrame);
     theEncoder.resampledFrame->format = theEncoder.audioCodecContext->sample_fmt;
     theEncoder.resampledFrame->sample_rate = theEncoder.audioCodecContext->sample_rate;
-    av_channel_layout_copy(&theEncoder.resampledFrame->ch_layout, &theEncoder.audioCodecContext->ch_layout);
+    FfmpegWrapper::u3_av_channel_layout_copy(&theEncoder.resampledFrame->ch_layout, &theEncoder.audioCodecContext->ch_layout);
     theEncoder.resampledFrame->nb_samples = dst_nb_samples;
 
-    if (av_frame_get_buffer(theEncoder.resampledFrame, 0) < 0)
+    if (FfmpegWrapper::u3_av_frame_get_buffer(theEncoder.resampledFrame, 0) < 0)
     {
         std::cerr << "av_frame_get_buffer(a_frame_conv) failed\n";
         return;
     }
 
-    int out_samples = swr_convert(theEncoder.resamplingContext,
+    int out_samples = FfmpegWrapper::u3_swr_convert(theEncoder.resamplingContext,
         theEncoder.resampledFrame->data, theEncoder.resampledFrame->nb_samples,
         (const uint8_t**)in->data, in->nb_samples);
     if (out_samples < 0)
@@ -673,66 +673,66 @@ void VideoTranscoder::processDecodedAudio(AVFrame* in)
 
     if (out_samples > 0)
     {
-        av_audio_fifo_write(theEncoder.audioFifo, (void**)theEncoder.resampledFrame->data, out_samples);
+        FfmpegWrapper::u3_av_audio_fifo_write(theEncoder.audioFifo, (void**)theEncoder.resampledFrame->data, out_samples);
     }
 
     if (theEncoder.audioCodecContext->frame_size > 0)
     {
-        while (av_audio_fifo_size(theEncoder.audioFifo) >= theEncoder.audioCodecContext->frame_size)
+        while (FfmpegWrapper::u3_av_audio_fifo_size(theEncoder.audioFifo) >= theEncoder.audioCodecContext->frame_size)
         {
-            AVFrame* out = av_frame_alloc();
+            AVFrame* out = FfmpegWrapper::u3_av_frame_alloc();
             out->nb_samples = theEncoder.audioCodecContext->frame_size;
             out->format = theEncoder.audioCodecContext->sample_fmt;
             out->sample_rate = theEncoder.audioCodecContext->sample_rate;
-            av_channel_layout_copy(&out->ch_layout, &theEncoder.audioCodecContext->ch_layout);
-            av_frame_get_buffer(out, 0);
+            FfmpegWrapper::u3_av_channel_layout_copy(&out->ch_layout, &theEncoder.audioCodecContext->ch_layout);
+            FfmpegWrapper::u3_av_frame_get_buffer(out, 0);
 
-            av_audio_fifo_read(theEncoder.audioFifo, (void**)out->data, theEncoder.audioCodecContext->frame_size);
+            FfmpegWrapper::u3_av_audio_fifo_read(theEncoder.audioFifo, (void**)out->data, theEncoder.audioCodecContext->frame_size);
 
             out->pts = theAudioPts;
             theAudioPts += out->nb_samples;
 
-            if (avcodec_send_frame(theEncoder.audioCodecContext, out) >= 0)
+            if (FfmpegWrapper::u3_avcodec_send_frame(theEncoder.audioCodecContext, out) >= 0)
             {
-                AVPacket* pkt = av_packet_alloc();
-                while (avcodec_receive_packet(theEncoder.audioCodecContext, pkt) == 0)
+                AVPacket* pkt = FfmpegWrapper::u3_av_packet_alloc();
+                while (FfmpegWrapper::u3_avcodec_receive_packet(theEncoder.audioCodecContext, pkt) == 0)
                 {
                     writePacket(pkt, theEncoder.audioCodecContext, theEncoder.audioStream);
-                    av_packet_unref(pkt);
+                    FfmpegWrapper::u3_av_packet_unref(pkt);
                 }
-                av_packet_free(&pkt);
+                FfmpegWrapper::u3_av_packet_free(&pkt);
             }
-            av_frame_free(&out);
+            FfmpegWrapper::u3_av_frame_free(&out);
         }
     }
     else
     {
-        while (av_audio_fifo_size(theEncoder.audioFifo) > 0)
+        while (FfmpegWrapper::u3_av_audio_fifo_size(theEncoder.audioFifo) > 0)
         {
-            const int nb = av_audio_fifo_size(theEncoder.audioFifo);
-            AVFrame* out = av_frame_alloc();
+            const int nb = FfmpegWrapper::u3_av_audio_fifo_size(theEncoder.audioFifo);
+            AVFrame* out = FfmpegWrapper::u3_av_frame_alloc();
             out->nb_samples = nb;
             out->format = theEncoder.audioCodecContext->sample_fmt;
             out->sample_rate = theEncoder.audioCodecContext->sample_rate;
-            av_channel_layout_copy(&out->ch_layout, &theEncoder.audioCodecContext->ch_layout);
-            av_frame_get_buffer(out, 0);
+            FfmpegWrapper::u3_av_channel_layout_copy(&out->ch_layout, &theEncoder.audioCodecContext->ch_layout);
+            FfmpegWrapper::u3_av_frame_get_buffer(out, 0);
 
-            av_audio_fifo_read(theEncoder.audioFifo, (void**)out->data, nb);
+            FfmpegWrapper::u3_av_audio_fifo_read(theEncoder.audioFifo, (void**)out->data, nb);
 
             out->pts = theAudioPts;
             theAudioPts += out->nb_samples;
 
-            if (avcodec_send_frame(theEncoder.audioCodecContext, out) >= 0)
+            if (FfmpegWrapper::u3_avcodec_send_frame(theEncoder.audioCodecContext, out) >= 0)
             {
-                AVPacket* pkt = av_packet_alloc();
-                while (avcodec_receive_packet(theEncoder.audioCodecContext, pkt) == 0)
+                AVPacket* pkt = FfmpegWrapper::u3_av_packet_alloc();
+                while (FfmpegWrapper::u3_avcodec_receive_packet(theEncoder.audioCodecContext, pkt) == 0)
                 {
                     writePacket(pkt, theEncoder.audioCodecContext, theEncoder.audioStream);
-                    av_packet_unref(pkt);
+                    FfmpegWrapper::u3_av_packet_unref(pkt);
                 }
-                av_packet_free(&pkt);
+                FfmpegWrapper::u3_av_packet_free(&pkt);
             }
-            av_frame_free(&out);
+            FfmpegWrapper::u3_av_frame_free(&out);
         }
     }
 }
@@ -740,14 +740,14 @@ void VideoTranscoder::processDecodedAudio(AVFrame* in)
 void VideoTranscoder::flushVideo()
 {
     if (!theEncoder.videoCodecContext) return;
-    avcodec_send_frame(theEncoder.videoCodecContext, nullptr);
-    AVPacket* pkt = av_packet_alloc();
-    while (avcodec_receive_packet(theEncoder.videoCodecContext, pkt) == 0)
+    FfmpegWrapper::u3_avcodec_send_frame(theEncoder.videoCodecContext, nullptr);
+    AVPacket* pkt = FfmpegWrapper::u3_av_packet_alloc();
+    while (FfmpegWrapper::u3_avcodec_receive_packet(theEncoder.videoCodecContext, pkt) == 0)
     {
         writePacket(pkt, theEncoder.videoCodecContext, theEncoder.videoStream);
-        av_packet_unref(pkt);
+        FfmpegWrapper::u3_av_packet_unref(pkt);
     }
-    av_packet_free(&pkt);
+    FfmpegWrapper::u3_av_packet_free(&pkt);
 }
 
 void VideoTranscoder::flushAudio()
@@ -756,48 +756,48 @@ void VideoTranscoder::flushAudio()
 
     if (theEncoder.audioCodecContext->frame_size > 0)
     {
-        while (av_audio_fifo_size(theEncoder.audioFifo) > 0)
+        while (FfmpegWrapper::u3_av_audio_fifo_size(theEncoder.audioFifo) > 0)
         {
-            const int nb = std::min(av_audio_fifo_size(theEncoder.audioFifo), theEncoder.audioCodecContext->frame_size);
-            AVFrame* out = av_frame_alloc();
+            const int nb = std::min(FfmpegWrapper::u3_av_audio_fifo_size(theEncoder.audioFifo), theEncoder.audioCodecContext->frame_size);
+            AVFrame* out = FfmpegWrapper::u3_av_frame_alloc();
             out->nb_samples = nb;
             out->format = theEncoder.audioCodecContext->sample_fmt;
             out->sample_rate = theEncoder.audioCodecContext->sample_rate;
-            av_channel_layout_copy(&out->ch_layout, &theEncoder.audioCodecContext->ch_layout);
-            av_frame_get_buffer(out, 0);
+            FfmpegWrapper::u3_av_channel_layout_copy(&out->ch_layout, &theEncoder.audioCodecContext->ch_layout);
+            FfmpegWrapper::u3_av_frame_get_buffer(out, 0);
 
-            av_audio_fifo_read(theEncoder.audioFifo, (void**)out->data, nb);
+            FfmpegWrapper::u3_av_audio_fifo_read(theEncoder.audioFifo, (void**)out->data, nb);
 
             out->pts = theAudioPts;
             theAudioPts += out->nb_samples;
 
-            avcodec_send_frame(theEncoder.audioCodecContext, out);
-            AVPacket* pkt = av_packet_alloc();
-            while (avcodec_receive_packet(theEncoder.audioCodecContext, pkt) == 0)
+            FfmpegWrapper::u3_avcodec_send_frame(theEncoder.audioCodecContext, out);
+            AVPacket* pkt = FfmpegWrapper::u3_av_packet_alloc();
+            while (FfmpegWrapper::u3_avcodec_receive_packet(theEncoder.audioCodecContext, pkt) == 0)
             {
                 writePacket(pkt, theEncoder.audioCodecContext, theEncoder.audioStream);
-                av_packet_unref(pkt);
+                FfmpegWrapper::u3_av_packet_unref(pkt);
             }
-            av_packet_free(&pkt);
-            av_frame_free(&out);
+            FfmpegWrapper::u3_av_packet_free(&pkt);
+            FfmpegWrapper::u3_av_frame_free(&out);
         }
     }
 
-    avcodec_send_frame(theEncoder.audioCodecContext, nullptr);
-    AVPacket* pkt = av_packet_alloc();
-    while (avcodec_receive_packet(theEncoder.audioCodecContext, pkt) == 0)
+    FfmpegWrapper::u3_avcodec_send_frame(theEncoder.audioCodecContext, nullptr);
+    AVPacket* pkt = FfmpegWrapper::u3_av_packet_alloc();
+    while (FfmpegWrapper::u3_avcodec_receive_packet(theEncoder.audioCodecContext, pkt) == 0)
     {
         writePacket(pkt, theEncoder.audioCodecContext, theEncoder.audioStream);
-        av_packet_unref(pkt);
+        FfmpegWrapper::u3_av_packet_unref(pkt);
     }
-    av_packet_free(&pkt);
+    FfmpegWrapper::u3_av_packet_free(&pkt);
 }
 
 void VideoTranscoder::writePacket(AVPacket* pkt, AVCodecContext* src_enc, AVStream* out_stream)
 {
-    av_packet_rescale_ts(pkt, src_enc->time_base, out_stream->time_base);
+    FfmpegWrapper::u3_av_packet_rescale_ts(pkt, src_enc->time_base, out_stream->time_base);
     pkt->stream_index = out_stream->index;
-    av_interleaved_write_frame(theEncoder.formatContext, pkt);
+    FfmpegWrapper::u3_av_interleaved_write_frame(theEncoder.formatContext, pkt);
 }
 
 int64_t VideoTranscoder::seekStream(AVFormatContext* fmt_ctx, int stream_index, 
@@ -805,14 +805,14 @@ int64_t VideoTranscoder::seekStream(AVFormatContext* fmt_ctx, int stream_index,
                                     AVCodecContext* codec_ctx)
 {
     int64_t start_pts = millisecondsToTimestamp(ms, timebase);
-    int seek_ret = avformat_seek_file(fmt_ctx, stream_index, 0, start_pts, start_pts, AVSEEK_FLAG_BACKWARD);
-    if (seek_ret >= 0) avcodec_flush_buffers(codec_ctx);
+    int seek_ret = FfmpegWrapper::u3_avformat_seek_file(fmt_ctx, stream_index, 0, start_pts, start_pts, AVSEEK_FLAG_BACKWARD);
+    if (seek_ret >= 0) FfmpegWrapper::u3_avcodec_flush_buffers(codec_ctx);
 	return start_pts;
 }
 
 int64_t VideoTranscoder::calculatePts(AVStream* stream, int64_t ms)
 {
-    AVRational one_pts = av_div_q(av_inv_q(stream->time_base), stream->avg_frame_rate);
+    AVRational one_pts = FfmpegWrapper::u3_av_div_q(FfmpegWrapper::u3_av_inv_q(stream->time_base), stream->avg_frame_rate);
     int64_t end_frame_num = ms / 1000 * stream->avg_frame_rate.num / stream->avg_frame_rate.den;
     int64_t pts = end_frame_num * one_pts.num / one_pts.den;
 	return pts;
@@ -854,7 +854,7 @@ bool VideoTranscoder::transcode()
     }
     if (!(theEncoder.formatContext->oformat->flags & AVFMT_NOFILE))
     {
-        if (avio_open(&theEncoder.formatContext->pb, theEncoder.fileName.toStdString().c_str(), AVIO_FLAG_WRITE) < 0)
+        if (FfmpegWrapper::u3_avio_open(&theEncoder.formatContext->pb, theEncoder.fileName.toStdString().c_str(), AVIO_FLAG_WRITE) < 0)
         {
             emit transcodingError("Nie można otworzyć pliku wyjściowego: " + theEncoder.fileName);
 			return false;
@@ -863,10 +863,10 @@ bool VideoTranscoder::transcode()
 
     // faststart
     AVDictionary* mux_opts = nullptr;
-    av_dict_set(&mux_opts, "movflags", "faststart", 0);
+    FfmpegWrapper::u3_av_dict_set(&mux_opts, "movflags", "faststart", 0);
     applyMetadata();
-    if (avformat_write_header(theEncoder.formatContext, &mux_opts) < 0) { av_dict_free(&mux_opts); return false; }
-    av_dict_free(&mux_opts);
+    if (FfmpegWrapper::u3_avformat_write_header(theEncoder.formatContext, &mux_opts) < 0) { av_dict_free(&mux_opts); return false; }
+    FfmpegWrapper::u3_av_dict_free(&mux_opts);
 
     // seek to mark in
 	theEncoder.videoStartPts = seekStream(theDecoder.formatContext, theDecoder.videoStream->index,
@@ -879,10 +879,10 @@ bool VideoTranscoder::transcode()
     theEncoder.videoEndPts = calculatePts(theDecoder.videoStream, theMarks.MillisecondsEnd());
 
     // transcoding loop
-    AVPacket* pkt = av_packet_alloc();
+    AVPacket* pkt = FfmpegWrapper::u3_av_packet_alloc();
     int frame_count = 0;
     qint64 total_frames = (qint64)theDecoder.videoStream->nb_frames;
-    while (av_read_frame(theDecoder.formatContext, pkt) >= 0)
+    while (FfmpegWrapper::u3_av_read_frame(theDecoder.formatContext, pkt) >= 0)
     {
         if (theDecoder.videoStream && pkt->stream_index == theDecoder.videoStream->index)
         {
@@ -891,7 +891,7 @@ bool VideoTranscoder::transcode()
         }
         else if (theDecoder.audioStream && pkt->stream_index == theDecoder.audioStream->index)
             handleAudioPacket(pkt);
-        av_packet_unref(pkt);
+        FfmpegWrapper::u3_av_packet_unref(pkt);
         if (theEncoder.videoMarkOutReached)
         {
 			// break if mark out is reached
@@ -902,12 +902,12 @@ bool VideoTranscoder::transcode()
             emit transcodingProgress((int)(((double)frame_count / (double)total_frames) * 100.0));
         qApp->processEvents();
     }
-    av_packet_free(&pkt);
+    FfmpegWrapper::u3_av_packet_free(&pkt);
 
     flushVideo();
     flushAudio();
 
-    av_write_trailer(theEncoder.formatContext);
+    FfmpegWrapper::u3_av_write_trailer(theEncoder.formatContext);
     emit transcodingProgress(100);
 	emit transcodingFinished();
     return true;

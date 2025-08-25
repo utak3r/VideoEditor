@@ -3,6 +3,7 @@
 #include <QObject>
 #include <QSize>
 #include <QRect>
+#include "ffmpegWrapper.h"
 #include "TimelineMarks.h"
 #include "Codec.h"
 
@@ -10,19 +11,6 @@
 #include <iostream>
 #include <stdexcept>
 
-extern "C" {
-#include <libavformat/avformat.h>
-#include <libavcodec/avcodec.h>
-#include <libswresample/swresample.h>
-#include <libswscale/swscale.h>
-#include <libavfilter/avfilter.h>
-#include <libavfilter/buffersrc.h>
-#include <libavfilter/buffersink.h>
-#include <libavutil/opt.h>
-#include <libavutil/audio_fifo.h>
-#include <libavutil/channel_layout.h>
-#include <libavutil/imgutils.h>
-}
 
 class VideoTranscoder : public QObject
 {

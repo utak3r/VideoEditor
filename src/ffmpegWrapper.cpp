@@ -169,6 +169,11 @@ namespace FfmpegWrapper {
 		return ::av_frame_make_writable(frame);
 	}
 
+	int u3_avio_open(AVIOContext** s, const char* url, int flags)
+	{
+		return ::avio_open(s, url, flags);
+	}
+
 	int u3_avio_closep(AVIOContext** s)
 	{
 		return ::avio_closep(s);

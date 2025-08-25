@@ -57,6 +57,7 @@ namespace FfmpegWrapper {
 	void u3_av_frame_unref(AVFrame* frame);
 	int u3_av_frame_make_writable(AVFrame* frame);
 
+	int u3_avio_open(AVIOContext** s, const char* url, int flags);
 	int u3_avio_closep(AVIOContext** s);
 	int u3_av_find_best_stream(AVFormatContext* ic,
 		enum AVMediaType type,
@@ -74,6 +75,14 @@ namespace FfmpegWrapper {
 	static av_always_inline AVRational u3_av_inv_q(AVRational q)
 	{
 		AVRational r = { q.den, q.num };
+		return r;
+	}
+	static inline double u3_av_q2d(AVRational a) {
+		return a.num / (double)a.den;
+	}
+	static inline AVRational u3_av_make_q(int num, int den)
+	{
+		AVRational r = { num, den };
 		return r;
 	}
 	int u3_av_dict_set(AVDictionary** pm, const char* key, const char* value, int flags);
