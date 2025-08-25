@@ -76,6 +76,51 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 set(CMAKE_INSTALL_PREFIX "${PROJECT_SOURCE_DIR}/../distrib")
 
+set(PROJECT_ADDITIONAL_SOURCES
+    ${CMAKE_SOURCE_DIR}/src/VEMainWindow.cpp
+    ${CMAKE_SOURCE_DIR}/src/VEMainWindow.h
+    ${CMAKE_SOURCE_DIR}/src/VEMainWindow.ui
+    ${CMAKE_SOURCE_DIR}/src/TimelineMarks.cpp
+    ${CMAKE_SOURCE_DIR}/src/TimelineMarks.h
+    ${CMAKE_SOURCE_DIR}/src/VideoPreset.cpp
+    ${CMAKE_SOURCE_DIR}/src/VideoPreset.h
+    ${CMAKE_SOURCE_DIR}/src/VideoPlayer.cpp
+    ${CMAKE_SOURCE_DIR}/src/VideoPlayer.h
+    ${CMAKE_SOURCE_DIR}/src/VideoSlider.cpp
+    ${CMAKE_SOURCE_DIR}/src/VideoSlider.h
+    ${CMAKE_SOURCE_DIR}/src/CropRectangle.cpp
+    ${CMAKE_SOURCE_DIR}/src/CropRectangle.h
+    ${CMAKE_SOURCE_DIR}/src/Tools.cpp
+    ${CMAKE_SOURCE_DIR}/src/Tools.h
+    ${CMAKE_SOURCE_DIR}/src/ffmpegWrapper.h
+    ${CMAKE_SOURCE_DIR}/src/ffmpeg.cpp
+    ${CMAKE_SOURCE_DIR}/src/ffmpeg.h
+    ${CMAKE_SOURCE_DIR}/src/Settings.cpp
+    ${CMAKE_SOURCE_DIR}/src/Settings.h
+    ${CMAKE_SOURCE_DIR}/src/ProcessRunnerDialog.cpp
+    ${CMAKE_SOURCE_DIR}/src/ProcessRunnerDialog.h
+    ${CMAKE_SOURCE_DIR}/src/ProcessRunnerDialog.ui
+    ${CMAKE_SOURCE_DIR}/src/SettingsDialog.cpp
+    ${CMAKE_SOURCE_DIR}/src/SettingsDialog.h
+    ${CMAKE_SOURCE_DIR}/src/SettingsDialog.ui
+    ${CMAKE_SOURCE_DIR}/src/VideoTranscoder.cpp
+    ${CMAKE_SOURCE_DIR}/src/VideoTranscoder.h
+    ${CMAKE_SOURCE_DIR}/src/EncodingPreset.cpp
+    ${CMAKE_SOURCE_DIR}/src/EncodingPreset.h
+    ${CMAKE_SOURCE_DIR}/src/EncodingPreset.ui
+    ${CMAKE_SOURCE_DIR}/src/Codec.h
+    ${CMAKE_SOURCE_DIR}/src/codec_x264.cpp
+    ${CMAKE_SOURCE_DIR}/src/codec_x264.h
+    ${CMAKE_SOURCE_DIR}/src/codec_x265.cpp
+    ${CMAKE_SOURCE_DIR}/src/codec_x265.h
+    ${CMAKE_SOURCE_DIR}/src/codec_aac.cpp
+    ${CMAKE_SOURCE_DIR}/src/codec_aac.h
+    ${CMAKE_SOURCE_DIR}/src/codec_dnxhd.cpp
+    ${CMAKE_SOURCE_DIR}/src/codec_dnxhd.h
+    ${CMAKE_SOURCE_DIR}/src/codec_pcms24le.cpp
+    ${CMAKE_SOURCE_DIR}/src/codec_pcms24le.h
+)
+
 add_subdirectory(src)
 add_subdirectory(test)
 

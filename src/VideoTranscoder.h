@@ -83,6 +83,9 @@ public:
         ~CodecHandlers();
     };
 
+    CodecHandlers* decoder() { return &theDecoder; }
+    CodecHandlers* encoder() { return &theEncoder; }
+
 private:
     CodecHandlers theDecoder;
 	CodecHandlers theEncoder;
@@ -124,4 +127,6 @@ private:
     QSize calculateOutputSize(int src_width, int src_height, QSize target_size) const;
     void applyMetadata();
     void cleanup();
+
+	friend class VideoTranscoderTest;
 };

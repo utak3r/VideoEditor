@@ -11,50 +11,6 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 set(TS_FILES ${CMAKE_SOURCE_DIR}/translations/VideoEditor_pl.ts)
 
-set(PROJECT_ADDITIONAL_SOURCES
-    VEMainWindow.cpp
-    VEMainWindow.h
-    VEMainWindow.ui
-    TimelineMarks.cpp
-    TimelineMarks.h
-    VideoPreset.cpp
-    VideoPreset.h
-    VideoPlayer.cpp
-    VideoPlayer.h
-    VideoSlider.cpp
-    VideoSlider.h
-    CropRectangle.cpp
-    CropRectangle.h
-    Tools.cpp
-    Tools.h
-    ffmpegWrapper.h
-    ffmpeg.cpp
-    ffmpeg.h
-    Settings.cpp
-    Settings.h
-    ProcessRunnerDialog.cpp
-    ProcessRunnerDialog.h
-    ProcessRunnerDialog.ui
-    SettingsDialog.cpp
-    SettingsDialog.h
-    SettingsDialog.ui
-    VideoTranscoder.cpp
-    VideoTranscoder.h
-    EncodingPreset.cpp
-    EncodingPreset.h
-    EncodingPreset.ui
-    Codec.h
-    codec_x264.cpp
-    codec_x264.h
-    codec_x265.cpp
-    codec_x265.h
-    codec_aac.cpp
-    codec_aac.h
-    codec_dnxhd.cpp
-    codec_dnxhd.h
-    codec_pcms24le.cpp
-    codec_pcms24le.h
-)
 set(PROJECT_SOURCES
     ${CMAKE_BINARY_DIR}/version.rc
     ${CMAKE_BINARY_DIR}/version.h
@@ -116,30 +72,6 @@ set_target_properties(VideoEditor PROPERTIES
     #CXX_CPPCHECK "${cppcheck}"
 )
 qt_finalize_executable(VideoEditor)
-
-# this library serves for linking against unit tests
-qt_add_library(VideoEditor_lib STATIC 
-    ${PROJECT_ADDITIONAL_SOURCES}
-)
-set_target_properties(VideoEditor_lib PROPERTIES LINKER_LANGUAGE CXX)
-target_include_directories(VideoEditor_lib 
-    PRIVATE 
-        "${FFMPEG_DIR}/include"
-)
-target_link_libraries(VideoEditor_lib
-    PRIVATE 
-        Qt6::Widgets 
-        Qt6::Multimedia 
-        Qt6::MultimediaWidgets
-    PUBLIC
-        "${FFMPEG_DIR}/lib/avformat.lib"
-        "${FFMPEG_DIR}/lib/avcodec.lib"
-        "${FFMPEG_DIR}/lib/avutil.lib"
-        "${FFMPEG_DIR}/lib/swscale.lib"
-        "${FFMPEG_DIR}/lib/swresample.lib"
-        "${FFMPEG_DIR}/lib/avfilter.lib"
-)
-
 
 install (TARGETS VideoEditor
     RUNTIME DESTINATION "${CMAKE_INSTALL_PREFIX}"

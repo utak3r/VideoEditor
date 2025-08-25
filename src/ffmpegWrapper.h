@@ -85,6 +85,8 @@ namespace FfmpegWrapper {
 		AVRational r = { num, den };
 		return r;
 	}
+	AVDictionaryEntry* u3_av_dict_get(const AVDictionary* m, const char* key,
+		const AVDictionaryEntry* prev, int flags);
 	int u3_av_dict_set(AVDictionary** pm, const char* key, const char* value, int flags);
 	void u3_av_dict_free(AVDictionary** m);
 

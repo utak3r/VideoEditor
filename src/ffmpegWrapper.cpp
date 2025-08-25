@@ -224,6 +224,12 @@ namespace FfmpegWrapper {
 		return ::av_div_q(b, c);
 	}
 
+	AVDictionaryEntry* u3_av_dict_get(const AVDictionary* m, const char* key,
+		const AVDictionaryEntry* prev, int flags)
+	{
+		return ::av_dict_get(m, key, prev, flags);
+	}
+
 	int u3_av_dict_set(AVDictionary** pm, const char* key, const char* value, int flags)
 	{
 		return ::av_dict_set(pm, key, value, flags);

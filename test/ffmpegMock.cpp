@@ -1,10 +1,24 @@
 #include "../src/ffmpegWrapper.h"
 #include <gtest/gtest.h>
 
-AVCodecID lastCodecId = AV_CODEC_ID_NONE;
-AVCodecContext* lastCodecContext = nullptr;
-AVCodec* lastCodec = nullptr;
-AVDictionary* lastOptions = nullptr;
+static AVCodecID lastCodecId = AV_CODEC_ID_NONE;
+static AVCodecContext* lastCodecContext = nullptr;
+static AVCodec* lastCodec = nullptr;
+static AVDictionary** lastOptions = nullptr;
+static int returnCode = 0;
+
+void resetMock()
+{
+	lastCodecContext = nullptr;
+	lastCodec = nullptr;
+	lastOptions = nullptr;
+	returnCode = 0;
+}
+
+AVCodecContext* getLastCtx() { return lastCodecContext; }
+const AVCodec* getLastCodec() { return lastCodec; }
+AVDictionary** getLastOpts() { return lastOptions; }
+void setReturnCode(int code) { returnCode = code; }
 
 namespace FfmpegWrapper {
 
@@ -29,7 +43,7 @@ namespace FfmpegWrapper {
 		int ret = 0;
 		lastCodecContext = avctx;
 		lastCodec = (AVCodec*)codec;
-		lastOptions = *options;
+		lastOptions = options;
 		if (!avctx) ret = -1;
 		return ret;
 	}
@@ -181,6 +195,11 @@ namespace FfmpegWrapper {
 		return ::av_frame_make_writable(frame);
 	}
 
+	int u3_avio_open(AVIOContext** s, const char* url, int flags)
+	{
+		return ::avio_open(s, url, flags);
+	}
+
 	int u3_avio_closep(AVIOContext** s)
 	{
 		return ::avio_closep(s);
@@ -229,6 +248,12 @@ namespace FfmpegWrapper {
 	AVRational u3_av_div_q(AVRational b, AVRational c) av_const
 	{
 		return ::av_div_q(b, c);
+	}
+
+	AVDictionaryEntry* u3_av_dict_get(const AVDictionary* m, const char* key,
+		const AVDictionaryEntry* prev, int flags)
+	{
+		return ::av_dict_get(m, key, prev, flags);
 	}
 
 	int u3_av_dict_set(AVDictionary** pm, const char* key, const char* value, int flags)

@@ -29,6 +29,7 @@ include_directories(
     ${gtest_SOURCE_DIR}/include
     ${gmock_SOURCE_DIR}/include
     ..
+    ${CMAKE_SOURCE_DIR}/src
     PRIVATE 
         "${FFMPEG_DIR}/include"
     )
@@ -37,11 +38,11 @@ add_executable(VEUnitTests
     main.cpp
     ffmpegMock.cpp
     test_VideoTranscoder.cpp
+    ${PROJECT_ADDITIONAL_SOURCES}
     )
 
 target_link_libraries(VEUnitTests
     PUBLIC
-    VideoEditor_lib
     "${FFMPEG_DIR}/lib/avformat.lib"
     "${FFMPEG_DIR}/lib/avcodec.lib"
     "${FFMPEG_DIR}/lib/avutil.lib"
