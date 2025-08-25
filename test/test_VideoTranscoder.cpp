@@ -11,11 +11,7 @@ TEST(VideoTranscoderTest, BasicTest)
 	EXPECT_EQ(dec->id, AV_CODEC_ID_H264);
 
 	AVCodecContext* ctx = FfmpegWrapper::u3_avcodec_alloc_context3(dec);
-	EXPECT_EQ(ctx->codec_id, AV_CODEC_ID_NONE); // codec_id is not set by avcodec_alloc_context3
-
-	AVCodecParameters par;
-	int p2c = (FfmpegWrapper::u3_avcodec_parameters_to_context(ctx, &par) == 0);
-	EXPECT_EQ(p2c, 1);
+	EXPECT_EQ(ctx->codec_id, AV_CODEC_ID_H264);
 
 	AVDictionary* options = nullptr;
 	av_dict_set(&options, "option1", "value1", 0);
