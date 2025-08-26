@@ -1,10 +1,12 @@
 #include "../src/ffmpegWrapper.h"
 #include <gtest/gtest.h>
+#include <QString>
 
 static AVCodecID lastCodecId = AV_CODEC_ID_NONE;
 static AVCodecContext* lastCodecContext = nullptr;
 static AVCodec* lastCodec = nullptr;
 static AVDictionary** lastOptions = nullptr;
+static QString lastFilename = "";
 static int returnCode = 0;
 
 void resetMock()
@@ -119,12 +121,20 @@ namespace FfmpegWrapper {
 
 	void u3_avformat_close_input(AVFormatContext** s)
 	{
-		::avformat_close_input(s);
+		//::avformat_free_context(*s);
 	}
 
 	void u3_avformat_free_context(AVFormatContext* s)
 	{
-		::avformat_free_context(s);
+		if (!s) return;
+		for (unsigned i = 0; i < s->nb_streams; i++) {
+			if (s->streams[i]) {
+				av_free(s->streams[i]->codecpar);
+				av_free(s->streams[i]);
+			}
+		}
+		av_free(s->streams);
+		av_free(s);
 	}
 
 	AVRational u3_av_guess_frame_rate(AVFormatContext* ctx, AVStream* stream,
@@ -136,12 +146,38 @@ namespace FfmpegWrapper {
 	int u3_avformat_open_input(AVFormatContext** ps, const char* url,
 		const AVInputFormat* fmt, AVDictionary** options)
 	{
-		return ::avformat_open_input(ps, url, fmt, options);
+		lastFilename = QString(url);
+		lastOptions = options;
+		*ps = ::avformat_alloc_context();
+		return lastFilename.isEmpty() ? -1 : 0;
 	}
 
 	int u3_avformat_find_stream_info(AVFormatContext* ic, AVDictionary** options)
 	{
-		return ::avformat_find_stream_info(ic, options);
+		int ret = 0;
+		if (!ic) ret = -1;
+		else
+		{
+			// For testing, we can simulate that the format context has 2 streams: video and audio
+			ic->nb_streams = 2;
+			ic->streams = (AVStream**)av_malloc_array(ic->nb_streams, sizeof(AVStream*));
+			if (!ic->streams) return -1;
+			// Video stream
+			ic->streams[0] = (AVStream*)av_mallocz(sizeof(AVStream));
+			ic->streams[0]->index = 0;
+			ic->streams[0]->codecpar = (AVCodecParameters*)av_mallocz(sizeof(AVCodecParameters));
+			ic->streams[0]->codecpar->codec_type = AVMEDIA_TYPE_VIDEO;
+			ic->streams[0]->codecpar->codec_id = AV_CODEC_ID_H264;
+			ic->streams[0]->time_base = AVRational{ 1, 25 }; // 25 fps
+			// Audio stream
+			ic->streams[1] = (AVStream*)av_mallocz(sizeof(AVStream));
+			ic->streams[1]->index = 1;
+			ic->streams[1]->codecpar = (AVCodecParameters*)av_mallocz(sizeof(AVCodecParameters));
+			ic->streams[1]->codecpar->codec_type = AVMEDIA_TYPE_AUDIO;
+			ic->streams[1]->codecpar->codec_id = AV_CODEC_ID_AAC;
+			ic->streams[1]->time_base = AVRational{ 1, 48000 }; // 48 kHz
+		}
+		return ret;
 	}
 
 	int u3_avformat_alloc_output_context2(AVFormatContext** ctx, const AVOutputFormat* oformat,
@@ -212,7 +248,10 @@ namespace FfmpegWrapper {
 		const struct AVCodec** decoder_ret,
 		int flags)
 	{
-		return ::av_find_best_stream(ic, type, wanted_stream_nb, related_stream, decoder_ret, flags);
+		int ret = -1;
+		if (type == AVMEDIA_TYPE_VIDEO) ret = 0;
+		else if (type == AVMEDIA_TYPE_AUDIO) ret = 1;
+		return ret;
 	}
 
 	int u3_av_channel_layout_copy(AVChannelLayout* dst, const AVChannelLayout* src)

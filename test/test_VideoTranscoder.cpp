@@ -22,6 +22,14 @@ public:
 	{
 		t.applyMetadata();
 	}
+	static bool openInput(VideoTranscoder& t)
+	{
+		return t.openInput();
+	}
+	static bool openOutput(VideoTranscoder& t)
+	{
+		return t.openOutput();
+	}
 
 };
 
@@ -101,3 +109,13 @@ TEST_F(VideoTranscoderTest, MetadataTest)
 	EXPECT_STREQ(entry->value, "Unit Tester");
 }
 
+TEST_F(VideoTranscoderTest, OpenInputTest)
+{
+	transcoder.setInputFile("test_input.mp4");
+	bool opened = VideoTranscoderTest::openInput(transcoder);
+	EXPECT_TRUE(opened);
+	VideoTranscoder::CodecHandlers* decoder = transcoder.decoder();
+	EXPECT_NE(decoder->formatContext, nullptr);
+	EXPECT_NE(decoder->videoStream, nullptr);
+	EXPECT_NE(decoder->audioStream, nullptr);
+}
