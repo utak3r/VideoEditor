@@ -93,7 +93,6 @@ set(PROJECT_ADDITIONAL_SOURCES
     ${CMAKE_SOURCE_DIR}/src/Tools.cpp
     ${CMAKE_SOURCE_DIR}/src/Tools.h
     ${CMAKE_SOURCE_DIR}/src/ffmpegInterface.h
-    ${CMAKE_SOURCE_DIR}/src/ffmpeg.h
     ${CMAKE_SOURCE_DIR}/src/Settings.cpp
     ${CMAKE_SOURCE_DIR}/src/Settings.h
     ${CMAKE_SOURCE_DIR}/src/ProcessRunnerDialog.cpp
@@ -122,4 +121,4 @@ set(PROJECT_ADDITIONAL_SOURCES
 
 add_subdirectory(src)
 add_subdirectory(test)
-
+add_subdirectory(functional)

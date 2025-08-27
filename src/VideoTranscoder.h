@@ -133,4 +133,5 @@ private:
     void cleanup();
 
 	friend class VideoTranscoderTest;
+    friend class VideoTranscoderFunctionalTest;
 };
