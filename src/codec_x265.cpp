@@ -17,7 +17,7 @@ QString CodecX265::name() const
 
 const AVCodec* CodecX265::getAVCodec() const
 {
-	return avcodec_find_encoder_by_name("libx265");
+	return ff->avcodec_find_encoder_by_name("libx265");
 }
 
 QStringList CodecX265::getAvailablePresets() const
@@ -33,18 +33,18 @@ void CodecX265::setPreset(const QString& preset, AVCodecContext* codecContext)
 	{
 		if (preset == "fast")
 		{
-			av_opt_set(codecContext->priv_data, "preset", "fast", 0);
-			av_opt_set(codecContext->priv_data, "crf", "36", 0);
+			ff->av_opt_set(codecContext->priv_data, "preset", "fast", 0);
+			ff->av_opt_set(codecContext->priv_data, "crf", "36", 0);
 		}
 		else if (preset == "normal")
 		{
-			av_opt_set(codecContext->priv_data, "preset", "medium", 0);
-			av_opt_set(codecContext->priv_data, "crf", "28", 0);
+			ff->av_opt_set(codecContext->priv_data, "preset", "medium", 0);
+			ff->av_opt_set(codecContext->priv_data, "crf", "28", 0);
 		}
 		else if (preset == "best")
 		{
-			av_opt_set(codecContext->priv_data, "preset", "veryslow", 0);
-			av_opt_set(codecContext->priv_data, "crf", "20", 0);
+			ff->av_opt_set(codecContext->priv_data, "preset", "veryslow", 0);
+			ff->av_opt_set(codecContext->priv_data, "crf", "20", 0);
 		}
 	}
 }

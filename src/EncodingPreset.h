@@ -1,6 +1,7 @@
 #pragma once
 #include <QDialog>
 #include <QComboBox>
+#include "ffmpegInterface.h"
 #include "VideoPreset.h"
 
 namespace Ui {
@@ -12,7 +13,7 @@ class EncodingPreset : public QDialog
 	Q_OBJECT
 
 public:
-	EncodingPreset(QWidget* parent = nullptr);
+	EncodingPreset(IFFmpeg& ffmpeg, QWidget* parent = nullptr);
 	~EncodingPreset();
 
 	void getAvailablePresets(const QString& codecName, QComboBox* comboBox);
@@ -21,5 +22,5 @@ public:
 
 private:
 	Ui::EncodingPreset* ui;
-
+	IFFmpeg& ff;
 };

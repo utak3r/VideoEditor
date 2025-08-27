@@ -4,7 +4,6 @@
 #include <QMainWindow>
 #include <Settings.h>
 #include <QFileInfo>
-#include <ffmpeg.h>
 #include <QMediaPlayer>
 #include <QMediaMetaData>
 #include <TimelineMarks.h>
@@ -45,7 +44,6 @@ private:
     Ui::VEMainWindow *ui;
     Settings theSettings;
     QFileInfo currentVideoFile;
-    FFMPEG* theFFMPEG;
     QString theLastDir;
     QMediaPlayer* theMediaPlayer;
 	VideoPlayer* theVideoPlayer;

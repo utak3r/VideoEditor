@@ -14,7 +14,6 @@ set(TS_FILES ${CMAKE_SOURCE_DIR}/translations/VideoEditor_pl.ts)
 set(PROJECT_SOURCES
     ${CMAKE_BINARY_DIR}/version.rc
     ${CMAKE_BINARY_DIR}/version.h
-    ffmpegWrapper.cpp
     ${CMAKE_SOURCE_DIR}/VideoEditor.qrc
     ${PROJECT_ADDITIONAL_SOURCES}
 )

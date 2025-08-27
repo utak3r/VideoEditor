@@ -2,8 +2,9 @@
 #include "ui_EncodingPreset.h"
 #include "Codec.h"
 
-EncodingPreset::EncodingPreset(QWidget* parent)
+EncodingPreset::EncodingPreset(IFFmpeg& ffmpeg, QWidget* parent)
 	: QDialog(parent)
+	, ff(ffmpeg)
 	, ui(new Ui::EncodingPreset)
 {
 	ui->setupUi(this);
@@ -11,7 +12,7 @@ EncodingPreset::EncodingPreset(QWidget* parent)
 	// Get list of available codecs
 	for (const auto& name : CodecFactory::instance().availablePlugins())
 	{
-		Codec* codec = CodecFactory::instance().create(name);
+		Codec* codec = CodecFactory::instance().create(name, &ff);
 		if (codec)
 		{
 			if (codec->type() == Codec::CodecType::Video)
@@ -57,7 +58,7 @@ void EncodingPreset::getAvailablePresets(const QString& codecName, QComboBox* co
 {
 	if (!codecName.isEmpty())
 	{
-		Codec* codec = CodecFactory::instance().create(codecName);
+		Codec* codec = CodecFactory::instance().create(codecName, &ff);
 		comboBox->addItems(codec->getAvailablePresets());
 		delete codec;
 	}

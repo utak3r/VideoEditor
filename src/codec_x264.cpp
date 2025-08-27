@@ -17,7 +17,7 @@ QString CodecX264::name() const
 
 const AVCodec* CodecX264::getAVCodec() const
 {
-	return avcodec_find_encoder_by_name("libx264");
+	return ff->avcodec_find_encoder_by_name("libx264");
 }
 
 QStringList CodecX264::getAvailablePresets() const
@@ -33,51 +33,51 @@ void CodecX264::setPreset(const QString& preset, AVCodecContext* codecContext)
 	{
 		if (preset == "ultrafast")
 		{
-			av_opt_set(codecContext->priv_data, "preset", "ultrafast", 0);
-			av_opt_set(codecContext->priv_data, "profile", "baseline", 0);
-			av_opt_set(codecContext->priv_data, "crf", "35", 0);
+			ff->av_opt_set(codecContext->priv_data, "preset", "ultrafast", 0);
+			ff->av_opt_set(codecContext->priv_data, "profile", "baseline", 0);
+			ff->av_opt_set(codecContext->priv_data, "crf", "35", 0);
 		}
 		else if (preset == "fast")
 		{
-			av_opt_set(codecContext->priv_data, "preset", "fast", 0);
-			av_opt_set(codecContext->priv_data, "profile", "main", 0);
-			av_opt_set(codecContext->priv_data, "crf", "28", 0);
+			ff->av_opt_set(codecContext->priv_data, "preset", "fast", 0);
+			ff->av_opt_set(codecContext->priv_data, "profile", "main", 0);
+			ff->av_opt_set(codecContext->priv_data, "crf", "28", 0);
 		}
 		else if (preset == "normal")
 		{
-			av_opt_set(codecContext->priv_data, "preset", "medium", 0);
-			av_opt_set(codecContext->priv_data, "tune", "film", 0);
-			av_opt_set(codecContext->priv_data, "crf", "23", 0);
+			ff->av_opt_set(codecContext->priv_data, "preset", "medium", 0);
+			ff->av_opt_set(codecContext->priv_data, "tune", "film", 0);
+			ff->av_opt_set(codecContext->priv_data, "crf", "23", 0);
 		}
 		else if (preset == "normal animation")
 		{
-			av_opt_set(codecContext->priv_data, "preset", "medium", 0);
-			av_opt_set(codecContext->priv_data, "tune", "animation", 0);
-			av_opt_set(codecContext->priv_data, "crf", "23", 0);
+			ff->av_opt_set(codecContext->priv_data, "preset", "medium", 0);
+			ff->av_opt_set(codecContext->priv_data, "tune", "animation", 0);
+			ff->av_opt_set(codecContext->priv_data, "crf", "23", 0);
 		}
 		else if (preset == "high")
 		{
-			av_opt_set(codecContext->priv_data, "preset", "slow", 0);
-			av_opt_set(codecContext->priv_data, "tune", "film", 0);
-			av_opt_set(codecContext->priv_data, "crf", "20", 0);
+			ff->av_opt_set(codecContext->priv_data, "preset", "slow", 0);
+			ff->av_opt_set(codecContext->priv_data, "tune", "film", 0);
+			ff->av_opt_set(codecContext->priv_data, "crf", "20", 0);
 		}
 		else if (preset == "high animation")
 		{
-			av_opt_set(codecContext->priv_data, "preset", "slow", 0);
-			av_opt_set(codecContext->priv_data, "tune", "animation", 0);
-			av_opt_set(codecContext->priv_data, "crf", "20", 0);
+			ff->av_opt_set(codecContext->priv_data, "preset", "slow", 0);
+			ff->av_opt_set(codecContext->priv_data, "tune", "animation", 0);
+			ff->av_opt_set(codecContext->priv_data, "crf", "20", 0);
 		}
 		else if (preset == "best")
 		{
-			av_opt_set(codecContext->priv_data, "preset", "veryslow", 0);
-			av_opt_set(codecContext->priv_data, "tune", "film", 0);
-			av_opt_set(codecContext->priv_data, "crf", "16", 0);
+			ff->av_opt_set(codecContext->priv_data, "preset", "veryslow", 0);
+			ff->av_opt_set(codecContext->priv_data, "tune", "film", 0);
+			ff->av_opt_set(codecContext->priv_data, "crf", "16", 0);
 		}
 		else if (preset == "best animation")
 		{
-			av_opt_set(codecContext->priv_data, "preset", "veryslow", 0);
-			av_opt_set(codecContext->priv_data, "tune", "animation", 0);
-			av_opt_set(codecContext->priv_data, "crf", "16", 0);
+			ff->av_opt_set(codecContext->priv_data, "preset", "veryslow", 0);
+			ff->av_opt_set(codecContext->priv_data, "tune", "animation", 0);
+			ff->av_opt_set(codecContext->priv_data, "crf", "16", 0);
 		}
 
 		//if (codecContext->codec_id == AV_CODEC_ID_H264)

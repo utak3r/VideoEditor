@@ -3,10 +3,11 @@
 #include "EncodingPreset.h"
 #include <QFileDialog>
 
-SettingsDialog::SettingsDialog(Settings *settings, QWidget *parent)
+SettingsDialog::SettingsDialog(Settings *settings, IFFmpeg& ffmpeg, QWidget *parent)
     : QDialog(parent)
     , ui(new Ui::SettingsDialog)
     , theSettings(settings)
+    , ff(ffmpeg)
 {
     ui->setupUi(this);
     ui->tableVideoPresets->horizontalHeader()->setStretchLastSection(true);
@@ -56,7 +57,7 @@ void SettingsDialog::FillRowInfo(QTableWidget *table, int row, const VideoPreset
 
 void SettingsDialog::AddVideoPreset()
 {
-	auto newPresetDlg = new EncodingPreset(this);
+	auto newPresetDlg = new EncodingPreset(ff, this);
 	newPresetDlg->setWindowTitle(tr("Add Video Preset"));
 	newPresetDlg->setModal(true);
 	newPresetDlg->exec();
@@ -72,7 +73,7 @@ void SettingsDialog::EditVideoPreset()
 {
     if (int toEdit = ui->tableVideoPresets->currentRow(); toEdit >= 0)
     {
-		auto editPresetDlg = new EncodingPreset(this);
+		auto editPresetDlg = new EncodingPreset(ff, this);
 		editPresetDlg->setWindowTitle(tr("Edit Video Preset"));
 		editPresetDlg->setModal(true);
 		editPresetDlg->setPreset((*theSettings->videoPresets())[toEdit]);

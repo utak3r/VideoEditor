@@ -1,5 +1,6 @@
 #include "VEMainWindow.h"
 #include "./ui_VEMainWindow.h"
+#include <ffmpeg.h>
 #include <QFileDialog>
 #include <QTimer>
 #include <QProgressBar>
@@ -21,7 +22,6 @@
 VEMainWindow::VEMainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::VEMainWindow)
-    , theFFMPEG(nullptr)
     , theLastDir(".")
     , theMediaPlayer(nullptr)
 {
@@ -103,7 +103,6 @@ VEMainWindow::~VEMainWindow()
     theSettings.setScalingFilter(ui->cbxScalingFlags->currentIndex());
     theSettings.WriteSettings();
     delete theMediaPlayer;
-    delete theFFMPEG;
     delete ui;
 }
 
@@ -149,10 +148,12 @@ void VEMainWindow::OpenVideo()
 
 void VEMainWindow::ShowSettings()
 {
-    SettingsDialog* dlg = new SettingsDialog(&theSettings, this);
+    FFmpegReal* ffmpeg = new FFmpegReal();
+    SettingsDialog* dlg = new SettingsDialog(&theSettings, *ffmpeg, this);
     dlg->setModal(true);
     dlg->exec();
     ReloadSettings();
+    delete ffmpeg;
 }
 
 void VEMainWindow::VideoDurationChanged(qint64 duration)
@@ -262,7 +263,8 @@ void VEMainWindow::Convert()
         tr("Video Files") + QLatin1String(" (") + VIDEO_FILE_EXTENSIONS + QLatin1String(")"));
     if (!outFilename.isEmpty())
     {
-		std::unique_ptr<VideoTranscoder> transcoder(new VideoTranscoder(this));
+        FFmpegReal* ffmpeg = new FFmpegReal();
+		std::unique_ptr<VideoTranscoder> transcoder(new VideoTranscoder(*ffmpeg, this));
 		transcoder->setInputFile(currentVideoFile.absoluteFilePath());
         transcoder->setOutputFile(outFilename);
 		transcoder->setMarks(theMarks);
@@ -340,6 +342,7 @@ void VEMainWindow::Convert()
         theVideoPlayer->pause();
         transcoder->transcode();
         theVideoPlayer->play();
+		delete ffmpeg;
     }
 
 }

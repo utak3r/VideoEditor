@@ -5,6 +5,7 @@ extern "C" {
 #include <libavcodec/codec.h>
 #include <libavcodec/avcodec.h>
 }
+#include "ffmpeg.h"
 
 class Codec
 {
@@ -24,7 +25,7 @@ public:
 	virtual const AVCodec* getAVCodec() const = 0;
 };
 
-using CodecCreator = std::function<Codec* ()>;
+using CodecCreator = std::function<Codec* (IFFmpeg*)>;
 
 class CodecFactory
 {
@@ -45,10 +46,10 @@ public:
         return creators.keys();
     }
 
-    Codec* create(const QString& name) const
+    Codec* create(const QString& name, IFFmpeg* ff) const
     {
         auto it = creators.find(name);
-        return it != creators.end() ? it.value()() : nullptr;
+        return it != creators.end() ? it.value()(ff) : nullptr;
     }
 
 private:
@@ -62,9 +63,9 @@ class CodecRegistrar
 public:
     CodecRegistrar(const QString& className)
     {
-        CodecFactory::instance().registerPlugin(className, []() -> Codec*
+        CodecFactory::instance().registerPlugin(className, [](IFFmpeg* ff) -> Codec*
             {
-            return new T();
+            return new T(ff);
             });
     }
 };

@@ -1,20 +1,49 @@
+#include "ffmpegMock.h"
 #include <gtest/gtest.h>
 #include "../src/VideoTranscoder.h"
-#include "../src/ffmpegWrapper.h"
+#include "codec_x264.h"
+#include "codec_aac.h"
+
+
+using ::testing::_;
+using ::testing::DoAll;
+using ::testing::Return;
+using ::testing::SetArgPointee;
+using ::testing::StrEq;
 
 class VideoTranscoderTest : public ::testing::Test
 {
 protected:
+	FFmpegMock ff;
 	VideoTranscoder transcoder;
+
+	VideoTranscoder::CodecHandlers* decoder = nullptr;
+	VideoTranscoder::CodecHandlers* encoder = nullptr;
+
+	VideoTranscoderTest() : transcoder(ff) {}
 
 	void SetUp() override
 	{
-		// Code here will be called immediately after the constructor (right before each test).
+		decoder = transcoder.decoder();
+		encoder = transcoder.encoder();
+
+		/*ON_CALL(ff, av_frame_free)
+			.WillByDefault(::testing::Invoke([](AVFrame** f)
+			{
+				if (f)
+					*f = nullptr;
+			}));*/
+
+		EXPECT_CALL(ff, av_frame_free)
+			.Times(::testing::AnyNumber())
+			.WillRepeatedly([](AVFrame** f) {
+			if (f) *f = nullptr;
+				});
 	}
 
 	void TearDown() override
 	{
-		// Code here will be called immediately after each test (right before the destructor).
+		
 	}
 
 public:
@@ -30,26 +59,17 @@ public:
 	{
 		return t.openOutput();
 	}
+	static bool prepareVideoDecoder(VideoTranscoder& t)
+	{
+		return t.prepareVideoDecoder();
+	}
+	static bool prepareVideoEncoder(VideoTranscoder& t)
+	{
+		return t.prepareVideoEncoder();
+	}
 
 };
 
-TEST_F(VideoTranscoderTest, BasicTest)
-{
-	// For now this test only checks the mock functions in ffmpegWrapper
-	// Once it's finished, we can add more tests for real VideoTranscoder methods
-
-	const AVCodec* dec = FfmpegWrapper::u3_avcodec_find_decoder(AV_CODEC_ID_H264);
-	EXPECT_EQ(dec->id, AV_CODEC_ID_H264);
-
-	AVCodecContext* ctx = FfmpegWrapper::u3_avcodec_alloc_context3(dec);
-	EXPECT_EQ(ctx->codec_id, AV_CODEC_ID_H264);
-
-	AVDictionary* options = nullptr;
-	av_dict_set(&options, "option1", "value1", 0);
-	int open = FfmpegWrapper::u3_avcodec_open2(ctx, dec, &options);
-	EXPECT_EQ(open, 0);
-	
-}
 
 TEST_F(VideoTranscoderTest, FilenameTest)
 {
@@ -98,24 +118,162 @@ TEST_F(VideoTranscoderTest, MetadataTest)
 	transcoder.setMetadata("title", "Test Video");
 	transcoder.setMetadata("author", "Unit Tester");
 
-	VideoTranscoder::CodecHandlers* encoder = transcoder.encoder();
-	FfmpegWrapper::u3_avformat_alloc_output_context2(&encoder->formatContext, nullptr, nullptr, "output.mp4");
+	//AVFormatContext fakeFormatContext{};
+	//encoder->formatContext = &fakeFormatContext;
+	avformat_alloc_output_context2(&encoder->formatContext, nullptr, nullptr, "output.mp4");
+
+	EXPECT_CALL(ff, av_dict_set(&encoder->formatContext->metadata, StrEq("title"), StrEq("Test Video"), 0))
+		.WillOnce(testing::Return(0));
+	EXPECT_CALL(ff, av_dict_set(&encoder->formatContext->metadata, StrEq("author"), StrEq("Unit Tester"), 0))
+		.WillOnce(testing::Return(0));
 
 	VideoTranscoderTest::applyMetadata(transcoder);
-	AVDictionary* metadata = encoder->formatContext->metadata;
-	auto entry = FfmpegWrapper::u3_av_dict_get(metadata, "title", nullptr, 0);
-	EXPECT_STREQ(entry->value, "Test Video");
-	entry = FfmpegWrapper::u3_av_dict_get(metadata, "author", nullptr, 0);
-	EXPECT_STREQ(entry->value, "Unit Tester");
 }
 
-TEST_F(VideoTranscoderTest, OpenInputTest)
+TEST_F(VideoTranscoderTest, OpenInput_SuccessWithVideoAndAudio)
 {
-	transcoder.setInputFile("test_input.mp4");
-	bool opened = VideoTranscoderTest::openInput(transcoder);
-	EXPECT_TRUE(opened);
-	VideoTranscoder::CodecHandlers* decoder = transcoder.decoder();
-	EXPECT_NE(decoder->formatContext, nullptr);
-	EXPECT_NE(decoder->videoStream, nullptr);
-	EXPECT_NE(decoder->audioStream, nullptr);
+	AVStream videoStream{};
+	AVStream audioStream{};
+	AVStream* streams[2] = { &videoStream, &audioStream };
+	AVFormatContext ctx{};
+	ctx.streams = streams;
+	ctx.nb_streams = 2;
+
+	EXPECT_CALL(ff, avformat_open_input(_, _, _, _))
+		.WillOnce(DoAll(SetArgPointee<0>(&ctx), Return(0)));
+	EXPECT_CALL(ff, avformat_find_stream_info(&ctx, nullptr))
+		.WillOnce(Return(0));
+	EXPECT_CALL(ff, av_find_best_stream(&ctx, AVMEDIA_TYPE_VIDEO, _, _, _, _))
+		.WillOnce(Return(0));
+	EXPECT_CALL(ff, av_find_best_stream(&ctx, AVMEDIA_TYPE_AUDIO, _, _, _, _))
+		.WillOnce(Return(1));
+
+	decoder->fileName = "dummy.mp4";
+	EXPECT_TRUE(VideoTranscoderTest::openInput(transcoder));
+	EXPECT_EQ(decoder->videoStream, &videoStream);
+	EXPECT_EQ(decoder->audioStream, &audioStream);
+}
+
+TEST_F(VideoTranscoderTest, OpenInput_FailsOnOpen)
+{
+	EXPECT_CALL(ff, avformat_open_input(_, _, _, _))
+		.WillOnce(Return(-1));
+
+	decoder->fileName = "dummy.mp4";
+	EXPECT_FALSE(VideoTranscoderTest::openInput(transcoder));
+}
+
+TEST_F(VideoTranscoderTest, OpenInput_OnlyVideoStream)
+{
+	AVStream videoStream{};
+	AVStream* streams[1] = { &videoStream };
+	AVFormatContext ctx{};
+	ctx.streams = streams;
+	ctx.nb_streams = 1;
+
+	EXPECT_CALL(ff, avformat_open_input(_, _, _, _))
+		.WillOnce(DoAll(SetArgPointee<0>(&ctx), Return(0)));
+	EXPECT_CALL(ff, avformat_find_stream_info(&ctx, nullptr))
+		.WillOnce(Return(0));
+	EXPECT_CALL(ff, av_find_best_stream(&ctx, AVMEDIA_TYPE_VIDEO, _, _, _, _))
+		.WillOnce(Return(0));
+	EXPECT_CALL(ff, av_find_best_stream(&ctx, AVMEDIA_TYPE_AUDIO, _, _, _, _))
+		.WillOnce(Return(-1));
+
+	decoder->fileName = "dummy.mp4";
+	bool result = VideoTranscoderTest::openInput(transcoder);
+
+	EXPECT_TRUE(result);
+	EXPECT_EQ(decoder->videoStream, &videoStream);
+	EXPECT_EQ(decoder->audioStream, nullptr);
+}
+
+TEST_F(VideoTranscoderTest, OpenOutputTest)
+{
+	transcoder.setOutputFile("test_output.mp4");
+	
+	encoder->formatContext = nullptr;
+	AVFormatContext ctx{};
+	AVOutputFormat fakeOutFormat{};
+	ctx.oformat = &fakeOutFormat;
+
+	
+	EXPECT_CALL(ff, avformat_alloc_output_context2(&encoder->formatContext, nullptr, nullptr, StrEq("test_output.mp4")))
+		.WillOnce(DoAll(SetArgPointee<0>(&ctx), Return(0)));
+	EXPECT_TRUE(VideoTranscoderTest::openOutput(transcoder));
+	EXPECT_NE(encoder->formatContext, nullptr);
+}
+
+TEST_F(VideoTranscoderTest, prepareVideoDecoderTest)
+{
+	AVStream fakeStream{};
+	AVCodecParameters fakeCodecParams{};
+	fakeCodecParams.codec_id = AV_CODEC_ID_H264;
+	fakeStream.codecpar = &fakeCodecParams;
+	AVCodec fakeCodec;
+	decoder->videoStream = &fakeStream;
+
+	EXPECT_CALL(ff, avcodec_find_decoder(testing::_))
+		.WillOnce(testing::Return(&fakeCodec));
+	EXPECT_CALL(ff, avcodec_alloc_context3(testing::_))
+		.WillOnce(testing::Return((AVCodecContext*)0x1));
+	EXPECT_CALL(ff, avcodec_parameters_to_context(testing::_, testing::_))
+		.WillOnce(testing::Return(0));
+	EXPECT_CALL(ff, avcodec_open2(testing::_, testing::_, nullptr))
+		.WillOnce(testing::Return(0));
+
+	EXPECT_TRUE(VideoTranscoderTest::prepareVideoDecoder(transcoder));
+}
+
+TEST_F(VideoTranscoderTest, PrepareVideoEncoder_Success)
+{
+	static CodecRegistrar<CodecX264> registrarX264("libx264 H.264 / AVC / MPEG-4 AVC / MPEG-4 part 10");
+	static CodecRegistrar<CodecAAC> registrarAAC("AAC (Advanced Audio Coding)");
+	encoder->videoCodecName = "libx264 H.264 / AVC / MPEG-4 AVC / MPEG-4 part 10";
+	encoder->videoCodecPreset = "best";
+	AVCodec fakeCodec{};
+	AVCodecContext fakeOutCtx{};
+	AVCodecContext fakeInCtx{};
+	fakeInCtx.width = 1920;
+	fakeInCtx.height = 1080;
+	decoder->videoCodecContext = &fakeInCtx;
+	encoder->videoSize = QSize(1920, 1080);
+	AVRational fakeFps{ 1, 30 };
+	AVFormatContext fakeFormatCtx{};
+	AVOutputFormat fakeOutFormat{};
+	fakeFormatCtx.oformat = &fakeOutFormat;
+	encoder->formatContext = &fakeFormatCtx;
+	AVStream fakeStream{};
+	decoder->videoStream = &fakeStream;
+	AVCodecParameters fakeCodecParams{};
+	fakeStream.codecpar = &fakeCodecParams;
+	AVFrame fakeFrame{};
+
+
+	EXPECT_CALL(ff, avcodec_find_encoder_by_name(StrEq("libx264")))
+		.WillOnce(Return(&fakeCodec));
+
+	EXPECT_CALL(ff, avcodec_alloc_context3(testing::_))
+		.WillOnce(testing::Return(&fakeOutCtx));
+
+	EXPECT_CALL(ff, av_guess_frame_rate(_, _, _))
+		.WillOnce(Return(fakeFps));
+
+	EXPECT_CALL(ff, avcodec_get_supported_config(_, _, AV_CODEC_CONFIG_PIX_FORMAT, _, _, _))
+		.WillOnce([](const AVCodecContext*, const AVCodec*, enum AVCodecConfig,
+			int, const void** values, int* nb_values) {
+				static const AVPixelFormat fakeFormats[] = { AV_PIX_FMT_YUV420P };
+				*values = fakeFormats;
+				*nb_values = 1;
+				return 0;
+			});
+
+	EXPECT_CALL(ff, avformat_new_stream(testing::_, testing::_))
+		.WillOnce(testing::Return(&fakeStream));
+	EXPECT_CALL(ff, avcodec_open2(&fakeOutCtx, testing::_, nullptr))
+		.WillOnce(testing::Return(0));
+
+	EXPECT_CALL(ff, av_frame_alloc()).WillOnce(Return(&fakeFrame));
+
+	EXPECT_TRUE(VideoTranscoderTest::prepareVideoEncoder(transcoder));
 }

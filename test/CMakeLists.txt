@@ -8,6 +8,10 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 add_definitions(-DGTEST_LANGUAGE_CXX17)
 
+if (MSVC)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /bigobj")
+endif(MSVC)
+
 find_package(Threads REQUIRED)
 
 include(FetchContent)
@@ -36,7 +40,7 @@ include_directories(
 
 add_executable(VEUnitTests
     main.cpp
-    ffmpegMock.cpp
+    ffmpegMock.h
     test_VideoTranscoder.cpp
     ${PROJECT_ADDITIONAL_SOURCES}
     )
@@ -50,7 +54,7 @@ target_link_libraries(VEUnitTests
     "${FFMPEG_DIR}/lib/swresample.lib"
     "${FFMPEG_DIR}/lib/avfilter.lib"
     PRIVATE
-    Threads::Threads GTest::gtest_main
+    Threads::Threads GTest::gtest_main GTest::gmock_main
     Qt6::Widgets Qt6::Multimedia Qt6::MultimediaWidgets
     )
 

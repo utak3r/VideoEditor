@@ -15,7 +15,7 @@ QString CodecPCMs24le::name() const
 
 const AVCodec* CodecPCMs24le::getAVCodec() const
 {
-	return avcodec_find_encoder_by_name("pcm_s24le");
+	return ff->avcodec_find_encoder_by_name("pcm_s24le");
 }
 
 QStringList CodecPCMs24le::getAvailablePresets() const
@@ -29,7 +29,7 @@ void CodecPCMs24le::setPreset(const QString& preset, AVCodecContext* codecContex
 {
 	if (codecContext)
 	{
-		av_channel_layout_default(&codecContext->ch_layout, 2);
+		ff->av_channel_layout_default(&codecContext->ch_layout, 2);
 
 		if (preset == "normal")
 		{

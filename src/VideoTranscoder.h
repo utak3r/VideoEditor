@@ -3,7 +3,7 @@
 #include <QObject>
 #include <QSize>
 #include <QRect>
-#include "ffmpegWrapper.h"
+#include "ffmpeg.h"
 #include "TimelineMarks.h"
 #include "Codec.h"
 
@@ -20,7 +20,7 @@ class VideoTranscoder : public QObject
         Q_PROPERTY(TimelineMarks marks READ marks WRITE setMarks)
 
 public:
-    VideoTranscoder(QObject* parent = nullptr);
+    VideoTranscoder(IFFmpeg& ffmpeg, QObject* parent = nullptr);
     ~VideoTranscoder();
 
     QString inputFile() const;
@@ -80,6 +80,8 @@ public:
         int64_t videoEndPts = 0;
 		bool videoMarkOutReached = false;
 
+        IFFmpeg* ff = nullptr;
+        CodecHandlers(IFFmpeg* f) : ff(f) {}
         ~CodecHandlers();
     };
 
@@ -87,6 +89,8 @@ public:
     CodecHandlers* encoder() { return &theEncoder; }
 
 private:
+    IFFmpeg& ff;
+
     CodecHandlers theDecoder;
 	CodecHandlers theEncoder;
     TimelineMarks theMarks;

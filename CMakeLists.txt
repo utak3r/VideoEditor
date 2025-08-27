@@ -92,8 +92,7 @@ set(PROJECT_ADDITIONAL_SOURCES
     ${CMAKE_SOURCE_DIR}/src/CropRectangle.h
     ${CMAKE_SOURCE_DIR}/src/Tools.cpp
     ${CMAKE_SOURCE_DIR}/src/Tools.h
-    ${CMAKE_SOURCE_DIR}/src/ffmpegWrapper.h
-    ${CMAKE_SOURCE_DIR}/src/ffmpeg.cpp
+    ${CMAKE_SOURCE_DIR}/src/ffmpegInterface.h
     ${CMAKE_SOURCE_DIR}/src/ffmpeg.h
     ${CMAKE_SOURCE_DIR}/src/Settings.cpp
     ${CMAKE_SOURCE_DIR}/src/Settings.h
