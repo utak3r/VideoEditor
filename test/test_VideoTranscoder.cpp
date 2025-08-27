@@ -93,7 +93,7 @@ public:
 };
 
 
-TEST_F(VideoTranscoderTest, FilenameTest)
+TEST_F(VideoTranscoderTest, FilenameTest_Success)
 {
 	transcoder.setInputFile("input.mp4");
 	transcoder.setOutputFile("output.mp4");
@@ -101,7 +101,7 @@ TEST_F(VideoTranscoderTest, FilenameTest)
 	EXPECT_EQ(transcoder.outputFile(), "output.mp4");
 }
 
-TEST_F(VideoTranscoderTest, SettingOutputParamsTest)
+TEST_F(VideoTranscoderTest, SettingOutputParamsTest_Success)
 {
 	transcoder.setOutputFramerate(30, 1);
 	transcoder.setOutputResolution(1920, 1080);
@@ -124,7 +124,7 @@ TEST_F(VideoTranscoderTest, SettingOutputParamsTest)
 	EXPECT_EQ(encoder->cropWindow, QRect(0, 0, 1280, 720));
 }
 
-TEST_F(VideoTranscoderTest, MarkInOutTest)
+TEST_F(VideoTranscoderTest, MarkInOutTest_Success)
 {
 	TimelineMarks marks;
 	marks.setMarkIn(5.0);
@@ -135,7 +135,7 @@ TEST_F(VideoTranscoderTest, MarkInOutTest)
 	EXPECT_DOUBLE_EQ(retMarks.MarkOut(), 15.0);
 }
 
-TEST_F(VideoTranscoderTest, MetadataTest)
+TEST_F(VideoTranscoderTest, MetadataTest_Success)
 {
 	transcoder.setMetadata("title", "Test Video");
 	transcoder.setMetadata("author", "Unit Tester");
@@ -210,7 +210,7 @@ TEST_F(VideoTranscoderTest, OpenInput_OnlyVideoStream)
 	EXPECT_EQ(decoder->audioStream, nullptr);
 }
 
-TEST_F(VideoTranscoderTest, OpenOutputTest)
+TEST_F(VideoTranscoderTest, OpenOutputTest_Success)
 {
 	transcoder.setOutputFile("test_output.mp4");
 	
@@ -226,7 +226,7 @@ TEST_F(VideoTranscoderTest, OpenOutputTest)
 	EXPECT_NE(encoder->formatContext, nullptr);
 }
 
-TEST_F(VideoTranscoderTest, prepareVideoDecoderTest)
+TEST_F(VideoTranscoderTest, prepareVideoDecoderTest_Success)
 {
 	AVStream fakeStream{};
 	AVCodecParameters fakeCodecParams{};
