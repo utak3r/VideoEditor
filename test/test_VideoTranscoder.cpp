@@ -10,6 +10,7 @@ using ::testing::DoAll;
 using ::testing::Return;
 using ::testing::SetArgPointee;
 using ::testing::StrEq;
+using ::testing::AnyNumber;
 
 class VideoTranscoderTest : public ::testing::Test
 {
@@ -27,18 +28,39 @@ protected:
 		decoder = transcoder.decoder();
 		encoder = transcoder.encoder();
 
-		/*ON_CALL(ff, av_frame_free)
-			.WillByDefault(::testing::Invoke([](AVFrame** f)
-			{
-				if (f)
-					*f = nullptr;
-			}));*/
+		// Let's ignore calls on cleanup
+		// most of them come from destructor of CodecHandlers struct.
 
-		EXPECT_CALL(ff, av_frame_free)
-			.Times(::testing::AnyNumber())
+		EXPECT_CALL(ff, av_frame_free(_))
+			.Times(AnyNumber())
 			.WillRepeatedly([](AVFrame** f) {
 			if (f) *f = nullptr;
 				});
+
+		EXPECT_CALL(ff, avcodec_free_context(_))
+			.Times(AnyNumber())
+			.WillRepeatedly([](AVCodecContext** ctx) {
+			if (ctx) *ctx = nullptr;
+				});
+
+		EXPECT_CALL(ff, avformat_close_input(_))
+			.Times(AnyNumber());
+
+		EXPECT_CALL(ff, avformat_free_context(_))
+			.Times(AnyNumber());
+
+		EXPECT_CALL(ff, sws_freeContext(_))
+			.Times(AnyNumber());
+
+		EXPECT_CALL(ff, swr_free(_))
+			.Times(AnyNumber());
+
+		EXPECT_CALL(ff, av_audio_fifo_free(_))
+			.Times(AnyNumber());
+
+		EXPECT_CALL(ff, avio_closep(_))
+			.Times(AnyNumber());
+
 	}
 
 	void TearDown() override
