@@ -235,14 +235,10 @@ TEST_F(VideoTranscoderTest, prepareVideoDecoderTest_Success)
 	AVCodec fakeCodec;
 	decoder->videoStream = &fakeStream;
 
-	EXPECT_CALL(ff, avcodec_find_decoder(testing::_))
-		.WillOnce(testing::Return(&fakeCodec));
-	EXPECT_CALL(ff, avcodec_alloc_context3(testing::_))
-		.WillOnce(testing::Return((AVCodecContext*)0x1));
-	EXPECT_CALL(ff, avcodec_parameters_to_context(testing::_, testing::_))
-		.WillOnce(testing::Return(0));
-	EXPECT_CALL(ff, avcodec_open2(testing::_, testing::_, nullptr))
-		.WillOnce(testing::Return(0));
+	EXPECT_CALL(ff, avcodec_find_decoder(_)).WillOnce(Return(&fakeCodec));
+	EXPECT_CALL(ff, avcodec_alloc_context3(_)).WillOnce(Return((AVCodecContext*)0x1));
+	EXPECT_CALL(ff, avcodec_parameters_to_context(_, _)).WillOnce(Return(0));
+	EXPECT_CALL(ff, avcodec_open2(_, _, nullptr)).WillOnce(Return(0));
 
 	EXPECT_TRUE(VideoTranscoderTest::prepareVideoDecoder(transcoder));
 }
