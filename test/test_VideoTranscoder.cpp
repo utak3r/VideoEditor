@@ -272,15 +272,9 @@ TEST_F(VideoTranscoderTest, PrepareVideoEncoder_Success)
 	AVFrame fakeFrame{};
 
 
-	EXPECT_CALL(ff, avcodec_find_encoder_by_name(StrEq("libx264")))
-		.WillOnce(Return(&fakeCodec));
-
-	EXPECT_CALL(ff, avcodec_alloc_context3(testing::_))
-		.WillOnce(testing::Return(&fakeOutCtx));
-
-	EXPECT_CALL(ff, av_guess_frame_rate(_, _, _))
-		.WillOnce(Return(fakeFps));
-
+	EXPECT_CALL(ff, avcodec_find_encoder_by_name(StrEq("libx264"))).WillOnce(Return(&fakeCodec));
+	EXPECT_CALL(ff, avcodec_alloc_context3(testing::_)).WillOnce(Return(&fakeOutCtx));
+	EXPECT_CALL(ff, av_guess_frame_rate(_, _, _)).WillOnce(Return(fakeFps));
 	EXPECT_CALL(ff, avcodec_get_supported_config(_, _, AV_CODEC_CONFIG_PIX_FORMAT, _, _, _))
 		.WillOnce([](const AVCodecContext*, const AVCodec*, enum AVCodecConfig,
 			int, const void** values, int* nb_values) {
@@ -290,12 +284,17 @@ TEST_F(VideoTranscoderTest, PrepareVideoEncoder_Success)
 				return 0;
 			});
 
-	EXPECT_CALL(ff, avformat_new_stream(testing::_, testing::_))
-		.WillOnce(testing::Return(&fakeStream));
-	EXPECT_CALL(ff, avcodec_open2(&fakeOutCtx, testing::_, nullptr))
-		.WillOnce(testing::Return(0));
+	EXPECT_CALL(ff, avformat_new_stream(testing::_, testing::_)).WillOnce(Return(&fakeStream));
+	EXPECT_CALL(ff, avcodec_open2(&fakeOutCtx, testing::_, nullptr)).WillOnce(Return(0));
+	EXPECT_CALL(ff, avcodec_parameters_from_context(_, &fakeOutCtx)).WillOnce(Return(0));
 
+	// SWS initialization
+	EXPECT_CALL(ff, sws_getContext(fakeInCtx.width, fakeInCtx.height, AV_PIX_FMT_YUV420P,
+		fakeInCtx.width, fakeInCtx.height, AV_PIX_FMT_YUV420P,
+		SWS_BILINEAR, nullptr, nullptr, nullptr));
 	EXPECT_CALL(ff, av_frame_alloc()).WillOnce(Return(&fakeFrame));
+	EXPECT_CALL(ff, av_frame_get_buffer(&fakeFrame, 32)).WillOnce(Return(0));
 
+	// TEST IT
 	EXPECT_TRUE(VideoTranscoderTest::prepareVideoEncoder(transcoder));
 }
