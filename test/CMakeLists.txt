@@ -45,6 +45,7 @@ add_executable(VEUnitTests
     test_VideoTranscoder.cpp
     test_EncodingPreset.cpp
     test_VideoSlider.cpp
+    test_CropRectangle.cpp
     ${PROJECT_ADDITIONAL_SOURCES}
     )
 
