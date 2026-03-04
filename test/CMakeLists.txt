@@ -41,7 +41,10 @@ include_directories(
 add_executable(VEUnitTests
     main.cpp
     ffmpegMock.h
+    tst_videoeditor.cpp
     test_VideoTranscoder.cpp
+    test_EncodingPreset.cpp
+    test_VideoSlider.cpp
     ${PROJECT_ADDITIONAL_SOURCES}
     )
 

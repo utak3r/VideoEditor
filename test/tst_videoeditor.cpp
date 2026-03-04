@@ -61,3 +61,37 @@ TEST(TimelineMarks, EdgeCases)
     EXPECT_EQ(marks.Duration(), 40000); // setting the mark out should fail and stay on the video's end
     EXPECT_EQ(marks.CurrentRange(), QString(QLatin1String("00:00:20.000 - 00:01:00.000")));
 }
+
+TEST(TimelineMarks, Extended)
+{
+    TimelineMarks marks;
+    marks.Reset(60000);
+    EXPECT_EQ(marks.IsFullVideo(), true);
+    EXPECT_EQ(marks.MillisecondsStart(), 0);
+    EXPECT_EQ(marks.MillisecondsEnd(), 60000);
+
+    marks.setMarkIn(10000);
+    marks.setMarkOut(50000);
+    EXPECT_EQ(marks.IsFullVideo(), false);
+    EXPECT_EQ(marks.MillisecondsStart(), 10000);
+    EXPECT_EQ(marks.MillisecondsEnd(), 50000);
+
+    TimelineMarks marks2;
+    marks2.Reset(60000);
+    marks2.setMarkIn(10000);
+    marks2.setMarkOut(50000);
+    EXPECT_TRUE(marks == marks2);
+
+    marks2.setMarkIn(20000);
+    EXPECT_TRUE(marks != marks2);
+
+    TimelineMarks marks3(marks2);
+    EXPECT_TRUE(marks3 == marks2);
+    EXPECT_EQ(marks3.MillisecondsStart(), 20000);
+    EXPECT_EQ(marks3.MillisecondsEnd(), 50000);
+
+    TimelineMarks marks4;
+    marks4 = marks3;
+    EXPECT_TRUE(marks4 == marks3);
+    EXPECT_EQ(marks4.AsString(), QString(QLatin1String("00:00:20.000 - 00:00:50.000")));
+}
