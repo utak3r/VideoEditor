@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.30)
+cmake_minimum_required(VERSION 3.20)
 
 project(VEUnitTests LANGUAGES CXX)
 
@@ -50,12 +50,12 @@ add_executable(VEUnitTests
 
 target_link_libraries(VEUnitTests
     PUBLIC
-    "${FFMPEG_DIR}/lib/avformat.lib"
-    "${FFMPEG_DIR}/lib/avcodec.lib"
-    "${FFMPEG_DIR}/lib/avutil.lib"
-    "${FFMPEG_DIR}/lib/swscale.lib"
-    "${FFMPEG_DIR}/lib/swresample.lib"
-    "${FFMPEG_DIR}/lib/avfilter.lib"
+    avformat
+    avcodec
+    avutil
+    swscale
+    swresample
+    avfilter
     PRIVATE
     Threads::Threads GTest::gtest_main GTest::gmock_main
     Qt6::Widgets Qt6::Multimedia Qt6::MultimediaWidgets
