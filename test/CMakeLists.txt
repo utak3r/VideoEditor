@@ -47,6 +47,7 @@ add_executable(VEUnitTests
     test_VideoSlider.cpp
     test_CropRectangle.cpp
     test_CropRectangle.cpp
+    test_CropRectangle.cpp
     ${PROJECT_ADDITIONAL_SOURCES}
     )
 
