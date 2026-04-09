@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.30)
+cmake_minimum_required(VERSION 3.80)
 
 project(VideoEditorEXE VERSION 1.0 LANGUAGES CXX)
 
@@ -33,26 +33,18 @@ if(Qt6LinguistTools_FOUND)
 endif()
 
 
-#set(FFMPEG_DIR "C:/tools/ffmpeg")
-find_path(FFMPEG_DIR include/libavcodec/avcodec.h)
-
-target_include_directories(VideoEditor 
-    PRIVATE 
-        "${FFMPEG_DIR}/include"
-)
-
 target_link_libraries(VideoEditor
     PRIVATE 
         Qt6::Widgets 
         Qt6::Multimedia 
         Qt6::MultimediaWidgets
     PUBLIC
-        "${FFMPEG_DIR}/lib/avformat.lib"
-        "${FFMPEG_DIR}/lib/avcodec.lib"
-        "${FFMPEG_DIR}/lib/avutil.lib"
-        "${FFMPEG_DIR}/lib/swscale.lib"
-        "${FFMPEG_DIR}/lib/swresample.lib"
-        "${FFMPEG_DIR}/lib/avfilter.lib"
+        "FFmpeg::avformat"
+        "FFmpeg::avcodec"
+        "FFmpeg::avutil"
+        "FFmpeg::swscale"
+        "FFmpeg::swresample"
+        "FFmpeg::avfilter"
 )
 
 set(cppcheck
@@ -78,69 +70,27 @@ install (TARGETS VideoEditor
     LIBRARY DESTINATION "${CMAKE_INSTALL_PREFIX}"
     )
 
-install(FILES ${QM_FILES}
-    DESTINATION "${CMAKE_INSTALL_PREFIX}/translations")
+install(CODE "
+    execute_process(COMMAND \"${WINDEPLOYQT_EXECUTABLE}\" 
+        --no-opengl-sw 
+        --no-translations 
+        --dir \"\${CMAKE_INSTALL_PREFIX}\" 
+        \"\${CMAKE_INSTALL_PREFIX}/VideoEditor.exe\")
+")
 
-if (EXISTS ${WINDEPLOYQT_EXECUTABLE})
-	install (CODE "
-		execute_process(COMMAND \"${WINDEPLOYQT_EXECUTABLE}\" --dir \"${CMAKE_INSTALL_PREFIX}\" \"${CMAKE_BINARY_DIR}/src/Release/VideoEditor.exe\")
-	")
-    execute_process(
-      COMMAND "${WINDEPLOYQT_EXECUTABLE}" --dir "${CMAKE_INSTALL_PREFIX}" "${CMAKE_BINARY_DIR}/src/Release/VideoEditor.exe"
-    )
-else()
-    set(QT_LIBS
-        "${CMAKE_PREFIX_PATH}/bin/Qt6Core.dll"
-        "${CMAKE_PREFIX_PATH}/bin/Qt6Gui.dll"
-        "${CMAKE_PREFIX_PATH}/bin/Qt6Widgets.dll"
-        "${CMAKE_PREFIX_PATH}/bin/Qt6Multimedia.dll"
-        "${CMAKE_PREFIX_PATH}/bin/Qt6MultimediaWidgets.dll"
-        "${CMAKE_PREFIX_PATH}/bin/Qt6Network.dll"
-        "${CMAKE_PREFIX_PATH}/bin/Qt6Svg.dll"
-        )
-    install(FILES ${QT_LIBS} DESTINATION "${CMAKE_INSTALL_PREFIX}")
-    install(FILES
-        "${CMAKE_PREFIX_PATH}/plugins/platforms/qwindows.dll"
-        DESTINATION "${CMAKE_INSTALL_PREFIX}/platforms"
-        )
-#    install(FILES
-#        "${CMAKE_PREFIX_PATH}/plugins/styles/qwindowsvistastyle.dll"
-#        DESTINATION "${CMAKE_INSTALL_PREFIX}/styles"
-#        )
-    install(FILES
-        "${CMAKE_PREFIX_PATH}/plugins/iconengines/qsvgicon.dll"
-        DESTINATION "${CMAKE_INSTALL_PREFIX}/iconengines"
-        )
-    install(FILES
-        "${CMAKE_PREFIX_PATH}/plugins/imageformats/qgif.dll"
-        "${CMAKE_PREFIX_PATH}/plugins/imageformats/qicns.dll"
-        "${CMAKE_PREFIX_PATH}/plugins/imageformats/qico.dll"
-        "${CMAKE_PREFIX_PATH}/plugins/imageformats/qjpeg.dll"
-        "${CMAKE_PREFIX_PATH}/plugins/imageformats/qpdf.dll"
-        "${CMAKE_PREFIX_PATH}/plugins/imageformats/qsvg.dll"
-        "${CMAKE_PREFIX_PATH}/plugins/imageformats/qtga.dll"
-        "${CMAKE_PREFIX_PATH}/plugins/imageformats/qtiff.dll"
-        "${CMAKE_PREFIX_PATH}/plugins/imageformats/qwbmp.dll"
-        "${CMAKE_PREFIX_PATH}/plugins/imageformats/qwebp.dll"
-        DESTINATION "${CMAKE_INSTALL_PREFIX}/imageformats"
-        )
-endif()
-
-# There's a bug in deployqt tool in Qt 6.4.0, so we need to fix it:
-if (${Qt6_VERSION_MAJOR}.${Qt6_VERSION_MINOR}.${Qt6_VERSION_PATCH} VERSION_EQUAL "6.4.0")
-    install(FILES
-        "${CMAKE_PREFIX_PATH}/plugins/multimedia/windowsmediaplugin.dll"
-        "${CMAKE_PREFIX_PATH}/plugins/multimedia/ffmpegmediaplugin.dll"
-        DESTINATION "${CMAKE_INSTALL_PREFIX}/multimedia"
-        )
-endif()
-
-install(FILES 
-    "${FFMPEG_DIR}/bin/avformat-61.dll"
-    "${FFMPEG_DIR}/bin/avcodec-61.dll"
-    "${FFMPEG_DIR}/bin/avutil-59.dll"
-    "${FFMPEG_DIR}/bin/swscale-8.dll"
-    "${FFMPEG_DIR}/bin/swresample-5.dll"
-    "${FFMPEG_DIR}/bin/avfilter-10.dll"
-    DESTINATION "${CMAKE_INSTALL_PREFIX}"
-    )
+set(FFMPEG_LIBS avformat avcodec avutil swscale swresample avfilter)
+foreach(lib IN LISTS FFMPEG_LIBS)
+    get_target_property(LIB_PATH FFmpeg::${lib} IMPORTED_LOCATION)
+    
+    if(LIB_PATH)
+        get_filename_component(LIB_NAME "${LIB_PATH}" NAME)
+        
+        message(STATUS "FFmpeg installation configuration: ${LIB_NAME} from path ${LIB_PATH}")
+        
+        install(FILES "${LIB_PATH}" 
+                DESTINATION "."
+                RENAME "${LIB_NAME}")
+    else()
+        message(WARNING "Couldn't find the path IMPORTED_LOCATION for FFmpeg::${lib}!")
+    endif()
+endforeach()
