@@ -50,6 +50,7 @@ VideoPlayer::VideoPlayer(QWidget* parent)
     theCropRectItem->setOpacity(50);
     theCropRectItem->setEnabled(false);
 	theScene->addItem(theCropRectItem);
+    setCropEnabled(false);
 
     theScene->addItem(theTimestampBgItem);
     theScene->addItem(theTimestampItem);
