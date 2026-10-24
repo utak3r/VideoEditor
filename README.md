@@ -11,31 +11,13 @@ If you want to rescale the output video, check *Scaling* and set your desired vi
 
 
 ### Building
-VideoEditor is a Qt based app, built using CMake.
+VideoEditor is a Qt based app, built using CMake. I suggest using an IDE supporting both CMake and Qt, like *Visual Code* where you can scan for *kits* and select it for building.
 
-If you have FFMPEG folder like this:
-+ some_dir/ffmpeg\
-Ͱ--+ bin\
-Ͱ------ ffmpeg.exe \
-Ͱ--+ include\
-Ͱ------+ libavcodec\
-Ͱ---------- avcodec.h\
-Ͱ------ etc.\
-Ͱ--+ lib\
-Ͱ------ avcodec.lib\
-Ͱ------ etc.
-
-then adding *some_dir/ffmpeg* to a PATH should be enough for CMake to find *include* and *lib* directories.
-
-For Qt6, add *QTDIR* env variable, leading to a root of Qt6, and then, when invoking cmake, add `-DQt6_DIR="%QTDIR%\lib\cmake\Qt6"`, so it can find a related *Qt6Config.cmake* file.
+It's also using **FFmpeg**. While *Qt* does have it, it's stripped off of encoders, so it's unusable. Download FFmpeg for yourself (for example [from here](https://www.gyan.dev/ffmpeg/builds/)) and specify its location during configuring CMake using `-DFFMPEG_ROOT=your/path_to/ffmpeg`.
 
 Also define an *INSTALL_DIR* env variable.
 
-Final cmake invocation should look like this:
-
-```
-cmake -DCMAKE_INSTALL_PREFIX:PATH="%INSTALL_DIR%" -DQt6_DIR="%QTDIR%\lib\cmake\Qt6" ..\VideoEditor
-```
+Configure, then build and then install. Install step gathers all required files from *Qt* and *FFmpeg*, so the application can run.
 
 ### Running
 After first run, two sample presets are created, review and/or modify them or add any new ones by clicking *Settings* button.
