@@ -1,4 +1,4 @@
-set(FFMPEG_COMPONENTS avcodec avformat avutil swscale swresample avfilter)
+set(FFMPEG_COMPONENTS avcodec avformat avutil swscale swresample avfilter postproc)
 
 if(NOT FFMPEG_ROOT)
     message(WARNING "FFMPEG_ROOT is not set. Searching might fail due to NO_DEFAULT_PATH.")
@@ -8,6 +8,7 @@ foreach(component ${FFMPEG_COMPONENTS})
     # Headers
     find_path(FFmpeg_${component}_INCLUDE_DIR
         NAMES lib${component}/${component}.h
+        lib${component}/postprocess.h
         PATHS ${FFMPEG_ROOT}
         PATH_SUFFIXES include
         NO_DEFAULT_PATH
@@ -24,8 +25,10 @@ foreach(component ${FFMPEG_COMPONENTS})
     # Shared libs
     find_file(FFmpeg_${component}_DLL
         NAMES 
-            ${component}-61.dll ${component}-60.dll ${component}-59.dll 
-            ${component}-10.dll ${component}-8.dll ${component}-5.dll
+            ${component}-62.dll ${component}-61.dll ${component}-60.dll 
+            ${component}-59.dll ${component}-58.dll ${component}-11.dll 
+            ${component}-10.dll ${component}-9.dll ${component}-8.dll 
+            ${component}-6.dll ${component}-5.dll
         PATHS ${FFMPEG_ROOT}
         PATH_SUFFIXES bin
         NO_DEFAULT_PATH

@@ -47,12 +47,13 @@ add_executable(VEFunctionalTests
 
 target_link_libraries(VEFunctionalTests
     PUBLIC
-    "${FFMPEG_DIR}/lib/avformat.lib"
-    "${FFMPEG_DIR}/lib/avcodec.lib"
-    "${FFMPEG_DIR}/lib/avutil.lib"
-    "${FFMPEG_DIR}/lib/swscale.lib"
-    "${FFMPEG_DIR}/lib/swresample.lib"
-    "${FFMPEG_DIR}/lib/avfilter.lib"
+    "${FFmpeg_avformat_LIBRARY}"
+    "${FFmpeg_avcodec_LIBRARY}"
+    "${FFmpeg_avutil_LIBRARY}"
+    "${FFmpeg_avfilter_LIBRARY}"
+    "${FFmpeg_swscale_LIBRARY}"
+    "${FFmpeg_swresample_LIBRARY}"
+    "${FFmpeg_postproc_LIBRARY}"
     PRIVATE
     Threads::Threads GTest::gtest_main
     Qt6::Widgets Qt6::Multimedia Qt6::MultimediaWidgets

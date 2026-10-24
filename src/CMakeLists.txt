@@ -45,6 +45,7 @@ target_link_libraries(VideoEditor
         "FFmpeg::swscale"
         "FFmpeg::swresample"
         "FFmpeg::avfilter"
+        "FFmpeg::postproc"
 )
 
 set(cppcheck
@@ -78,7 +79,7 @@ install(CODE "
         \"\${CMAKE_INSTALL_PREFIX}/VideoEditor.exe\")
 ")
 
-set(FFMPEG_LIBS avformat avcodec avutil swscale swresample avfilter)
+set(FFMPEG_LIBS avformat avcodec avutil swscale swresample avfilter postproc)
 foreach(lib IN LISTS FFMPEG_LIBS)
     get_target_property(LIB_PATH FFmpeg::${lib} IMPORTED_LOCATION)
     

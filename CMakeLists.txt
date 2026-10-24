@@ -5,7 +5,7 @@ project(VideoEditor VERSION 0.1 LANGUAGES CXX)
 set (PROJECT_NAME "VideoEditor")
 set (PROJECT_VERSION_MAJOR 1)
 set (PROJECT_VERSION_MINOR 3)
-set (PROJECT_VERSION_PATCH 1)
+set (PROJECT_VERSION_PATCH 2)
 set (PROJECT_COPYRIGHT "Piotr 'utak3r' Borys")
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
@@ -68,7 +68,7 @@ configure_file(
 # There's a limited version of FFmpeg in Qt, and its scripts are very aggressive about their search paths
 # so we need to be aggressive, too, to have the FFmpeg files be taken from the right place
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
-find_package(FFmpeg MODULE REQUIRED COMPONENTS avformat avcodec avutil avfilter swscale swresample)
+find_package(FFmpeg MODULE REQUIRED COMPONENTS avformat avcodec avutil avfilter swscale swresample postproc)
 # Now we can look for Qt, once FFmpeg is found and written to a cache
 find_package(Qt6 REQUIRED COMPONENTS Widgets LinguistTools Multimedia MultimediaWidgets)
 
