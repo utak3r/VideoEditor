@@ -884,9 +884,10 @@ bool VideoTranscoder::transcode()
 	theEncoder.videoStartPts = seekStream(theDecoder.formatContext, theDecoder.videoStream->index,
 		theMarks.MillisecondsStart(), theDecoder.videoStream->time_base, 
         theDecoder.videoCodecContext);
-    theEncoder.audioStartPts = seekStream(theDecoder.formatContext, theDecoder.audioStream->index,
-        theMarks.MillisecondsStart(), theDecoder.audioStream->time_base, 
-		theDecoder.audioCodecContext);
+	if (theDecoder.audioStream)
+        theEncoder.audioStartPts = seekStream(theDecoder.formatContext, theDecoder.audioStream->index,
+            theMarks.MillisecondsStart(), theDecoder.audioStream->time_base, 
+		    theDecoder.audioCodecContext);
 	// get PTS of the end mark
     theEncoder.videoEndPts = calculatePts(theDecoder.videoStream, theMarks.MillisecondsEnd());
 
