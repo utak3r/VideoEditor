@@ -254,7 +254,7 @@ TEST_F(VideoTranscoderTest, PrepareVideoEncoder_Success)
 	AVCodecContext fakeInCtx{};
 	fakeInCtx.width = 1920;
 	fakeInCtx.height = 1080;
-	decoder->videoCodecContext = &fakeInCtx;
+	decoder->videoCodecContext.reset(&fakeInCtx);
 	encoder->videoSize = QSize(1920, 1080);
 	AVRational fakeFps{ 1, 30 };
 	AVFormatContext fakeFormatCtx{};
@@ -293,4 +293,5 @@ TEST_F(VideoTranscoderTest, PrepareVideoEncoder_Success)
 
 	// TEST IT
 	EXPECT_TRUE(VideoTranscoderTest::prepareVideoEncoder(transcoder));
+	decoder->videoCodecContext.release();
 }

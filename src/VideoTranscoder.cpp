@@ -19,24 +19,23 @@ VideoTranscoder::~VideoTranscoder()
 
 VideoTranscoder::CodecHandlers::~CodecHandlers()
 {
-    if (!ff)
-        return;
-	if (scalingContext) ff->sws_freeContext(scalingContext);
-	if (resamplingContext) ff->swr_free(&resamplingContext);
-	if (audioFifo) ff->av_audio_fifo_free(audioFifo);
-    if (cropFilterGraph) 
-    {
-        ff->avfilter_graph_free(&cropFilterGraph);
-        cropFilterSrc = nullptr;
-        cropFilterSink = nullptr;
-    }
-    
-    ff->av_frame_free(&rescaledFrame);
-    ff->av_frame_free(&resampledFrame);
+    reset();
+}
 
-    if (videoCodecContext) ff->avcodec_free_context(&videoCodecContext);
-    if (audioCodecContext) ff->avcodec_free_context(&audioCodecContext);
-    if (formatContext)
+void VideoTranscoder::CodecHandlers::reset()
+{
+    scalingContext.reset();
+    resamplingContext.reset();
+    audioFifo.reset();
+    cropFilterGraph.reset();
+    cropFilterSrc = nullptr;
+    cropFilterSink = nullptr;
+    rescaledFrame.reset();
+    resampledFrame.reset();
+    videoCodecContext.reset();
+    audioCodecContext.reset();
+
+    if (formatContext && ff)
     {
         if (formatContext->iformat)
         {
@@ -293,10 +292,10 @@ bool VideoTranscoder::prepareVideoDecoder()
     if (!theDecoder.videoStream) return true;
     const AVCodec* dec = ff.avcodec_find_decoder(theDecoder.videoStream->codecpar->codec_id);
     if (!dec) return false;
-    theDecoder.videoCodecContext = ff.avcodec_alloc_context3(dec);
+    theDecoder.videoCodecContext.reset(ff.avcodec_alloc_context3(dec));
     if (!theDecoder.videoCodecContext) return false;
-    if (ff.avcodec_parameters_to_context(theDecoder.videoCodecContext, theDecoder.videoStream->codecpar) < 0) return false;
-    if (ff.avcodec_open2(theDecoder.videoCodecContext, dec, nullptr) < 0) return false;
+    if (ff.avcodec_parameters_to_context(theDecoder.videoCodecContext.get(), theDecoder.videoStream->codecpar) < 0) return false;
+    if (ff.avcodec_open2(theDecoder.videoCodecContext.get(), dec, nullptr) < 0) return false;
     return true;
 }
 
@@ -305,10 +304,10 @@ bool VideoTranscoder::prepareAudioDecoder()
     if (!theDecoder.audioStream) return true;
     const AVCodec* dec = ff.avcodec_find_decoder(theDecoder.audioStream->codecpar->codec_id);
     if (!dec) return false;
-    theDecoder.audioCodecContext = ff.avcodec_alloc_context3(dec);
+    theDecoder.audioCodecContext.reset(ff.avcodec_alloc_context3(dec));
     if (!theDecoder.audioCodecContext) return false;
-    if (ff.avcodec_parameters_to_context(theDecoder.audioCodecContext, theDecoder.audioStream->codecpar) < 0) return false;
-    if (ff.avcodec_open2(theDecoder.audioCodecContext, dec, nullptr) < 0) return false;
+    if (ff.avcodec_parameters_to_context(theDecoder.audioCodecContext.get(), theDecoder.audioStream->codecpar) < 0) return false;
+    if (ff.avcodec_open2(theDecoder.audioCodecContext.get(), dec, nullptr) < 0) return false;
     return true;
 }
 
@@ -357,14 +356,14 @@ bool VideoTranscoder::prepareVideoEncoder()
 
     const AVCodec* enc = theEncoder.videoCodec->getAVCodec();
 
-    theEncoder.videoCodecContext = ff.avcodec_alloc_context3(enc);
+    theEncoder.videoCodecContext.reset(ff.avcodec_alloc_context3(enc));
     if (!theEncoder.videoCodecContext) return false;
 
     AVRational fps = theEncoder.customFramerate ? theEncoder.framerate : pickInputFramerate();
     theEncoder.videoCodecContext->time_base = ff.av_inv_q(fps);
     theEncoder.videoCodecContext->framerate = fps;
 
-    theEncoder.videoCodecContext->pix_fmt = getFirstSupportedPixelFormat(theEncoder.videoCodecContext, enc);
+    theEncoder.videoCodecContext->pix_fmt = getFirstSupportedPixelFormat(theEncoder.videoCodecContext.get(), enc);
     theEncoder.videoCodecContext->sample_aspect_ratio = ff.av_make_q(1, 1);
 
     QSize targetSize = calculateOutputSize(
@@ -381,19 +380,19 @@ bool VideoTranscoder::prepareVideoEncoder()
 
     if (!theEncoder.videoCodecPreset.isEmpty())
     {
-        theEncoder.videoCodec->setPreset(theEncoder.videoCodecPreset, theEncoder.videoCodecContext);
+        theEncoder.videoCodec->setPreset(theEncoder.videoCodecPreset, theEncoder.videoCodecContext.get());
     }
 
     theEncoder.videoStream = ff.avformat_new_stream(theEncoder.formatContext, nullptr);
     if (!theEncoder.videoStream) return false;
     theEncoder.videoStream->time_base = theEncoder.videoCodecContext->time_base;
 
-    if (int ret = ff.avcodec_open2(theEncoder.videoCodecContext, enc, nullptr); ret < 0)
+    if (int ret = ff.avcodec_open2(theEncoder.videoCodecContext.get(), enc, nullptr); ret < 0)
     {
 		emit transcodingError(tr("Could not open video encoder: %1").arg(Tools::ffmpegErrorString(ret)));
         return false;
     }
-    if (int ret = ff.avcodec_parameters_from_context(theEncoder.videoStream->codecpar, theEncoder.videoCodecContext); ret < 0)
+    if (int ret = ff.avcodec_parameters_from_context(theEncoder.videoStream->codecpar, theEncoder.videoCodecContext.get()); ret < 0)
     {
 		emit transcodingError(tr("Could not initialize video stream parameters: %1").arg(Tools::ffmpegErrorString(ret)));
         return false;
@@ -414,29 +413,29 @@ bool VideoTranscoder::prepareAudioEncoder()
 
 	const AVCodec* enc = theEncoder.audioCodec->getAVCodec();
 
-    theEncoder.audioCodecContext = ff.avcodec_alloc_context3(enc);
+    theEncoder.audioCodecContext.reset(ff.avcodec_alloc_context3(enc));
     if (!theEncoder.audioCodecContext) return false;
 
     theEncoder.audioCodecContext->sample_rate = theDecoder.audioCodecContext->sample_rate;
     ff.av_channel_layout_copy(&theEncoder.audioCodecContext->ch_layout, &theDecoder.audioCodecContext->ch_layout);
     theEncoder.audioCodecContext->time_base = AVRational{ 1, theEncoder.audioCodecContext->sample_rate };
 
-    theEncoder.audioCodecContext->sample_fmt = getFirstSupportedSampleFormat(theEncoder.audioCodecContext, enc);
+    theEncoder.audioCodecContext->sample_fmt = getFirstSupportedSampleFormat(theEncoder.audioCodecContext.get(), enc);
 
     if (theEncoder.formatContext->oformat->flags & AVFMT_GLOBALHEADER)
         theEncoder.audioCodecContext->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
 
     if (!theEncoder.audioCodecPreset.isEmpty())
     {
-        theEncoder.audioCodec->setPreset(theEncoder.audioCodecPreset, theEncoder.audioCodecContext);
+        theEncoder.audioCodec->setPreset(theEncoder.audioCodecPreset, theEncoder.audioCodecContext.get());
     }
 
     theEncoder.audioStream = ff.avformat_new_stream(theEncoder.formatContext, nullptr);
     if (!theEncoder.audioStream) return false;
     theEncoder.audioStream->time_base = theEncoder.audioCodecContext->time_base;
 
-    if (ff.avcodec_open2(theEncoder.audioCodecContext, enc, nullptr) < 0) return false;
-    if (ff.avcodec_parameters_from_context(theEncoder.audioStream->codecpar, theEncoder.audioCodecContext) < 0) return false;
+    if (ff.avcodec_open2(theEncoder.audioCodecContext.get(), enc, nullptr) < 0) return false;
+    if (ff.avcodec_parameters_from_context(theEncoder.audioStream->codecpar, theEncoder.audioCodecContext.get()) < 0) return false;
 
     initResampler();
     return true;
@@ -447,7 +446,7 @@ void VideoTranscoder::initCropFilter()
     char args[512];
     int ret = 0;
 
-    theDecoder.cropFilterGraph = ff.avfilter_graph_alloc();
+    theDecoder.cropFilterGraph.reset(ff.avfilter_graph_alloc());
     if (!theDecoder.cropFilterGraph) return;
 
     // Input to a filtergraph
@@ -469,11 +468,11 @@ void VideoTranscoder::initCropFilter()
     qDebug() << "Crop filter args:" << args;
 
     ret = ff.avfilter_graph_create_filter(&theDecoder.cropFilterSrc, buffersrc, "in",
-        args, nullptr, theDecoder.cropFilterGraph);
+        args, nullptr, theDecoder.cropFilterGraph.get());
     if (ret < 0) return;
 
     ret = ff.avfilter_graph_create_filter(&theDecoder.cropFilterSink, buffersink, "out",
-        nullptr, nullptr, theDecoder.cropFilterGraph);
+        nullptr, nullptr, theDecoder.cropFilterGraph.get());
     if (ret < 0) return;
 
     // crop filter
@@ -502,7 +501,7 @@ void VideoTranscoder::initCropFilter()
 
     AVFilterInOut* raw_inputs = inputs.release();
     AVFilterInOut* raw_outputs = outputs.release();
-    ret = ff.avfilter_graph_parse_ptr(theDecoder.cropFilterGraph, filterDesc, &raw_inputs, &raw_outputs, nullptr);
+    ret = ff.avfilter_graph_parse_ptr(theDecoder.cropFilterGraph.get(), filterDesc, &raw_inputs, &raw_outputs, nullptr);
     inputs.reset(raw_inputs);
     outputs.reset(raw_outputs);
     if (ret < 0)
@@ -511,7 +510,7 @@ void VideoTranscoder::initCropFilter()
         return;
     }
 
-    ret = ff.avfilter_graph_config(theDecoder.cropFilterGraph, nullptr);
+    ret = ff.avfilter_graph_config(theDecoder.cropFilterGraph.get(), nullptr);
     if (ret < 0) return;
 }
 
@@ -529,35 +528,36 @@ void VideoTranscoder::initScaler()
         srcPixFmt = (AVPixelFormat)ff.av_buffersink_get_format(theDecoder.cropFilterSink);
     }
 
-    theEncoder.scalingContext = ff.sws_getContext(width, height, srcPixFmt,
+    theEncoder.scalingContext.reset(ff.sws_getContext(width, height, srcPixFmt,
         theEncoder.videoCodecContext->width, theEncoder.videoCodecContext->height, theEncoder.videoCodecContext->pix_fmt,
-        theEncoder.scalingFilter, nullptr, nullptr, nullptr);
+        theEncoder.scalingFilter, nullptr, nullptr, nullptr));
 
-    theEncoder.rescaledFrame = ff.av_frame_alloc();
+    theEncoder.rescaledFrame = make_unique_frame(ff);
     theEncoder.rescaledFrame->format = theEncoder.videoCodecContext->pix_fmt;
     theEncoder.rescaledFrame->width = theEncoder.videoCodecContext->width;
     theEncoder.rescaledFrame->height = theEncoder.videoCodecContext->height;
-    if (ff.av_frame_get_buffer(theEncoder.rescaledFrame, 32) < 0)
+    if (ff.av_frame_get_buffer(theEncoder.rescaledFrame.get(), 32) < 0)
         throw std::runtime_error("av_frame_get_buffer(v_frame_conv) failed");
 }
 
 void VideoTranscoder::initResampler()
 {
-    theEncoder.resamplingContext = nullptr;
-    if (ff.swr_alloc_set_opts2(&theEncoder.resamplingContext,
+    SwrContext* swr = nullptr;
+    if (ff.swr_alloc_set_opts2(&swr,
         &theEncoder.audioCodecContext->ch_layout, theEncoder.audioCodecContext->sample_fmt, theEncoder.audioCodecContext->sample_rate,
         &theDecoder.audioCodecContext->ch_layout, theDecoder.audioCodecContext->sample_fmt, theDecoder.audioCodecContext->sample_rate,
-        0, nullptr) < 0)
+        0, nullptr) < 0 || !swr)
     {
         throw std::runtime_error("swr_alloc_set_opts2 failed");
     }
-    if (ff.swr_init(theEncoder.resamplingContext) < 0)
+    theEncoder.resamplingContext.reset(swr);
+    if (ff.swr_init(theEncoder.resamplingContext.get()) < 0)
         throw std::runtime_error("swr_init failed");
 
-    theEncoder.audioFifo = ff.av_audio_fifo_alloc(theEncoder.audioCodecContext->sample_fmt, theEncoder.audioCodecContext->ch_layout.nb_channels, 1);
+    theEncoder.audioFifo.reset(ff.av_audio_fifo_alloc(theEncoder.audioCodecContext->sample_fmt, theEncoder.audioCodecContext->ch_layout.nb_channels, 1));
     if (!theEncoder.audioFifo) throw std::runtime_error("av_audio_fifo_alloc failed");
 
-    theEncoder.resampledFrame = ff.av_frame_alloc();
+    theEncoder.resampledFrame = make_unique_frame(ff);
     if (!theEncoder.resampledFrame) throw std::runtime_error("av_frame_alloc a_frame_conv failed");
     theEncoder.resampledFrame->format = theEncoder.audioCodecContext->sample_fmt;
     theEncoder.resampledFrame->sample_rate = theEncoder.audioCodecContext->sample_rate;
@@ -567,10 +567,10 @@ void VideoTranscoder::initResampler()
 void VideoTranscoder::handleVideoPacket(AVPacket* pkt)
 {
     if (!theDecoder.videoCodecContext) return;
-    if (ff.avcodec_send_packet(theDecoder.videoCodecContext, pkt) < 0) return;
+    if (ff.avcodec_send_packet(theDecoder.videoCodecContext.get(), pkt) < 0) return;
 
     UniqueAVFrame in = make_unique_frame(ff);
-    while (ff.avcodec_receive_frame(theDecoder.videoCodecContext, in.get()) == 0)
+    while (ff.avcodec_receive_frame(theDecoder.videoCodecContext.get(), in.get()) == 0)
     {
         if (in->pts >= theEncoder.videoStartPts && (in->pts <= theEncoder.videoEndPts || in->pts == -1))
             processDecodedVideo(in.get());
@@ -583,10 +583,10 @@ void VideoTranscoder::handleVideoPacket(AVPacket* pkt)
 void VideoTranscoder::handleAudioPacket(AVPacket* pkt)
 {
     if (!theDecoder.audioCodecContext) return;
-    if (ff.avcodec_send_packet(theDecoder.audioCodecContext, pkt) < 0) return;
+    if (ff.avcodec_send_packet(theDecoder.audioCodecContext.get(), pkt) < 0) return;
 
     UniqueAVFrame in = make_unique_frame(ff);
-    while (ff.avcodec_receive_frame(theDecoder.audioCodecContext, in.get()) == 0)
+    while (ff.avcodec_receive_frame(theDecoder.audioCodecContext.get(), in.get()) == 0)
     {
 		if (in->pts >= theEncoder.audioStartPts)
             processDecodedAudio(in.get());
@@ -620,12 +620,12 @@ void VideoTranscoder::processDecodedVideo(AVFrame* in)
         UniqueAVFrame filtFrame = make_unique_frame(ff);
         while (ff.av_buffersink_get_frame(theDecoder.cropFilterSink, filtFrame.get()) >= 0)
         {
-            if (ff.av_frame_make_writable(theEncoder.rescaledFrame) >= 0)
+            if (ff.av_frame_make_writable(theEncoder.rescaledFrame.get()) >= 0)
             {
                 qDebug() << "crop frame format:" << ff.av_get_pix_fmt_name((AVPixelFormat)filtFrame->format);
                 qDebug() << "crop frame size:" << filtFrame->width << "x" << filtFrame->height;
                 filtFrame->sample_aspect_ratio = ff.av_make_q(1, 1);
-                ff.sws_scale(theEncoder.scalingContext, 
+                ff.sws_scale(theEncoder.scalingContext.get(), 
                     filtFrame->data, 
                     filtFrame->linesize,
                     0, filtFrame->height, 
@@ -637,8 +637,8 @@ void VideoTranscoder::processDecodedVideo(AVFrame* in)
     }
     else
     {
-        if (ff.av_frame_make_writable(theEncoder.rescaledFrame) < 0) return;
-        ff.sws_scale(theEncoder.scalingContext, in->data, in->linesize, 0, theDecoder.videoCodecContext->height,
+        if (ff.av_frame_make_writable(theEncoder.rescaledFrame.get()) < 0) return;
+        ff.sws_scale(theEncoder.scalingContext.get(), in->data, in->linesize, 0, theDecoder.videoCodecContext->height,
             theEncoder.rescaledFrame->data, theEncoder.rescaledFrame->linesize);
     }
 
@@ -646,12 +646,12 @@ void VideoTranscoder::processDecodedVideo(AVFrame* in)
 
     qDebug() << "Sending to codec frame format:" << ff.av_get_pix_fmt_name((AVPixelFormat)theEncoder.rescaledFrame->format);
     qDebug() << "Sending to codec frame size:" << theEncoder.rescaledFrame->width << "x" << theEncoder.rescaledFrame->height;
-    if (ff.avcodec_send_frame(theEncoder.videoCodecContext, theEncoder.rescaledFrame) < 0) return;
+    if (ff.avcodec_send_frame(theEncoder.videoCodecContext.get(), theEncoder.rescaledFrame.get()) < 0) return;
 
     UniqueAVPacket pkt = make_unique_packet(ff);
-    while (ff.avcodec_receive_packet(theEncoder.videoCodecContext, pkt.get()) == 0)
+    while (ff.avcodec_receive_packet(theEncoder.videoCodecContext.get(), pkt.get()) == 0)
     {
-        writePacket(pkt.get(), theEncoder.videoCodecContext, theEncoder.videoStream);
+        writePacket(pkt.get(), theEncoder.videoCodecContext.get(), theEncoder.videoStream);
         ff.av_packet_unref(pkt.get());
     }
 }
@@ -660,7 +660,7 @@ void VideoTranscoder::processDecodedAudio(AVFrame* in)
 {
     if (!theDecoder.audioCodecContext) return;
 
-    const int64_t delay = ff.swr_get_delay(theEncoder.resamplingContext, theDecoder.audioCodecContext->sample_rate);
+    const int64_t delay = ff.swr_get_delay(theEncoder.resamplingContext.get(), theDecoder.audioCodecContext->sample_rate);
     int dst_nb_samples = (int)ff.av_rescale_rnd(delay + in->nb_samples,
         theEncoder.audioCodecContext->sample_rate,
         theDecoder.audioCodecContext->sample_rate,
@@ -671,19 +671,19 @@ void VideoTranscoder::processDecodedAudio(AVFrame* in)
         return;
     }
 
-    ff.av_frame_unref(theEncoder.resampledFrame);
+    ff.av_frame_unref(theEncoder.resampledFrame.get());
     theEncoder.resampledFrame->format = theEncoder.audioCodecContext->sample_fmt;
     theEncoder.resampledFrame->sample_rate = theEncoder.audioCodecContext->sample_rate;
     ff.av_channel_layout_copy(&theEncoder.resampledFrame->ch_layout, &theEncoder.audioCodecContext->ch_layout);
     theEncoder.resampledFrame->nb_samples = dst_nb_samples;
 
-    if (ff.av_frame_get_buffer(theEncoder.resampledFrame, 0) < 0)
+    if (ff.av_frame_get_buffer(theEncoder.resampledFrame.get(), 0) < 0)
     {
         std::cerr << "av_frame_get_buffer(a_frame_conv) failed\n";
         return;
     }
 
-    int out_samples = ff.swr_convert(theEncoder.resamplingContext,
+    int out_samples = ff.swr_convert(theEncoder.resamplingContext.get(),
         theEncoder.resampledFrame->data, theEncoder.resampledFrame->nb_samples,
         (const uint8_t**)in->data, in->nb_samples);
     if (out_samples < 0)
@@ -695,12 +695,12 @@ void VideoTranscoder::processDecodedAudio(AVFrame* in)
 
     if (out_samples > 0)
     {
-        ff.av_audio_fifo_write(theEncoder.audioFifo, (void**)theEncoder.resampledFrame->data, out_samples);
+        ff.av_audio_fifo_write(theEncoder.audioFifo.get(), (void**)theEncoder.resampledFrame->data, out_samples);
     }
 
     if (theEncoder.audioCodecContext->frame_size > 0)
     {
-        while (ff.av_audio_fifo_size(theEncoder.audioFifo) >= theEncoder.audioCodecContext->frame_size)
+        while (ff.av_audio_fifo_size(theEncoder.audioFifo.get()) >= theEncoder.audioCodecContext->frame_size)
         {
             UniqueAVFrame out = make_unique_frame(ff);
             out->nb_samples = theEncoder.audioCodecContext->frame_size;
@@ -709,17 +709,17 @@ void VideoTranscoder::processDecodedAudio(AVFrame* in)
             ff.av_channel_layout_copy(&out->ch_layout, &theEncoder.audioCodecContext->ch_layout);
             ff.av_frame_get_buffer(out.get(), 0);
 
-            ff.av_audio_fifo_read(theEncoder.audioFifo, (void**)out->data, theEncoder.audioCodecContext->frame_size);
+            ff.av_audio_fifo_read(theEncoder.audioFifo.get(), (void**)out->data, theEncoder.audioCodecContext->frame_size);
 
             out->pts = theAudioPts;
             theAudioPts += out->nb_samples;
 
-            if (ff.avcodec_send_frame(theEncoder.audioCodecContext, out.get()) >= 0)
+            if (ff.avcodec_send_frame(theEncoder.audioCodecContext.get(), out.get()) >= 0)
             {
                 UniqueAVPacket pkt = make_unique_packet(ff);
-                while (ff.avcodec_receive_packet(theEncoder.audioCodecContext, pkt.get()) == 0)
+                while (ff.avcodec_receive_packet(theEncoder.audioCodecContext.get(), pkt.get()) == 0)
                 {
-                    writePacket(pkt.get(), theEncoder.audioCodecContext, theEncoder.audioStream);
+                    writePacket(pkt.get(), theEncoder.audioCodecContext.get(), theEncoder.audioStream);
                     ff.av_packet_unref(pkt.get());
                 }
             }
@@ -727,9 +727,9 @@ void VideoTranscoder::processDecodedAudio(AVFrame* in)
     }
     else
     {
-        while (ff.av_audio_fifo_size(theEncoder.audioFifo) > 0)
+        while (ff.av_audio_fifo_size(theEncoder.audioFifo.get()) > 0)
         {
-            const int nb = ff.av_audio_fifo_size(theEncoder.audioFifo);
+            const int nb = ff.av_audio_fifo_size(theEncoder.audioFifo.get());
             UniqueAVFrame out = make_unique_frame(ff);
             out->nb_samples = nb;
             out->format = theEncoder.audioCodecContext->sample_fmt;
@@ -737,17 +737,17 @@ void VideoTranscoder::processDecodedAudio(AVFrame* in)
             ff.av_channel_layout_copy(&out->ch_layout, &theEncoder.audioCodecContext->ch_layout);
             ff.av_frame_get_buffer(out.get(), 0);
 
-            ff.av_audio_fifo_read(theEncoder.audioFifo, (void**)out->data, nb);
+            ff.av_audio_fifo_read(theEncoder.audioFifo.get(), (void**)out->data, nb);
 
             out->pts = theAudioPts;
             theAudioPts += out->nb_samples;
 
-            if (ff.avcodec_send_frame(theEncoder.audioCodecContext, out.get()) >= 0)
+            if (ff.avcodec_send_frame(theEncoder.audioCodecContext.get(), out.get()) >= 0)
             {
                 UniqueAVPacket pkt = make_unique_packet(ff);
-                while (ff.avcodec_receive_packet(theEncoder.audioCodecContext, pkt.get()) == 0)
+                while (ff.avcodec_receive_packet(theEncoder.audioCodecContext.get(), pkt.get()) == 0)
                 {
-                    writePacket(pkt.get(), theEncoder.audioCodecContext, theEncoder.audioStream);
+                    writePacket(pkt.get(), theEncoder.audioCodecContext.get(), theEncoder.audioStream);
                     ff.av_packet_unref(pkt.get());
                 }
             }
@@ -758,11 +758,11 @@ void VideoTranscoder::processDecodedAudio(AVFrame* in)
 void VideoTranscoder::flushVideo()
 {
     if (!theEncoder.videoCodecContext) return;
-    ff.avcodec_send_frame(theEncoder.videoCodecContext, nullptr);
+    ff.avcodec_send_frame(theEncoder.videoCodecContext.get(), nullptr);
     UniqueAVPacket pkt = make_unique_packet(ff);
-    while (ff.avcodec_receive_packet(theEncoder.videoCodecContext, pkt.get()) == 0)
+    while (ff.avcodec_receive_packet(theEncoder.videoCodecContext.get(), pkt.get()) == 0)
     {
-        writePacket(pkt.get(), theEncoder.videoCodecContext, theEncoder.videoStream);
+        writePacket(pkt.get(), theEncoder.videoCodecContext.get(), theEncoder.videoStream);
         ff.av_packet_unref(pkt.get());
     }
 }
@@ -773,9 +773,9 @@ void VideoTranscoder::flushAudio()
 
     if (theEncoder.audioCodecContext->frame_size > 0)
     {
-        while (ff.av_audio_fifo_size(theEncoder.audioFifo) > 0)
+        while (ff.av_audio_fifo_size(theEncoder.audioFifo.get()) > 0)
         {
-            const int nb = std::min(ff.av_audio_fifo_size(theEncoder.audioFifo), theEncoder.audioCodecContext->frame_size);
+            const int nb = std::min(ff.av_audio_fifo_size(theEncoder.audioFifo.get()), theEncoder.audioCodecContext->frame_size);
             UniqueAVFrame out = make_unique_frame(ff);
             out->nb_samples = nb;
             out->format = theEncoder.audioCodecContext->sample_fmt;
@@ -783,26 +783,26 @@ void VideoTranscoder::flushAudio()
             ff.av_channel_layout_copy(&out->ch_layout, &theEncoder.audioCodecContext->ch_layout);
             ff.av_frame_get_buffer(out.get(), 0);
 
-            ff.av_audio_fifo_read(theEncoder.audioFifo, (void**)out->data, nb);
+            ff.av_audio_fifo_read(theEncoder.audioFifo.get(), (void**)out->data, nb);
 
             out->pts = theAudioPts;
             theAudioPts += out->nb_samples;
 
-            ff.avcodec_send_frame(theEncoder.audioCodecContext, out.get());
+            ff.avcodec_send_frame(theEncoder.audioCodecContext.get(), out.get());
             UniqueAVPacket pkt = make_unique_packet(ff);
-            while (ff.avcodec_receive_packet(theEncoder.audioCodecContext, pkt.get()) == 0)
+            while (ff.avcodec_receive_packet(theEncoder.audioCodecContext.get(), pkt.get()) == 0)
             {
-                writePacket(pkt.get(), theEncoder.audioCodecContext, theEncoder.audioStream);
+                writePacket(pkt.get(), theEncoder.audioCodecContext.get(), theEncoder.audioStream);
                 ff.av_packet_unref(pkt.get());
             }
         }
     }
 
-    ff.avcodec_send_frame(theEncoder.audioCodecContext, nullptr);
+    ff.avcodec_send_frame(theEncoder.audioCodecContext.get(), nullptr);
     UniqueAVPacket pkt = make_unique_packet(ff);
-    while (ff.avcodec_receive_packet(theEncoder.audioCodecContext, pkt.get()) == 0)
+    while (ff.avcodec_receive_packet(theEncoder.audioCodecContext.get(), pkt.get()) == 0)
     {
-        writePacket(pkt.get(), theEncoder.audioCodecContext, theEncoder.audioStream);
+        writePacket(pkt.get(), theEncoder.audioCodecContext.get(), theEncoder.audioStream);
         ff.av_packet_unref(pkt.get());
     }
 }
@@ -889,11 +889,11 @@ bool VideoTranscoder::transcode()
     // seek to mark in
 	theEncoder.videoStartPts = seekStream(theDecoder.formatContext, theDecoder.videoStream->index,
 		theMarks.MillisecondsStart(), theDecoder.videoStream->time_base, 
-        theDecoder.videoCodecContext);
+        theDecoder.videoCodecContext.get());
 	if (theDecoder.audioStream)
         theEncoder.audioStartPts = seekStream(theDecoder.formatContext, theDecoder.audioStream->index,
             theMarks.MillisecondsStart(), theDecoder.audioStream->time_base, 
-		    theDecoder.audioCodecContext);
+		    theDecoder.audioCodecContext.get());
 	// get PTS of the end mark
     theEncoder.videoEndPts = calculatePts(theDecoder.videoStream, theMarks.MillisecondsEnd());
 

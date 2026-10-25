@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #include <QObject>
 #include <QSize>
@@ -60,16 +60,16 @@ public:
 		AVStream* videoStream = nullptr;
 		AVStream* audioStream = nullptr;
 		AVFormatContext* formatContext = nullptr;
-		AVCodecContext* videoCodecContext = nullptr;
-		AVCodecContext* audioCodecContext = nullptr;
-		SwsContext* scalingContext = nullptr;
-		SwrContext* resamplingContext = nullptr;
-		AVFilterGraph* cropFilterGraph = nullptr;
+		UniqueAVCodecContext videoCodecContext;
+		UniqueAVCodecContext audioCodecContext;
+		UniqueSwsContext scalingContext;
+		UniqueSwrContext resamplingContext;
+		UniqueAVFilterGraph cropFilterGraph;
 		AVFilterContext* cropFilterSrc = nullptr;
 		AVFilterContext* cropFilterSink = nullptr;
-        AVFrame* rescaledFrame = nullptr;
-		AVFrame* resampledFrame = nullptr;
-		AVAudioFifo* audioFifo = nullptr;
+		UniqueAVFrame rescaledFrame;
+		UniqueAVFrame resampledFrame;
+		UniqueAVAudioFifo audioFifo;
 		QSize videoSize{ 0, 0 };
         int scalingFilter = SWS_BILINEAR;
 		QRect cropWindow;
@@ -81,10 +81,21 @@ public:
 		bool videoMarkOutReached = false;
 
         IFFmpeg* ff = nullptr;
-        CodecHandlers(IFFmpeg* f) : ff(f) {}
+        CodecHandlers(IFFmpeg* f)
+            : ff(f)
+            , videoCodecContext(nullptr, AVCodecContextDeleter{ f })
+            , audioCodecContext(nullptr, AVCodecContextDeleter{ f })
+            , scalingContext(nullptr, SwsContextDeleter{ f })
+            , resamplingContext(nullptr, SwrContextDeleter{ f })
+            , cropFilterGraph(nullptr, AVFilterGraphDeleter{ f })
+            , rescaledFrame(nullptr, AVFrameDeleter{ f })
+            , resampledFrame(nullptr, AVFrameDeleter{ f })
+            , audioFifo(nullptr, AVAudioFifoDeleter{ f })
+        {}
         CodecHandlers(const CodecHandlers&) = delete;
         CodecHandlers& operator=(const CodecHandlers&) = delete;
         ~CodecHandlers();
+        void reset();
     };
 
     CodecHandlers* decoder() { return &theDecoder; }
