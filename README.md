@@ -7,13 +7,16 @@ VideoEditor is a simple application for quick format conversions and easy trimmi
 ### Scaling output
 If you want to rescale the output video, check *Scaling* and set your desired video size. If you set one of the dimensions to *-1*. it will be calculated with an aspect ratio to the other dimension - so that's the preferred way of using it. You can also set your chosen scaling filter. There're few of them available: fast bilinear, bilinear, bicubic, area, gaussian and lanczos.
 
-![Video Editor screenshot](/docs/scaling.png?raw=true "Video scaling options")
-
+### Cropping the image
+If you want to crop the image, check the *Cropping* box - this will show a cropping area. You can adjust the cropping area by dragging the corners or edges of the cropping area or by setting the desired values in the text boxes. 
 
 ### Building
 VideoEditor is a Qt based app, built using CMake. I suggest using an IDE supporting both CMake and Qt, like *Visual Code* where you can scan for *kits* and select it for building.
 
 It's also using **FFmpeg**. While *Qt* does have it, it's stripped off of encoders, so it's unusable. Download FFmpeg for yourself (for example [from here](https://www.gyan.dev/ffmpeg/builds/)) and specify its location during configuring CMake using `-DFFMPEG_ROOT=your/path_to/ffmpeg`.
+
+> [!NOTE]
+> Mind you have to use the same FFmpeg branch, as it is used in Qt. For example, in Qt 6.12 (current LTS release) it is FFmpeg 9.x, so you can use for example FFmpeg 9.0.2.
 
 Also define an *INSTALL_DIR* env variable.
 
