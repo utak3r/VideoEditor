@@ -1,4 +1,5 @@
 #pragma once
+#include <memory>
 extern "C" {
 #include <libavformat/avformat.h>
 #include <libavcodec/avcodec.h>
@@ -149,3 +150,78 @@ public:
 		AVFrame* frame, int flags) = 0;
 	virtual int av_buffersink_get_frame(AVFilterContext* ctx, AVFrame* frame) = 0;
 };
+
+// RAII Deleters
+struct AVFrameDeleter {
+	IFFmpeg* ff = nullptr;
+	void operator()(AVFrame* f) const { if (ff && f) ff->av_frame_free(&f); }
+};
+
+struct AVPacketDeleter {
+	IFFmpeg* ff = nullptr;
+	void operator()(AVPacket* p) const { if (ff && p) ff->av_packet_free(&p); }
+};
+
+struct AVCodecContextDeleter {
+	IFFmpeg* ff = nullptr;
+	void operator()(AVCodecContext* c) const { if (ff && c) ff->avcodec_free_context(&c); }
+};
+
+struct AVFilterInOutDeleter {
+	IFFmpeg* ff = nullptr;
+	void operator()(AVFilterInOut* io) const { if (ff && io) ff->avfilter_inout_free(&io); }
+};
+
+struct AVDictionaryDeleter {
+	IFFmpeg* ff = nullptr;
+	void operator()(AVDictionary* d) const { if (ff && d) ff->av_dict_free(&d); }
+};
+
+struct SwsContextDeleter {
+	IFFmpeg* ff = nullptr;
+	void operator()(SwsContext* s) const { if (ff && s) ff->sws_freeContext(s); }
+};
+
+struct SwrContextDeleter {
+	IFFmpeg* ff = nullptr;
+	void operator()(SwrContext* s) const { if (ff && s) ff->swr_free(&s); }
+};
+
+struct AVAudioFifoDeleter {
+	IFFmpeg* ff = nullptr;
+	void operator()(AVAudioFifo* a) const { if (ff && a) ff->av_audio_fifo_free(a); }
+};
+
+struct AVFilterGraphDeleter {
+	IFFmpeg* ff = nullptr;
+	void operator()(AVFilterGraph* g) const { if (ff && g) ff->avfilter_graph_free(&g); }
+};
+
+// RAII unique pointers
+using UniqueAVFrame        = std::unique_ptr<AVFrame, AVFrameDeleter>;
+using UniqueAVPacket       = std::unique_ptr<AVPacket, AVPacketDeleter>;
+using UniqueAVCodecContext = std::unique_ptr<AVCodecContext, AVCodecContextDeleter>;
+using UniqueAVFilterInOut  = std::unique_ptr<AVFilterInOut, AVFilterInOutDeleter>;
+using UniqueAVDictionary   = std::unique_ptr<AVDictionary, AVDictionaryDeleter>;
+using UniqueSwsContext     = std::unique_ptr<SwsContext, SwsContextDeleter>;
+using UniqueSwrContext     = std::unique_ptr<SwrContext, SwrContextDeleter>;
+using UniqueAVAudioFifo    = std::unique_ptr<AVAudioFifo, AVAudioFifoDeleter>;
+using UniqueAVFilterGraph  = std::unique_ptr<AVFilterGraph, AVFilterGraphDeleter>;
+
+// RAII helpers for easy pointer creation
+inline UniqueAVFrame make_unique_frame(IFFmpeg& ff) {
+	return UniqueAVFrame(ff.av_frame_alloc(), AVFrameDeleter{ &ff });
+}
+
+inline UniqueAVPacket make_unique_packet(IFFmpeg& ff) {
+	return UniqueAVPacket(ff.av_packet_alloc(), AVPacketDeleter{ &ff });
+}
+
+inline UniqueAVFilterInOut make_unique_filter_inout(IFFmpeg& ff) {
+	return UniqueAVFilterInOut(ff.avfilter_inout_alloc(), AVFilterInOutDeleter{ &ff });
+}
+
+inline UniqueAVDictionary make_unique_dict(IFFmpeg& ff, AVDictionary* dict = nullptr) {
+	return UniqueAVDictionary(dict, AVDictionaryDeleter{ &ff });
+}
+
