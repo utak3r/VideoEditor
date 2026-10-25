@@ -374,7 +374,8 @@ bool VideoTranscoder::prepareVideoEncoder()
     theEncoder.videoCodecContext->width = targetSize.width();
     theEncoder.videoCodecContext->height = targetSize.height();
 
-    theEncoder.videoCodecContext->gop_size = 12;
+    int fpsVal = fps.den > 0 ? (fps.num / fps.den) : 25;
+    theEncoder.videoCodecContext->gop_size = fpsVal * 2; // keyframe every 2 secs
     if (theEncoder.formatContext->oformat->flags & AVFMT_GLOBALHEADER)
         theEncoder.videoCodecContext->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
 
