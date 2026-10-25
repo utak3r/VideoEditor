@@ -82,6 +82,8 @@ public:
 
         IFFmpeg* ff = nullptr;
         CodecHandlers(IFFmpeg* f) : ff(f) {}
+        CodecHandlers(const CodecHandlers&) = delete;
+        CodecHandlers& operator=(const CodecHandlers&) = delete;
         ~CodecHandlers();
     };
 
