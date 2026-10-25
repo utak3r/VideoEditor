@@ -270,7 +270,7 @@ AVRational VideoTranscoder::pickInputFramerate() const
 
 bool VideoTranscoder::openInput()
 {
-    if (ff.avformat_open_input(&theDecoder.formatContext, theDecoder.fileName.toStdString().c_str(), nullptr, nullptr) < 0) return false;
+    if (ff.avformat_open_input(&theDecoder.formatContext, theDecoder.fileName.toUtf8().constData(), nullptr, nullptr) < 0) return false;
     if (ff.avformat_find_stream_info(theDecoder.formatContext, nullptr) < 0) return false;
 
     int v_idx = ff.av_find_best_stream(theDecoder.formatContext, AVMEDIA_TYPE_VIDEO, -1, -1, nullptr, 0);
@@ -283,7 +283,7 @@ bool VideoTranscoder::openInput()
 
 bool VideoTranscoder::openOutput()
 {
-    if (ff.avformat_alloc_output_context2(&theEncoder.formatContext, nullptr, nullptr, theEncoder.fileName.toStdString().c_str()) < 0 || !theEncoder.formatContext)
+    if (ff.avformat_alloc_output_context2(&theEncoder.formatContext, nullptr, nullptr, theEncoder.fileName.toUtf8().constData()) < 0 || !theEncoder.formatContext)
         return false;
     return true;
 }
@@ -878,7 +878,7 @@ bool VideoTranscoder::transcode()
     }
     if (!(theEncoder.formatContext->oformat->flags & AVFMT_NOFILE))
     {
-        if (ff.avio_open(&theEncoder.formatContext->pb, theEncoder.fileName.toStdString().c_str(), AVIO_FLAG_WRITE) < 0)
+        if (ff.avio_open(&theEncoder.formatContext->pb, theEncoder.fileName.toUtf8().constData(), AVIO_FLAG_WRITE) < 0)
         {
             emit transcodingError("Nie można otworzyć pliku wyjściowego: " + theEncoder.fileName);
 			return false;
