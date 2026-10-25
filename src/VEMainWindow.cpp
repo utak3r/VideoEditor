@@ -263,7 +263,7 @@ void VEMainWindow::Convert()
         tr("Video Files") + QLatin1String(" (") + VIDEO_FILE_EXTENSIONS + QLatin1String(")"));
     if (!outFilename.isEmpty())
     {
-        FFmpegReal* ffmpeg = new FFmpegReal();
+		std::unique_ptr<FFmpegReal> ffmpeg(new FFmpegReal());
 		std::unique_ptr<VideoTranscoder> transcoder(new VideoTranscoder(*ffmpeg, this));
 		transcoder->setInputFile(currentVideoFile.absoluteFilePath());
         transcoder->setOutputFile(outFilename);
@@ -287,7 +287,7 @@ void VEMainWindow::Convert()
         if (theVideoPlayer->getCropEnabled())
         {
             QRect cropRect = theVideoPlayer->getCropWindow();
-            QRect newRect = Tools::makeRectYUVCompliant(cropRect, AV_PIX_FMT_YUV420P, false, true);
+            QRect newRect = Tools::makeRectYUVCompliant(cropRect, AV_PIX_FMT_YUV420P, true, false);
 
             if (newRect != cropRect)
             {
@@ -342,7 +342,6 @@ void VEMainWindow::Convert()
         theVideoPlayer->pause();
         transcoder->transcode();
         theVideoPlayer->play();
-		delete ffmpeg;
     }
 
 }

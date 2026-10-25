@@ -19,6 +19,8 @@ VideoTranscoder::~VideoTranscoder()
 
 VideoTranscoder::CodecHandlers::~CodecHandlers()
 {
+    if (!ff)
+        return;
 	if (scalingContext) ff->sws_freeContext(scalingContext);
 	if (resamplingContext) ff->swr_free(&resamplingContext);
 	if (audioFifo) ff->av_audio_fifo_free(audioFifo);
@@ -575,7 +577,7 @@ void VideoTranscoder::handleAudioPacket(AVPacket* pkt)
     if (!theDecoder.audioCodecContext) return;
     if (ff.avcodec_send_packet(theDecoder.audioCodecContext, pkt) < 0) return;
 
-    AVFrame* in = av_frame_alloc();
+    AVFrame* in = ff.av_frame_alloc();
     while (ff.avcodec_receive_frame(theDecoder.audioCodecContext, in) == 0)
     {
 		if (in->pts >= theEncoder.audioStartPts)
@@ -877,7 +879,7 @@ bool VideoTranscoder::transcode()
     AVDictionary* mux_opts = nullptr;
     ff.av_dict_set(&mux_opts, "movflags", "faststart", 0);
     applyMetadata();
-    if (ff.avformat_write_header(theEncoder.formatContext, &mux_opts) < 0) { av_dict_free(&mux_opts); return false; }
+    if (ff.avformat_write_header(theEncoder.formatContext, &mux_opts) < 0) { ff.av_dict_free(&mux_opts); return false; }
     ff.av_dict_free(&mux_opts);
 
     // seek to mark in
