@@ -99,6 +99,7 @@ public:
 	MOCK_METHOD(int, av_audio_fifo_read, (AVAudioFifo* af, void* const* data, int nb_samples), (override));
 	MOCK_METHOD(void, av_audio_fifo_free, (AVAudioFifo* af), (override));
 	MOCK_METHOD(AVFilterGraph*, avfilter_graph_alloc, (), (override));
+	MOCK_METHOD(void, avfilter_graph_free, (AVFilterGraph** graph), (override));
 	MOCK_METHOD(const AVFilter*, avfilter_get_by_name, (const char* name), (override));
 	MOCK_METHOD(int, avfilter_graph_create_filter, (AVFilterContext** filt_ctx, const AVFilter* filt,
 		const char* name, const char* args, void* opaque,

@@ -133,6 +133,7 @@ public:
 	virtual void av_audio_fifo_free(AVAudioFifo* af) = 0;
 
 	virtual AVFilterGraph* avfilter_graph_alloc(void) = 0;
+	virtual void avfilter_graph_free(AVFilterGraph **graph) = 0;
 	virtual const AVFilter* avfilter_get_by_name(const char* name) = 0;
 	virtual int avfilter_graph_create_filter(AVFilterContext** filt_ctx, const AVFilter* filt,
 		const char* name, const char* args, void* opaque,

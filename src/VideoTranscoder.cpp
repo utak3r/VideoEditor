@@ -24,7 +24,13 @@ VideoTranscoder::CodecHandlers::~CodecHandlers()
 	if (scalingContext) ff->sws_freeContext(scalingContext);
 	if (resamplingContext) ff->swr_free(&resamplingContext);
 	if (audioFifo) ff->av_audio_fifo_free(audioFifo);
-
+    if (cropFilterGraph) 
+    {
+        ff->avfilter_graph_free(&cropFilterGraph);
+        cropFilterSrc = nullptr;
+        cropFilterSink = nullptr;
+    }
+    
     ff->av_frame_free(&rescaledFrame);
     ff->av_frame_free(&resampledFrame);
 
@@ -613,7 +619,8 @@ void VideoTranscoder::processDecodedVideo(AVFrame* in)
         AVFrame* filtFrame = ff.av_frame_alloc();
         while (ff.av_buffersink_get_frame(theDecoder.cropFilterSink, filtFrame) >= 0)
         {
-            if (ff.av_frame_make_writable(theEncoder.rescaledFrame) >= 0) {
+            if (ff.av_frame_make_writable(theEncoder.rescaledFrame) >= 0)
+            {
                 qDebug() << "crop frame format:" << ff.av_get_pix_fmt_name((AVPixelFormat)filtFrame->format);
                 qDebug() << "crop frame size:" << filtFrame->width << "x" << filtFrame->height;
                 filtFrame->sample_aspect_ratio = ff.av_make_q(1, 1);

@@ -327,6 +327,11 @@ public:
 		return ::avfilter_graph_alloc();
 	}
 
+	void avfilter_graph_free(AVFilterGraph **graph)
+	{
+		::avfilter_graph_free(graph);
+	}
+
 	const AVFilter* avfilter_get_by_name(const char* name)
 	{
 		return ::avfilter_get_by_name(name);
