@@ -25,9 +25,9 @@ foreach(component ${FFMPEG_COMPONENTS})
     # Shared libs
     find_file(FFmpeg_${component}_DLL
         NAMES 
-            ${component}-62.dll ${component}-61.dll ${component}-60.dll 
-            ${component}-59.dll ${component}-58.dll ${component}-11.dll 
-            ${component}-10.dll ${component}-9.dll ${component}-8.dll 
+            ${component}-63.dll ${component}-62.dll ${component}-61.dll ${component}-60.dll 
+            ${component}-59.dll ${component}-58.dll ${component}-12.dll ${component}-11.dll 
+            ${component}-10.dll ${component}-9.dll ${component}-8.dll ${component}-7.dll 
             ${component}-6.dll ${component}-5.dll
         PATHS ${FFMPEG_ROOT}
         PATH_SUFFIXES bin

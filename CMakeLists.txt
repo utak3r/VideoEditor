@@ -68,7 +68,7 @@ configure_file(
 # There's a limited version of FFmpeg in Qt, and its scripts are very aggressive about their search paths
 # so we need to be aggressive, too, to have the FFmpeg files be taken from the right place
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
-find_package(FFmpeg MODULE REQUIRED COMPONENTS avformat avcodec avutil avfilter swscale swresample postproc)
+find_package(FFmpeg MODULE REQUIRED COMPONENTS avformat avcodec avutil avfilter swscale swresample)
 # Now we can look for Qt, once FFmpeg is found and written to a cache
 find_package(Qt6 REQUIRED COMPONENTS Widgets LinguistTools Multimedia MultimediaWidgets)
 

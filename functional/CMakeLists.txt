@@ -53,7 +53,6 @@ target_link_libraries(VEFunctionalTests
     "${FFmpeg_avfilter_LIBRARY}"
     "${FFmpeg_swscale_LIBRARY}"
     "${FFmpeg_swresample_LIBRARY}"
-    "${FFmpeg_postproc_LIBRARY}"
     PRIVATE
     Threads::Threads GTest::gtest_main
     Qt6::Widgets Qt6::Multimedia Qt6::MultimediaWidgets
