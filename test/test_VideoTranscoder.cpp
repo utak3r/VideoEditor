@@ -3,7 +3,7 @@
 #include "../src/VideoTranscoder.h"
 #include "codec_x264.h"
 #include "codec_aac.h"
-
+#include "../src/Tools.h"
 
 using ::testing::_;
 using ::testing::DoAll;
@@ -88,6 +88,10 @@ public:
 	static bool prepareVideoEncoder(VideoTranscoder& t)
 	{
 		return t.prepareVideoEncoder();
+	}
+	static QSize calculateOutputSize(const VideoTranscoder& t, int src_w, int src_h, QSize target)
+	{
+		return t.calculateOutputSize(src_w, src_h, target);
 	}
 
 };
@@ -295,3 +299,91 @@ TEST_F(VideoTranscoderTest, PrepareVideoEncoder_Success)
 	EXPECT_TRUE(VideoTranscoderTest::prepareVideoEncoder(transcoder));
 	decoder->videoCodecContext.release();
 }
+
+TEST_F(VideoTranscoderTest, CalculateOutputSize_DimensionsAlwaysEven)
+{
+	// Case 1: 1920x1080 scaled with target_width = -1, target_height = 480
+	// 1920 * 480 / 1080 = 853 (odd). Should be rounded to 854 (even).
+	QSize size1 = VideoTranscoderTest::calculateOutputSize(transcoder, 1920, 1080, QSize(-1, 480));
+	EXPECT_EQ(size1.width(), 854);
+	EXPECT_EQ(size1.height(), 480);
+	EXPECT_EQ(size1.width() % 2, 0);
+	EXPECT_EQ(size1.height() % 2, 0);
+
+	// Case 2: Source with odd width (e.g. 853x480) with target (-1, -1) -> must be made even
+	QSize size2 = VideoTranscoderTest::calculateOutputSize(transcoder, 853, 479, QSize(-1, -1));
+	EXPECT_EQ(size2.width(), 854);
+	EXPECT_EQ(size2.height(), 480);
+	EXPECT_EQ(size2.width() % 2, 0);
+	EXPECT_EQ(size2.height() % 2, 0);
+
+	// Case 3: Target specified with odd dimensions directly
+	QSize size3 = VideoTranscoderTest::calculateOutputSize(transcoder, 1920, 1080, QSize(719, 479));
+	EXPECT_EQ(size3.width(), 720);
+	EXPECT_EQ(size3.height(), 480);
+
+	// Case 4: Target with crop window set
+	encoder->cropWindow = QRect(10, 10, 501, 301);
+	QSize size4 = VideoTranscoderTest::calculateOutputSize(transcoder, 1920, 1080, QSize(-1, -1));
+	EXPECT_EQ(size4.width(), 502);
+	EXPECT_EQ(size4.height(), 302);
+	encoder->cropWindow = QRect();
+}
+
+TEST(ToolsTest, MakeRectYUVCompliant_YUV420P)
+{
+	QRect input(1, 1, 101, 103);
+	QRect result = Tools::makeRectYUVCompliant(input, AV_PIX_FMT_YUV420P, false, false);
+	EXPECT_EQ(result.x(), 0);
+	EXPECT_EQ(result.y(), 0);
+	EXPECT_EQ(result.width(), 100);
+	EXPECT_EQ(result.height(), 102);
+	EXPECT_EQ(result.x() % 2, 0);
+	EXPECT_EQ(result.y() % 2, 0);
+	EXPECT_EQ(result.width() % 2, 0);
+	EXPECT_EQ(result.height() % 2, 0);
+}
+
+TEST(ToolsTest, MakeRectYUVCompliant_ForceHeight4)
+{
+	QRect input(0, 0, 100, 102);
+	QRect result = Tools::makeRectYUVCompliant(input, AV_PIX_FMT_YUV420P, true, false);
+	EXPECT_EQ(result.height(), 100);
+	EXPECT_EQ(result.height() % 4, 0);
+}
+
+TEST(ToolsTest, MakeRectYUVCompliant_ForceHeight16)
+{
+	QRect input(0, 0, 100, 102);
+	QRect result = Tools::makeRectYUVCompliant(input, AV_PIX_FMT_YUV420P, false, true);
+	EXPECT_EQ(result.height(), 96);
+	EXPECT_EQ(result.height() % 16, 0);
+}
+
+TEST(ToolsTest, MakeRectYUVCompliant_RGB24EnsuresEvenDimensionsForEncoding)
+{
+	QRect input(1, 1, 101, 103);
+	QRect result = Tools::makeRectYUVCompliant(input, AV_PIX_FMT_RGB24, false, false);
+	// Origin can be non-even for RGB
+	EXPECT_EQ(result.x(), 1);
+	EXPECT_EQ(result.y(), 1);
+	// But dimensions must be even for video encoding
+	EXPECT_EQ(result.width(), 100);
+	EXPECT_EQ(result.height(), 102);
+	EXPECT_EQ(result.width() % 2, 0);
+	EXPECT_EQ(result.height() % 2, 0);
+}
+
+TEST(ToolsTest, MakeRectYUVCompliant_EmptyOrNegative)
+{
+	EXPECT_EQ(Tools::makeRectYUVCompliant(QRect(), AV_PIX_FMT_YUV420P), QRect(0, 0, 0, 0));
+	EXPECT_EQ(Tools::makeRectYUVCompliant(QRect(0, 0, -10, 100), AV_PIX_FMT_YUV420P), QRect(0, 0, 0, 0));
+
+	QRect negOrigin(-5, -5, 100, 100);
+	QRect clamped = Tools::makeRectYUVCompliant(negOrigin, AV_PIX_FMT_YUV420P);
+	EXPECT_EQ(clamped.x(), 0);
+	EXPECT_EQ(clamped.y(), 0);
+	EXPECT_EQ(clamped.width(), 100);
+	EXPECT_EQ(clamped.height(), 100);
+}
+

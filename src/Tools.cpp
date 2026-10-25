@@ -1,6 +1,7 @@
 #include "Tools.h"
 #include <QSize>
 #include <QRect>
+#include <algorithm>
 
 void Tools::getAvailableEncoders(QStringList& videoCodecs, QStringList& audioCodecs)
 {
@@ -56,51 +57,58 @@ QRect Tools::makeRectYUVCompliant(const QRect& rect,
                                 bool forceHeight4, 
                                 bool forceHeight16)
 {
+    if (rect.isEmpty() || rect.width() <= 0 || rect.height() <= 0)
+        return QRect(0, 0, 0, 0);
+
     int x = rect.x();
     int y = rect.y();
     int w = rect.width();
     int h = rect.height();
 
-    switch (format)
+    if (x < 0) x = 0;
+    if (y < 0) y = 0;
+
+    int h_shift = 0;
+    int v_shift = 0;
+    if (av_pix_fmt_get_chroma_sub_sample(format, &h_shift, &v_shift) < 0)
     {
-	case AV_PIX_FMT_YUV420P:
-	case AV_PIX_FMT_YUVJ420P:
-    case AV_PIX_FMT_NV12:
-		if (x % 2 != 0) x--;
-		if (y % 2 != 0) y--;
-        if (w % 2 != 0) w--;
-        if (h % 2 != 0) h--;
-		break;
-    case AV_PIX_FMT_YUV422P:
-        if (x % 2 != 0) x--;
-        if (w % 2 != 0) w--;
-		break;
-	case AV_PIX_FMT_YUV444P:
-	case AV_PIX_FMT_RGB24:
-	case AV_PIX_FMT_BGR24:
-	case AV_PIX_FMT_ARGB:
-	case AV_PIX_FMT_ABGR:
-	case AV_PIX_FMT_RGBA:
-	case AV_PIX_FMT_BGRA:
-		// no requirements
-        break;
-    default:
-        // unknown format, assume YUV420P
-        if (x % 2 != 0) x--;
-        if (y % 2 != 0) y--;
-        if (w % 2 != 0) w--;
-        if (h % 2 != 0) h--;
-        break;
+        // Unknown format, assume YUV420P fallback
+        h_shift = 1;
+        v_shift = 1;
     }
 
-    if (forceHeight4)
-    {
-        while (h % 4 != 0) h--;
-	}
+    // Alignment required for chroma subsampling
+    int align_x = 1 << h_shift;
+    int align_y = 1 << v_shift;
+
+    // For video encoding (e.g. H.264/YUV420P target), width and height
+    // must always be at least even (multiple of 2), even if the input format is RGB/444.
+    int align_w = std::max(align_x, 2);
+    int align_h = std::max(align_y, 2);
+
     if (forceHeight16)
     {
-        while (h % 16 != 0) h--;
-	}
+        align_h = std::max(align_h, 16);
+    }
+    else if (forceHeight4)
+    {
+        align_h = std::max(align_h, 4);
+    }
+
+    // Align crop origin down to multiple of alignment
+    if (align_x > 1)
+        x = (x / align_x) * align_x;
+    if (align_y > 1)
+        y = (y / align_y) * align_y;
+
+    // Align crop dimensions down to multiple of alignment
+    if (align_w > 1)
+        w = (w / align_w) * align_w;
+    if (align_h > 1)
+        h = (h / align_h) * align_h;
+
+    if (w < align_w) w = align_w;
+    if (h < align_h) h = align_h;
 
     return QRect(x, y, w, h);
 }

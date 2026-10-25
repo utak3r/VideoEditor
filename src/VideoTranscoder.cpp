@@ -335,16 +335,27 @@ QSize VideoTranscoder::calculateOutputSize(int src_width, int src_height, QSize 
     else if (target_width == -1)
     {
         // Use aspect ratio to calculate width, specified height
-        target_width = source_width * target_height / source_height;
+        target_width = (source_height > 0) ? (source_width * target_height / source_height) : target_height;
     }
     else if (target_height == -1)
     {
         // Use aspect ratio to calculate height, specified width
-        target_height = source_height * target_width / source_width;
+        target_height = (source_width > 0) ? (source_height * target_width / source_width) : target_width;
     }
     // use original size if target is zero
     if (target_width == 0) target_width = source_width;
     if (target_height == 0) target_height = source_height;
+
+    // Dimensions for video encoding must be even numbers (divisible by 2)
+    // for YUV 4:2:0 and standard codecs like H.264.
+    if (target_width % 2 != 0)
+        target_width = (target_width + 1) & ~1;
+    if (target_height % 2 != 0)
+        target_height = (target_height + 1) & ~1;
+
+    if (target_width < 2) target_width = 2;
+    if (target_height < 2) target_height = 2;
+
     return QSize(target_width, target_height);
 }
 

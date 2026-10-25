@@ -5,6 +5,7 @@ extern "C" {
 #include <libavcodec/avcodec.h>
 #include <libavformat/avformat.h>
 #include <libavutil/error.h>
+#include <libavutil/pixdesc.h>
 }
 
 class Tools
@@ -36,17 +37,9 @@ public:
 	static QString ffmpegErrorString(int errnum);
 
 	/**
-	* Make given rectangle compliant with YUV420P planes
-	* 
-	* YUV420P format requires width and height to be even numbers,
-	* YUV422P format requires width to be even number.
-	* YUV444P no requirements.
-	* NV12 requires width and height to be even numbers.
-	* RGB formats have no requirements.
-	* YUVJ420P requires width and height to be even numbers.
-	* 
-	* Also some codecs require height to be multiple of 4 or even 16
-	* in order to achieve macroblocks.
+	* Adjusts crop rectangle to comply with chroma subsampling and video encoding constraints.
+	* Uses av_pix_fmt_get_chroma_sub_sample to determine chroma plane alignment steps.
+	* Ensures coordinates and dimensions are aligned, non-negative, and at least even for video encoding.
 	*/
 	static QRect makeRectYUVCompliant(const QRect& rect, AVPixelFormat format, bool forceHeight4 = false, bool forceHeight16 = false);
 
