@@ -613,17 +613,19 @@ void VideoTranscoder::processDecodedVideo(AVFrame* in)
         AVFrame* filtFrame = ff.av_frame_alloc();
         while (ff.av_buffersink_get_frame(theDecoder.cropFilterSink, filtFrame) >= 0)
         {
-            if (ff.av_frame_make_writable(theEncoder.rescaledFrame) < 0) return;
-            qDebug() << "crop frame format:" << ff.av_get_pix_fmt_name((AVPixelFormat)filtFrame->format);
-            qDebug() << "crop frame size:" << filtFrame->width << "x" << filtFrame->height;
-            filtFrame->sample_aspect_ratio = ff.av_make_q(1, 1);
-            ff.sws_scale(theEncoder.scalingContext,
-                filtFrame->data, filtFrame->linesize,
-                0, filtFrame->height,
-                theEncoder.rescaledFrame->data,
-                theEncoder.rescaledFrame->linesize);
+            if (ff.av_frame_make_writable(theEncoder.rescaledFrame) >= 0) {
+                qDebug() << "crop frame format:" << ff.av_get_pix_fmt_name((AVPixelFormat)filtFrame->format);
+                qDebug() << "crop frame size:" << filtFrame->width << "x" << filtFrame->height;
+                filtFrame->sample_aspect_ratio = ff.av_make_q(1, 1);
+                ff.sws_scale(theEncoder.scalingContext, 
+                    filtFrame->data, 
+                    filtFrame->linesize,
+                    0, filtFrame->height, 
+                    theEncoder.rescaledFrame->data, 
+                    theEncoder.rescaledFrame->linesize);
+            }
+            ff.av_frame_unref(filtFrame);
         }
-        ff.av_frame_unref(filtFrame);
         ff.av_frame_free(&filtFrame);
     }
     else
