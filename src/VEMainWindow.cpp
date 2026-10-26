@@ -257,7 +257,6 @@ void VEMainWindow::CropValueChanged(int value)
 
 void VEMainWindow::Convert()
 {
-    QRect cropRect = theVideoPlayer->getCropWindow();
     QString outFilename = QFileDialog::getSaveFileName(this, tr("Save video as..."),
         currentVideoFile.absoluteFilePath() + "_converted.mp4",
         tr("Video Files") + QLatin1String(" (") + VIDEO_FILE_EXTENSIONS + QLatin1String(")"));

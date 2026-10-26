@@ -1,4 +1,4 @@
-﻿#include "VideoPlayer.h"
+#include "VideoPlayer.h"
 #include <QMediaMetaData>
 #include <QVideoSink>
 
@@ -77,18 +77,24 @@ VideoPlayer::VideoPlayer(QWidget* parent)
     //resizeScene();
     repositionTimestamp();
 
-	// properly resize the scene when the video size changes (or it's being loaded for the first time)
+    theCropRect = QRect(0, 0, 0, 0);
+
+    // properly resize the scene when the video size changes (or it's being loaded for the first time)
     connect(theMediaPlayer->videoSink(), &QVideoSink::videoSizeChanged, this, &VideoPlayer::resizeScene);
 
     connect(theCropRectItem, &CropRectangle::rectChanged, this, [=](const QRectF& rect)
         {
-            emit CropWindowChanged(sceneRectToVideoRect(rect));
+            theCropRect = sceneRectToVideoRect(rect);
+            emit CropWindowChanged(theCropRect);
         });
 
 }
 
 void VideoPlayer::openFile(const QString& filename)
 {
+    theCropRect = QRect(0, 0, 0, 0);
+    if (theCropRectItem)
+        theCropRectItem->setRect(QRectF(0, 0, 0, 0));
     theMediaPlayer->setSource(QUrl::fromLocalFile(filename));
 }
 
@@ -226,6 +232,13 @@ void VideoPlayer::resizeScene()
     theVideoItem->setSize(targetRect.size());
     theVideoItem->setPos(targetRect.topLeft());
 
+    if (theCropRectItem)
+    {
+        theCropRectItem->setBoundingBorders(QRectF(theVideoItem->pos() + theVideoItem->offset(), theVideoItem->size()));
+        if (theCropRect.isValid() && !theCropRect.isEmpty())
+            theCropRectItem->setRect(videoRectToSceneRect(theCropRect));
+    }
+
     theScene->setSceneRect(QRectF(QPointF(0, 0), viewSize));
 }
 
@@ -264,71 +277,77 @@ void VideoPlayer::setCropEnabled(bool enabled)
     {
         theCropEnabled = enabled;
         if (theCropEnabled)
-            if (theCropRectItem->rect().isEmpty())
+        {
+            if (theCropRect.isEmpty() || theCropRectItem->rect().isEmpty())
             {
                 // If crop rectangle is empty, set it to the video item size
-                QRectF videoRect = QRectF(theVideoItem->pos() /* + theVideoItem->offset()*/, theVideoItem->size());
-                theCropRectItem->setRect(videoRect);
-                emit CropWindowChanged(sceneRectToVideoRect(videoRect));
-		    }
-        theCropRectItem->setBoundingBorders(QRectF(theVideoItem->pos() /* + theVideoItem->offset()*/, theVideoItem->size()));
-		theCropRectItem->setEnabled(enabled);
+                QSize videoSize = theVideoItem->nativeSize().toSize();
+                theCropRect = QRect(0, 0, videoSize.width(), videoSize.height());
+                theCropRectItem->setRect(videoRectToSceneRect(theCropRect));
+                emit CropWindowChanged(theCropRect);
+            }
+        }
+        theCropRectItem->setBoundingBorders(QRectF(theVideoItem->pos() + theVideoItem->offset(), theVideoItem->size()));
+        theCropRectItem->setEnabled(enabled);
         emit CropEnabledChanged(enabled);
-	}
+    }
 }
 
 QRect VideoPlayer::sceneRectToVideoRect(QRectF sceneRect) const
 {
-    QRect retrect = sceneRect.toRect();
-
     QPointF videoPos = theVideoItem->pos() + theVideoItem->offset();
-    QRectF videoRect = QRectF(videoPos, theVideoItem->size());
-
-    retrect.moveTopLeft(QPoint(retrect.x() - videoPos.x(), retrect.y() - videoPos.y()));
-
+    QSizeF videoSceneSize = theVideoItem->size();
     QSize videoSize = theVideoItem->nativeSize().toSize();
-    if (videoSize.isValid() && !videoRect.isEmpty())
-    {
-        double scaleX = static_cast<double>(videoSize.width()) / videoRect.width();
-        double scaleY = static_cast<double>(videoSize.height()) / videoRect.height();
-        double scale = qMax(scaleX, scaleY);
-        int width = static_cast<int>(retrect.width() * scaleX);
-        int height = static_cast<int>(retrect.height() * scaleY);
-        retrect.setX(static_cast<int>(retrect.x() * scaleX));
-        retrect.setY(static_cast<int>(retrect.y() * scaleY));
-        retrect.setWidth(width);
-        retrect.setHeight(height);
-    }
 
-    return retrect;
+    if (!videoSize.isValid() || videoSceneSize.isEmpty())
+        return QRect();
+
+    double scaleX = static_cast<double>(videoSize.width()) / videoSceneSize.width();
+    double scaleY = static_cast<double>(videoSize.height()) / videoSceneSize.height();
+
+    qreal relX = sceneRect.x() - videoPos.x();
+    qreal relY = sceneRect.y() - videoPos.y();
+
+    int x = qRound(relX * scaleX);
+    int y = qRound(relY * scaleY);
+    int width = qRound(sceneRect.width() * scaleX);
+    int height = qRound(sceneRect.height() * scaleY);
+
+    return QRect(x, y, width, height);
 }
 
 QRectF VideoPlayer::videoRectToSceneRect(QRect videoRect) const
 {
-    QRect retrect = videoRect;
-
     QSize videoSize = theVideoItem->nativeSize().toSize();
-    QSize videoSceneSize = theVideoItem->size().toSize();
+    QSizeF videoSceneSize = theVideoItem->size();
+
+    if (!videoSize.isValid() || videoSceneSize.isEmpty())
+        return QRectF();
+
     double scaleX = static_cast<double>(videoSize.width()) / videoSceneSize.width();
     double scaleY = static_cast<double>(videoSize.height()) / videoSceneSize.height();
-    int width = static_cast<int>(retrect.width() / scaleX);
-    int height = static_cast<int>(retrect.height() / scaleY);
-    retrect.setX(static_cast<int>(retrect.x() / scaleX) + theVideoItem->pos().x());
-    retrect.setY(static_cast<int>(retrect.y() / scaleY) + theVideoItem->pos().y());
-    retrect.setWidth(width);
-    retrect.setHeight(height);
 
-    return QRectF(retrect);
+    QPointF videoPos = theVideoItem->pos() + theVideoItem->offset();
+
+    qreal x = (videoRect.x() / scaleX) + videoPos.x();
+    qreal y = (videoRect.y() / scaleY) + videoPos.y();
+    qreal width = videoRect.width() / scaleX;
+    qreal height = videoRect.height() / scaleY;
+
+    return QRectF(x, y, width, height);
 }
 
 QRect VideoPlayer::getCropWindow() const
 {
-	this->scene()->update();
-    return sceneRectToVideoRect(QRectF(theCropRectItem->rect().topLeft(), theCropRectItem->rect().size()));
+    if (theCropRect.isValid() && !theCropRect.isEmpty())
+        return theCropRect;
+
+    return sceneRectToVideoRect(theCropRectItem->rect());
 }
 
 void VideoPlayer::setCropWindow(const QRect& cropRect)
 {
+    theCropRect = cropRect;
     if (theCropRectItem)
         theCropRectItem->setRect(videoRectToSceneRect(cropRect));
 }

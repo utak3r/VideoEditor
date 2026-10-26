@@ -90,5 +90,5 @@ private:
     QString theMarksRange;
     bool theCropEnabled;
 	CropRectangle* theCropRectItem;
-    QRectF theCropRectF;
+    QRect theCropRect;
 };
