@@ -18,7 +18,7 @@ VideoPlayer::VideoPlayer(QWidget* parent)
     setScene(theScene);
     setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-	setViewportUpdateMode(QGraphicsView::FullViewportUpdate);
+	setViewportUpdateMode(QGraphicsView::SmartViewportUpdate);
 
 	// Media player with video and audio output
     theMediaPlayer = new QMediaPlayer(this);
@@ -168,11 +168,11 @@ void VideoPlayer::updateTimestamp(qint64 ms)
     total = total.addMSecs(static_cast<int>(theDuration));
 
     QString text = QString("%1 / %2")
-        .arg(current.toString("hh:mm:ss"))
-        .arg(total.toString("hh:mm:ss"));
+        .arg(current.toString("hh:mm:ss.zzz"))
+        .arg(total.toString("hh:mm:ss.zzz"));
 
     theTimestampItem->setPlainText(text);
-    repositionTimestamp();
+    //repositionTimestamp();
 }
 
 qint64 VideoPlayer::duration() const
