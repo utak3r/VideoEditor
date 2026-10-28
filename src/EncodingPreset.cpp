@@ -65,7 +65,8 @@ void EncodingPreset::getAvailablePresets(const QString &codecName,
 
 void EncodingPreset::setPreset(const VideoPreset &preset)
 {
-    ui->lineEdit->setText(preset.Name);
+    ui->txtName->setText(preset.Name);
+	ui->txtFileNameExtension->setText(preset.Extension);
     ui->cbVideoCodec->setCurrentText(preset.VideoCodec);
     ui->cbVideoPreset->setCurrentText(preset.VideoCodecPreset);
     ui->cbAudioCodec->setCurrentText(preset.AudioCodec);
@@ -74,7 +75,8 @@ void EncodingPreset::setPreset(const VideoPreset &preset)
 
 VideoPreset EncodingPreset::getPreset() const
 {
-    auto preset = VideoPreset(ui->lineEdit->text().trimmed(), QString(".mp4"),
+    auto preset = VideoPreset(ui->txtName->text().trimmed(),
+			      ui->txtFileNameExtension->text().trimmed(),
 			      ui->cbVideoCodec->currentText().trimmed(),
 			      ui->cbVideoPreset->currentText().trimmed(),
 			      ui->cbAudioCodec->currentText().trimmed(),
