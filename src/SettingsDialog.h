@@ -5,7 +5,8 @@
 #include <Settings.h>
 #include <ffmpegInterface.h>
 
-namespace Ui {
+namespace Ui
+{
 class SettingsDialog;
 }
 
@@ -15,22 +16,23 @@ class SettingsDialog : public QDialog
 {
     Q_OBJECT
 
-public:
-    SettingsDialog(Settings *settings, IFFmpeg& ffmpeg, QWidget *parent = nullptr);
+  public:
+    SettingsDialog(Settings *settings, IFFmpeg &ffmpeg,
+		   QWidget *parent = nullptr);
     ~SettingsDialog();
 
-private slots:
+  private slots:
     void AddVideoPreset();
-	void EditVideoPreset();
+    void EditVideoPreset();
     void RemoveVideoPreset();
 
-private:
+  private:
     void ReadSettings();
-    void FillRowInfo(QTableWidget* table, int row, const VideoPreset& preset);
+    void FillRowInfo(QTableWidget *table, int row, const VideoPreset &preset);
 
     Ui::SettingsDialog *ui;
-    Settings* theSettings;
-    IFFmpeg& ff;
+    Settings *theSettings;
+    IFFmpeg &ff;
 };
 
 #endif // SETTINGSDIALOG_H
