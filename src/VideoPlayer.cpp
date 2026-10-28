@@ -9,8 +9,7 @@
 // https://doc.qt.io/qt-6/qgraphicsitem.html
 // https://doc.qt.io/qt-6/qgraphicsrectitem.html
 
-VideoPlayer::VideoPlayer(QWidget* parent)
-: QGraphicsView(parent)
+VideoPlayer::VideoPlayer(QWidget *parent) : QGraphicsView(parent)
 {
     // The scene container
     theScene = new QGraphicsScene(this);
@@ -18,20 +17,20 @@ VideoPlayer::VideoPlayer(QWidget* parent)
     setScene(theScene);
     setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-	setViewportUpdateMode(QGraphicsView::SmartViewportUpdate);
+    setViewportUpdateMode(QGraphicsView::SmartViewportUpdate);
 
-	// Media player with video and audio output
+    // Media player with video and audio output
     theMediaPlayer = new QMediaPlayer(this);
     theAudioOutput = new QAudioOutput(this);
     theMediaPlayer->setAudioOutput(theAudioOutput);
 
     theVideoItem = new QGraphicsVideoItem();
-	theVideoItem->setOffset(QPointF(0, 0));
-	theVideoItem->setAspectRatioMode(Qt::KeepAspectRatio);
+    theVideoItem->setOffset(QPointF(0, 0));
+    theVideoItem->setAspectRatioMode(Qt::KeepAspectRatio);
     theScene->addItem(theVideoItem);
     theMediaPlayer->setVideoOutput(theVideoItem);
 
-	// Timestamp item
+    // Timestamp item
     theTimestampItem = new QGraphicsTextItem("00:00:00 / 00:00:00");
     theTimestampItem->setDefaultTextColor(Qt::white);
     QFont f = theTimestampItem->font();
@@ -39,23 +38,23 @@ VideoPlayer::VideoPlayer(QWidget* parent)
     f.setBold(true);
     theTimestampItem->setFont(f);
 
-	// Background for timestamp
+    // Background for timestamp
     theTimestampBgItem = new QGraphicsRectItem();
     theTimestampBgItem->setBrush(QColor(0, 0, 0, 100));
     theTimestampBgItem->setPen(Qt::NoPen);
 
-	// Crop rectangle
+    // Crop rectangle
     theCropRectItem = new CropRectangle(QRectF(0, 0, 0, 0));
     theCropRectItem->setColor(Qt::blue);
     theCropRectItem->setOpacity(50);
     theCropRectItem->setEnabled(false);
-	theScene->addItem(theCropRectItem);
+    theScene->addItem(theCropRectItem);
     setCropEnabled(false);
 
     theScene->addItem(theTimestampBgItem);
     theScene->addItem(theTimestampItem);
 
-	// Set Z-values for proper stacking order
+    // Set Z-values for proper stacking order
     theVideoItem->setZValue(1);
     theTimestampBgItem->setZValue(2);
     theTimestampItem->setZValue(3);
@@ -69,84 +68,71 @@ VideoPlayer::VideoPlayer(QWidget* parent)
 
     theMarksRange = "---";
 
-    connect(theMediaPlayer, &QMediaPlayer::positionChanged, this, &VideoPlayer::updatePosition);
-    connect(theMediaPlayer, &QMediaPlayer::durationChanged, this, &VideoPlayer::updateDuration);
+    connect(theMediaPlayer, &QMediaPlayer::positionChanged, this,
+	    &VideoPlayer::updatePosition);
+    connect(theMediaPlayer, &QMediaPlayer::durationChanged, this,
+	    &VideoPlayer::updateDuration);
 
-	theMediaPlayer->setLoops(QMediaPlayer::Infinite);
+    theMediaPlayer->setLoops(QMediaPlayer::Infinite);
 
-    //resizeScene();
+    // resizeScene();
     repositionTimestamp();
 
     theCropRect = QRect(0, 0, 0, 0);
 
-    // properly resize the scene when the video size changes (or it's being loaded for the first time)
-    connect(theMediaPlayer->videoSink(), &QVideoSink::videoSizeChanged, this, &VideoPlayer::resizeScene);
+    // properly resize the scene when the video size changes (or it's being
+    // loaded for the first time)
+    connect(theMediaPlayer->videoSink(), &QVideoSink::videoSizeChanged, this,
+	    &VideoPlayer::resizeScene);
 
-    connect(theCropRectItem, &CropRectangle::rectChanged, this, [=](const QRectF& rect)
-        {
-            theCropRect = sceneRectToVideoRect(rect);
-            emit CropWindowChanged(theCropRect);
-        });
-
+    connect(theCropRectItem, &CropRectangle::rectChanged, this,
+	    [=](const QRectF &rect) {
+		theCropRect = sceneRectToVideoRect(rect);
+		emit CropWindowChanged(theCropRect);
+	    });
 }
 
-void VideoPlayer::openFile(const QString& filename)
+void VideoPlayer::openFile(const QString &filename)
 {
     theCropRect = QRect(0, 0, 0, 0);
-    if (theCropRectItem)
-        theCropRectItem->setRect(QRectF(0, 0, 0, 0));
+    if (theCropRectItem) theCropRectItem->setRect(QRectF(0, 0, 0, 0));
     theMediaPlayer->setSource(QUrl::fromLocalFile(filename));
 }
 
-void VideoPlayer::play()
-{
-    theMediaPlayer->play();
-}
-void VideoPlayer::pause()
-{
-    theMediaPlayer->pause();
-}
-void VideoPlayer::stop()
-{
-    theMediaPlayer->stop();
-}
+void VideoPlayer::play() { theMediaPlayer->play(); }
+void VideoPlayer::pause() { theMediaPlayer->pause(); }
+void VideoPlayer::stop() { theMediaPlayer->stop(); }
 
-QMediaPlayer* VideoPlayer::player() const
-{
-    return theMediaPlayer;
-}
+QMediaPlayer *VideoPlayer::player() const { return theMediaPlayer; }
 
 VideoPlayer::PlaybackState VideoPlayer::playbackState() const
 {
     switch (theMediaPlayer->playbackState())
 	{
-        case QMediaPlayer::StoppedState:
-			return VideoPlayer::StoppedState;
-		case QMediaPlayer::PlayingState:
-			return VideoPlayer::PlayingState;
-		case QMediaPlayer::PausedState:
-			return VideoPlayer::PausedState;
-		default:
-			qWarning() << "Unknown playback state!";
-			return VideoPlayer::StoppedState;
+	case QMediaPlayer::StoppedState:
+	    return VideoPlayer::StoppedState;
+	case QMediaPlayer::PlayingState:
+	    return VideoPlayer::PlayingState;
+	case QMediaPlayer::PausedState:
+	    return VideoPlayer::PausedState;
+	default:
+	    qWarning() << "Unknown playback state!";
+	    return VideoPlayer::StoppedState;
 	}
 }
 
-QAudioOutput* VideoPlayer::audioOutput() const
-{
-    return theAudioOutput;
-}
+QAudioOutput *VideoPlayer::audioOutput() const { return theAudioOutput; }
 
 void VideoPlayer::setAspectMode(AspectMode mode)
 {
     if (theAspectMode != mode)
-    {
-        theAspectMode = mode;
-        resizeScene();
-    }
+	{
+	    theAspectMode = mode;
+	    resizeScene();
+	}
 }
 
-void VideoPlayer::resizeEvent(QResizeEvent* event)
+void VideoPlayer::resizeEvent(QResizeEvent *event)
 {
     QGraphicsView::resizeEvent(event);
     resizeScene();
@@ -155,8 +141,8 @@ void VideoPlayer::resizeEvent(QResizeEvent* event)
 
 void VideoPlayer::updatePosition(qint64 position)
 {
-	emit positionChanged(position);
-	updateTimestamp(position);
+    emit positionChanged(position);
+    updateTimestamp(position);
 }
 
 void VideoPlayer::updateTimestamp(qint64 ms)
@@ -168,29 +154,23 @@ void VideoPlayer::updateTimestamp(qint64 ms)
     total = total.addMSecs(static_cast<int>(theDuration));
 
     QString text = QString("%1 / %2")
-        .arg(current.toString("hh:mm:ss.zzz"))
-        .arg(total.toString("hh:mm:ss.zzz"));
+		       .arg(current.toString("hh:mm:ss.zzz"))
+		       .arg(total.toString("hh:mm:ss.zzz"));
 
     theTimestampItem->setPlainText(text);
-    //repositionTimestamp();
+    // repositionTimestamp();
 }
 
-qint64 VideoPlayer::duration() const
-{
-	return theDuration;
-}
+qint64 VideoPlayer::duration() const { return theDuration; }
 
 void VideoPlayer::updateDuration(qint64 duration)
 {
     theDuration = duration;
-	emit durationChanged(duration);
+    emit durationChanged(duration);
     updateTimestamp(theMediaPlayer->position());
 }
 
-qint64 VideoPlayer::position() const
-{
-    return theMediaPlayer->position();
-}
+qint64 VideoPlayer::position() const { return theMediaPlayer->position(); }
 
 void VideoPlayer::setPosition(qint64 position)
 {
@@ -203,41 +183,43 @@ void VideoPlayer::resizeScene()
     QSize videoSize = theMediaPlayer->videoSink()->videoSize();
 
     if (!videoSize.isValid())
-    {
-        theScene->setSceneRect(QRectF(QPointF(0, 0), viewSize));
-        return;
-    }
+	{
+	    theScene->setSceneRect(QRectF(QPointF(0, 0), viewSize));
+	    return;
+	}
 
     qreal videoAspect = qreal(videoSize.width()) / qreal(videoSize.height());
     qreal viewAspect = viewSize.width() / viewSize.height();
 
     QRectF targetRect;
     if (videoAspect > viewAspect)
-    {
-        // fit to width
-        qreal w = viewSize.width();
-        qreal h = w / videoAspect;
-        qreal y = (viewSize.height() - h) / 2.0;
-        targetRect = QRectF(0, y, w, h);
-    }
+	{
+	    // fit to width
+	    qreal w = viewSize.width();
+	    qreal h = w / videoAspect;
+	    qreal y = (viewSize.height() - h) / 2.0;
+	    targetRect = QRectF(0, y, w, h);
+	}
     else
-    {
-        // fit to height
-        qreal h = viewSize.height();
-        qreal w = h * videoAspect;
-        qreal x = (viewSize.width() - w) / 2.0;
-        targetRect = QRectF(x, 0, w, h);
-    }
+	{
+	    // fit to height
+	    qreal h = viewSize.height();
+	    qreal w = h * videoAspect;
+	    qreal x = (viewSize.width() - w) / 2.0;
+	    targetRect = QRectF(x, 0, w, h);
+	}
 
     theVideoItem->setSize(targetRect.size());
     theVideoItem->setPos(targetRect.topLeft());
 
     if (theCropRectItem)
-    {
-        theCropRectItem->setBoundingBorders(QRectF(theVideoItem->pos() + theVideoItem->offset(), theVideoItem->size()));
-        if (theCropRect.isValid() && !theCropRect.isEmpty())
-            theCropRectItem->setRect(videoRectToSceneRect(theCropRect));
-    }
+	{
+	    theCropRectItem->setBoundingBorders(
+		QRectF(theVideoItem->pos() + theVideoItem->offset(),
+		       theVideoItem->size()));
+	    if (theCropRect.isValid() && !theCropRect.isEmpty())
+		theCropRectItem->setRect(videoRectToSceneRect(theCropRect));
+	}
 
     theScene->setSceneRect(QRectF(QPointF(0, 0), viewSize));
 }
@@ -261,36 +243,37 @@ void VideoPlayer::repositionTimestamp()
     theTimestampBgItem->setRect(bgRect);
 }
 
-void VideoPlayer::setMarkers(const QString& range)
-{
-    theMarksRange = range;
-}
+void VideoPlayer::setMarkers(const QString &range) { theMarksRange = range; }
 
-bool VideoPlayer::getCropEnabled()
-{
-	return theCropEnabled;
-}
+bool VideoPlayer::getCropEnabled() { return theCropEnabled; }
 
 void VideoPlayer::setCropEnabled(bool enabled)
 {
     if (theCropEnabled != enabled)
-    {
-        theCropEnabled = enabled;
-        if (theCropEnabled)
-        {
-            if (theCropRect.isEmpty() || theCropRectItem->rect().isEmpty())
-            {
-                // If crop rectangle is empty, set it to the video item size
-                QSize videoSize = theVideoItem->nativeSize().toSize();
-                theCropRect = QRect(0, 0, videoSize.width(), videoSize.height());
-                theCropRectItem->setRect(videoRectToSceneRect(theCropRect));
-                emit CropWindowChanged(theCropRect);
-            }
-        }
-        theCropRectItem->setBoundingBorders(QRectF(theVideoItem->pos() + theVideoItem->offset(), theVideoItem->size()));
-        theCropRectItem->setEnabled(enabled);
-        emit CropEnabledChanged(enabled);
-    }
+	{
+	    theCropEnabled = enabled;
+	    if (theCropEnabled)
+		{
+		    if (theCropRect.isEmpty() ||
+			theCropRectItem->rect().isEmpty())
+			{
+			    // If crop rectangle is empty, set it to the video
+			    // item size
+			    QSize videoSize =
+				theVideoItem->nativeSize().toSize();
+			    theCropRect = QRect(0, 0, videoSize.width(),
+						videoSize.height());
+			    theCropRectItem->setRect(
+				videoRectToSceneRect(theCropRect));
+			    emit CropWindowChanged(theCropRect);
+			}
+		}
+	    theCropRectItem->setBoundingBorders(
+		QRectF(theVideoItem->pos() + theVideoItem->offset(),
+		       theVideoItem->size()));
+	    theCropRectItem->setEnabled(enabled);
+	    emit CropEnabledChanged(enabled);
+	}
 }
 
 QRect VideoPlayer::sceneRectToVideoRect(QRectF sceneRect) const
@@ -299,11 +282,12 @@ QRect VideoPlayer::sceneRectToVideoRect(QRectF sceneRect) const
     QSizeF videoSceneSize = theVideoItem->size();
     QSize videoSize = theVideoItem->nativeSize().toSize();
 
-    if (!videoSize.isValid() || videoSceneSize.isEmpty())
-        return QRect();
+    if (!videoSize.isValid() || videoSceneSize.isEmpty()) return QRect();
 
-    double scaleX = static_cast<double>(videoSize.width()) / videoSceneSize.width();
-    double scaleY = static_cast<double>(videoSize.height()) / videoSceneSize.height();
+    double scaleX =
+	static_cast<double>(videoSize.width()) / videoSceneSize.width();
+    double scaleY =
+	static_cast<double>(videoSize.height()) / videoSceneSize.height();
 
     qreal relX = sceneRect.x() - videoPos.x();
     qreal relY = sceneRect.y() - videoPos.y();
@@ -321,11 +305,12 @@ QRectF VideoPlayer::videoRectToSceneRect(QRect videoRect) const
     QSize videoSize = theVideoItem->nativeSize().toSize();
     QSizeF videoSceneSize = theVideoItem->size();
 
-    if (!videoSize.isValid() || videoSceneSize.isEmpty())
-        return QRectF();
+    if (!videoSize.isValid() || videoSceneSize.isEmpty()) return QRectF();
 
-    double scaleX = static_cast<double>(videoSize.width()) / videoSceneSize.width();
-    double scaleY = static_cast<double>(videoSize.height()) / videoSceneSize.height();
+    double scaleX =
+	static_cast<double>(videoSize.width()) / videoSceneSize.width();
+    double scaleY =
+	static_cast<double>(videoSize.height()) / videoSceneSize.height();
 
     QPointF videoPos = theVideoItem->pos() + theVideoItem->offset();
 
@@ -339,15 +324,14 @@ QRectF VideoPlayer::videoRectToSceneRect(QRect videoRect) const
 
 QRect VideoPlayer::getCropWindow() const
 {
-    if (theCropRect.isValid() && !theCropRect.isEmpty())
-        return theCropRect;
+    if (theCropRect.isValid() && !theCropRect.isEmpty()) return theCropRect;
 
     return sceneRectToVideoRect(theCropRectItem->rect());
 }
 
-void VideoPlayer::setCropWindow(const QRect& cropRect)
+void VideoPlayer::setCropWindow(const QRect &cropRect)
 {
     theCropRect = cropRect;
     if (theCropRectItem)
-        theCropRectItem->setRect(videoRectToSceneRect(cropRect));
+	theCropRectItem->setRect(videoRectToSceneRect(cropRect));
 }
