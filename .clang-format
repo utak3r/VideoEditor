@@ -1,0 +1,7 @@
+Language: Cpp
+BasedOnStyle: LLVM
+IndentWidth: 4
+UseTab: Always
+BreakBeforeBraces: GNU
+AllowShortIfStatementsOnASingleLine: WithoutElse
+IndentCaseLabels: false
