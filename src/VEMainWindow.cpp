@@ -155,6 +155,7 @@ void VEMainWindow::OpenVideo()
 	    theVideoPlayer->openFile(filename);
 	    currentVideoFile = QFileInfo(filename);
 	    theLastDir = currentVideoFile.absoluteDir().absolutePath();
+	    ResetMarks();
 	    theVideoPlayer->play();
 	}
 }
