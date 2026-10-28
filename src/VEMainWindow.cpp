@@ -25,9 +25,6 @@ VEMainWindow::VEMainWindow(QWidget *parent)
     ui->setupUi(this);
     setWindowTitle(PROJECT_VERSION_STRING_SHORT);
 
-    // until cropping tool is finished
-    // ui->grpCropping->hide();
-
     theVideoPlayer = ui->videoPlayer;
 
     ReloadSettings();
@@ -156,6 +153,7 @@ void VEMainWindow::OpenVideo()
 	    currentVideoFile = QFileInfo(filename);
 	    theLastDir = currentVideoFile.absoluteDir().absolutePath();
 	    ResetMarks();
+	    ui->grpCropping->setChecked(false);
 	    theVideoPlayer->play();
 	}
 }
