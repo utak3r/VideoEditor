@@ -1,35 +1,32 @@
 #include "VEMainWindow.h"
 #include "./ui_VEMainWindow.h"
-#include <ffmpeg.h>
+#include "Codec.h"
+#include "codec_aac.h"
+#include "codec_dnxhd.h"
+#include "codec_pcms24le.h"
+#include "codec_x264.h"
+#include "codec_x265.h"
+#include <../version.h>
 #include <QFileDialog>
-#include <QTimer>
-#include <QProgressBar>
 #include <QMessageBox>
+#include <QProgressBar>
+#include <QTimer>
 #include <SettingsDialog.h>
 #include <Tools.h>
 #include <VideoTranscoder.h>
-#include <../version.h>
-#include "Codec.h"
-#include "codec_x264.h"
-#include "codec_x265.h"
-#include "codec_dnxhd.h"
-#include "codec_aac.h"
-#include "codec_pcms24le.h"
-
+#include <ffmpeg.h>
 
 #define VIDEO_FILE_EXTENSIONS "*.mp4 *.mov *.avi *.mts *.mxf *.webm *.mkv *.m4v"
 
 VEMainWindow::VEMainWindow(QWidget *parent)
-    : QMainWindow(parent)
-    , ui(new Ui::VEMainWindow)
-    , theLastDir(".")
-    , theMediaPlayer(nullptr)
+    : QMainWindow(parent), ui(new Ui::VEMainWindow), theLastDir("."),
+      theMediaPlayer(nullptr)
 {
     ui->setupUi(this);
     setWindowTitle(PROJECT_VERSION_STRING_SHORT);
 
     // until cropping tool is finished
-    //ui->grpCropping->hide();
+    // ui->grpCropping->hide();
 
     theVideoPlayer = ui->videoPlayer;
 
@@ -39,51 +36,71 @@ VEMainWindow::VEMainWindow(QWidget *parent)
     theMarks.Reset(0);
 
     connect(ui->btnExit, &QPushButton::clicked, this, &VEMainWindow::ExitApp);
-    connect(ui->btnOpenVideo, &QPushButton::clicked, this, &VEMainWindow::OpenVideo);
+    connect(ui->btnOpenVideo, &QPushButton::clicked, this,
+	    &VEMainWindow::OpenVideo);
 
     theVideoPlayer->show();
 
-    connect(ui->btnMarkIn, &QPushButton::clicked, this, &VEMainWindow::SetMarkIn);
-    connect(ui->btnMarkOut, &QPushButton::clicked, this, &VEMainWindow::SetMarkOut);
-    connect(ui->btnResetMarks, &QPushButton::clicked, this, &VEMainWindow::ResetMarks);
-    connect(theVideoPlayer, &VideoPlayer::durationChanged, this, &VEMainWindow::VideoDurationChanged);
-    connect(theVideoPlayer, &VideoPlayer::playbackStateChanged, this, &VEMainWindow::VideoPlaybackStateChanged);
-    connect(theVideoPlayer, &VideoPlayer::positionChanged, this, &VEMainWindow::PlaybackPositionChanged);
-    connect(ui->videoPosSlider, &QSlider::sliderMoved, this, &VEMainWindow::PlaybackSliderMoved);
-    connect(ui->btnPlayPause, &QPushButton::clicked, this, &VEMainWindow::PlayPause);
-    connect(ui->btnConvert, &QPushButton::clicked, this, &VEMainWindow::Convert);
-    connect(ui->btnSettings, &QPushButton::clicked, this, &VEMainWindow::ShowSettings);
-//    connect(ui->videoPlayer, &VideoPlayer::VideoSizeChanged, this, &VEMainWindow::VideoSizeChanged);
-	connect(ui->valCropPosX, &QSpinBox::valueChanged, this, &VEMainWindow::CropValueChanged);
-    connect(ui->valCropPosY, &QSpinBox::valueChanged, this, &VEMainWindow::CropValueChanged);
-    connect(ui->valCropWidth, &QSpinBox::valueChanged, this, &VEMainWindow::CropValueChanged);
-    connect(ui->valCropHeight, &QSpinBox::valueChanged, this, &VEMainWindow::CropValueChanged);
-    connect(theVideoPlayer, &VideoPlayer::CropWindowChanged, this, &VEMainWindow::CropWindowChanged);
-    connect(ui->grpCropping, &QGroupBox::toggled, this, [=](bool on)
-        {
-            theVideoPlayer->setCropEnabled(on);
-        });
+    connect(ui->btnMarkIn, &QPushButton::clicked, this,
+	    &VEMainWindow::SetMarkIn);
+    connect(ui->btnMarkOut, &QPushButton::clicked, this,
+	    &VEMainWindow::SetMarkOut);
+    connect(ui->btnResetMarks, &QPushButton::clicked, this,
+	    &VEMainWindow::ResetMarks);
+    connect(theVideoPlayer, &VideoPlayer::durationChanged, this,
+	    &VEMainWindow::VideoDurationChanged);
+    connect(theVideoPlayer, &VideoPlayer::playbackStateChanged, this,
+	    &VEMainWindow::VideoPlaybackStateChanged);
+    connect(theVideoPlayer, &VideoPlayer::positionChanged, this,
+	    &VEMainWindow::PlaybackPositionChanged);
+    connect(ui->videoPosSlider, &QSlider::sliderMoved, this,
+	    &VEMainWindow::PlaybackSliderMoved);
+    connect(ui->btnPlayPause, &QPushButton::clicked, this,
+	    &VEMainWindow::PlayPause);
+    connect(ui->btnConvert, &QPushButton::clicked, this,
+	    &VEMainWindow::Convert);
+    connect(ui->btnSettings, &QPushButton::clicked, this,
+	    &VEMainWindow::ShowSettings);
+    //    connect(ui->videoPlayer, &VideoPlayer::VideoSizeChanged, this,
+    //    &VEMainWindow::VideoSizeChanged);
+    connect(ui->valCropPosX, &QSpinBox::valueChanged, this,
+	    &VEMainWindow::CropValueChanged);
+    connect(ui->valCropPosY, &QSpinBox::valueChanged, this,
+	    &VEMainWindow::CropValueChanged);
+    connect(ui->valCropWidth, &QSpinBox::valueChanged, this,
+	    &VEMainWindow::CropValueChanged);
+    connect(ui->valCropHeight, &QSpinBox::valueChanged, this,
+	    &VEMainWindow::CropValueChanged);
+    connect(theVideoPlayer, &VideoPlayer::CropWindowChanged, this,
+	    &VEMainWindow::CropWindowChanged);
+    connect(ui->grpCropping, &QGroupBox::toggled, this,
+	    [=](bool on) { theVideoPlayer->setCropEnabled(on); });
 
     // Register codecs
-    static CodecRegistrar<CodecX264> registrarX264("libx264 H.264 / AVC / MPEG-4 AVC / MPEG-4 part 10");
+    static CodecRegistrar<CodecX264> registrarX264(
+	"libx264 H.264 / AVC / MPEG-4 AVC / MPEG-4 part 10");
     static CodecRegistrar<CodecX265> registrarX265("libx265 H.265 / HEVC");
-	static CodecRegistrar<CodecDnXHD> registrarDnXHD("SMPTE VC-3/DNxHD");
+    static CodecRegistrar<CodecDnXHD> registrarDnXHD("SMPTE VC-3/DNxHD");
     static CodecRegistrar<CodecAAC> registrarAAC("AAC (Advanced Audio Coding)");
-	static CodecRegistrar<CodecPCMs24le> registrarPCMs24le("PCM signed 24-bit little-endian");
+    static CodecRegistrar<CodecPCMs24le> registrarPCMs24le(
+	"PCM signed 24-bit little-endian");
 
-    for (const auto& name : CodecFactory::instance().availablePlugins())
-    {
-        qDebug() << "Zarejestrowany codec:" << name;
-    }
+    for (const auto &name : CodecFactory::instance().availablePlugins())
+	{
+	    qDebug() << "Zarejestrowany codec:" << name;
+	}
 
 #ifdef QT_DEBUG
-    //theVideoPlayer->openFile("c:\\Users\\piotr\\devel\\sandbox\\VideoEditor\\test_video.mp4");
-    //currentVideoFile = QFileInfo("c:\\Users\\piotr\\devel\\sandbox\\VideoEditor\\test_video.mp4");
-    theVideoPlayer->openFile("c:\\Users\\piotr\\Videos\\Division2_20250312_GoldenBullet_vs_boss_DoloresJones.mp4");
-    currentVideoFile = QFileInfo("c:\\Users\\piotr\\Videos\\Division2_20250312_GoldenBullet_vs_boss_DoloresJones.mp4");
+    // theVideoPlayer->openFile("c:\\Users\\piotr\\devel\\sandbox\\VideoEditor\\test_video.mp4");
+    // currentVideoFile =
+    // QFileInfo("c:\\Users\\piotr\\devel\\sandbox\\VideoEditor\\test_video.mp4");
+    theVideoPlayer->openFile("c:\\Users\\piotr\\Videos\\Division2_20250312_"
+			     "GoldenBullet_vs_boss_DoloresJones.mp4");
+    currentVideoFile = QFileInfo("c:\\Users\\piotr\\Videos\\Division2_20250312_"
+				 "GoldenBullet_vs_boss_DoloresJones.mp4");
     theVideoPlayer->play();
 
-	QStringList videoCodecs, audioCodecs;
+    QStringList videoCodecs, audioCodecs;
     Tools::getAvailableEncoders(videoCodecs, audioCodecs);
 #endif
 }
@@ -91,10 +108,10 @@ VEMainWindow::VEMainWindow(QWidget *parent)
 VEMainWindow::~VEMainWindow()
 {
     if (theMediaPlayer)
-    if (theMediaPlayer->playbackState() == QMediaPlayer::PlayingState)
-        theMediaPlayer->stop();
+	if (theMediaPlayer->playbackState() == QMediaPlayer::PlayingState)
+	    theMediaPlayer->stop();
 
-    //theSettings.setffmpeg(theFFMPEG->binPath());
+    // theSettings.setffmpeg(theFFMPEG->binPath());
     theSettings.setLastDir(theLastDir);
     theSettings.setMainWndGeometry(this->geometry());
     theSettings.setVideoPresets(theVideoPresets);
@@ -106,10 +123,7 @@ VEMainWindow::~VEMainWindow()
     delete ui;
 }
 
-void VEMainWindow::ExitApp()
-{
-    close();
-}
+void VEMainWindow::ExitApp() { close(); }
 
 void VEMainWindow::ReloadSettings()
 {
@@ -119,9 +133,9 @@ void VEMainWindow::ReloadSettings()
     theVideoPresets.append((*theSettings.videoPresets()));
     ui->cbxPresets->clear();
     foreach (VideoPreset preset, theVideoPresets)
-    {
-        ui->cbxPresets->addItem(preset.Name, preset.asVariant());
-    }
+	{
+	    ui->cbxPresets->addItem(preset.Name, preset.asVariant());
+	}
 
     ui->valScaleWidth->setValue(theSettings.scalingWidth());
     ui->valScaleHeight->setValue(theSettings.scalingHeight());
@@ -132,24 +146,23 @@ void VEMainWindow::ReloadSettings()
 
 void VEMainWindow::OpenVideo()
 {
-    QString filename = QFileDialog::getOpenFileName(this,
-                                                    tr("Open video file"),
-                                                    theLastDir,
-                                                    tr("Video Files") + QLatin1String(" (") + VIDEO_FILE_EXTENSIONS + QLatin1String(")")
-                                                    );
+    QString filename = QFileDialog::getOpenFileName(
+	this, tr("Open video file"), theLastDir,
+	tr("Video Files") + QLatin1String(" (") + VIDEO_FILE_EXTENSIONS +
+	    QLatin1String(")"));
     if (!filename.isEmpty())
-    {
-        theVideoPlayer->openFile(filename);
-        currentVideoFile = QFileInfo(filename);
-        theLastDir = currentVideoFile.absoluteDir().absolutePath();
-        theVideoPlayer->play();
-    }
+	{
+	    theVideoPlayer->openFile(filename);
+	    currentVideoFile = QFileInfo(filename);
+	    theLastDir = currentVideoFile.absoluteDir().absolutePath();
+	    theVideoPlayer->play();
+	}
 }
 
 void VEMainWindow::ShowSettings()
 {
-    FFmpegReal* ffmpeg = new FFmpegReal();
-    SettingsDialog* dlg = new SettingsDialog(&theSettings, *ffmpeg, this);
+    FFmpegReal *ffmpeg = new FFmpegReal();
+    SettingsDialog *dlg = new SettingsDialog(&theSettings, *ffmpeg, this);
     dlg->setModal(true);
     dlg->exec();
     ReloadSettings();
@@ -165,16 +178,18 @@ void VEMainWindow::VideoDurationChanged(qint64 duration)
     ui->videoPosSlider->setValue(0);
 }
 
-void VEMainWindow::VideoPlaybackStateChanged(VideoPlayer::PlaybackState newState)
+void VEMainWindow::VideoPlaybackStateChanged(
+    VideoPlayer::PlaybackState newState)
 {
-    if (newState == VideoPlayer::PausedState || newState == VideoPlayer::StoppedState)
-    {
-        ui->btnPlayPause->setText(tr("Play"));
-    }
+    if (newState == VideoPlayer::PausedState ||
+	newState == VideoPlayer::StoppedState)
+	{
+	    ui->btnPlayPause->setText(tr("Play"));
+	}
     else if (newState == VideoPlayer::PlayingState)
-    {
-        ui->btnPlayPause->setText(tr("Pause"));
-    }
+	{
+	    ui->btnPlayPause->setText(tr("Pause"));
+	}
 }
 
 void VEMainWindow::VideoSizeChanged(QSizeF videoSize)
@@ -185,21 +200,22 @@ void VEMainWindow::VideoSizeChanged(QSizeF videoSize)
 
 void VEMainWindow::PlayPause()
 {
-    if (theVideoPlayer->playbackState() == VideoPlayer::PausedState || theVideoPlayer->playbackState() == VideoPlayer::StoppedState)
-    {
-        theVideoPlayer->play();
-    }
+    if (theVideoPlayer->playbackState() == VideoPlayer::PausedState ||
+	theVideoPlayer->playbackState() == VideoPlayer::StoppedState)
+	{
+	    theVideoPlayer->play();
+	}
     else if (theVideoPlayer->playbackState() == VideoPlayer::PlayingState)
-    {
-        theVideoPlayer->pause();
-    }
+	{
+	    theVideoPlayer->pause();
+	}
 }
 
 void VEMainWindow::PlaybackPositionChanged(qint64 position)
 {
     if (position >= 0)
-        if (!ui->videoPosSlider->isSliderDown())
-            ui->videoPosSlider->setValue(position);
+	if (!ui->videoPosSlider->isSliderDown())
+	    ui->videoPosSlider->setValue(position);
 }
 
 void VEMainWindow::PlaybackSliderMoved(int value)
@@ -228,7 +244,7 @@ void VEMainWindow::ResetMarks()
     theVideoPlayer->setMarkers(theMarks.CurrentRange(1));
 }
 
-void VEMainWindow::CropWindowChanged(const QRect& cropRect)
+void VEMainWindow::CropWindowChanged(const QRect &cropRect)
 {
     QSignalBlocker b1(ui->valCropPosX);
     QSignalBlocker b2(ui->valCropPosY);
@@ -248,99 +264,120 @@ void VEMainWindow::CropWindowChanged(const QRect& cropRect)
 
 void VEMainWindow::CropValueChanged(int value)
 {
-    QRect cropRect = QRect(ui->valCropPosX->value(),
-        ui->valCropPosY->value(),
-        ui->valCropWidth->value(),
-		ui->valCropHeight->value());
-	theVideoPlayer->setCropWindow(cropRect);
+    QRect cropRect =
+	QRect(ui->valCropPosX->value(), ui->valCropPosY->value(),
+	      ui->valCropWidth->value(), ui->valCropHeight->value());
+    theVideoPlayer->setCropWindow(cropRect);
 }
 
 void VEMainWindow::Convert()
 {
-    QString outFilename = QFileDialog::getSaveFileName(this, tr("Save video as..."),
-        currentVideoFile.absoluteFilePath() + "_converted.mp4",
-        tr("Video Files") + QLatin1String(" (") + VIDEO_FILE_EXTENSIONS + QLatin1String(")"));
+    QString outFilename = QFileDialog::getSaveFileName(
+	this, tr("Save video as..."),
+	currentVideoFile.absoluteFilePath() + "_converted.mp4",
+	tr("Video Files") + QLatin1String(" (") + VIDEO_FILE_EXTENSIONS +
+	    QLatin1String(")"));
     if (!outFilename.isEmpty())
-    {
-		std::unique_ptr<FFmpegReal> ffmpeg(new FFmpegReal());
-		std::unique_ptr<VideoTranscoder> transcoder(new VideoTranscoder(*ffmpeg, this));
-		transcoder->setInputFile(currentVideoFile.absoluteFilePath());
-        transcoder->setOutputFile(outFilename);
-		transcoder->setMarks(theMarks);
+	{
+	    std::unique_ptr<FFmpegReal> ffmpeg(new FFmpegReal());
+	    std::unique_ptr<VideoTranscoder> transcoder(
+		new VideoTranscoder(*ffmpeg, this));
+	    transcoder->setInputFile(currentVideoFile.absoluteFilePath());
+	    transcoder->setOutputFile(outFilename);
+	    transcoder->setMarks(theMarks);
 
-        VideoPreset codec = ui->cbxPresets->currentData().value<VideoPreset>();
-		transcoder->setOutputVideoCodecName(codec.VideoCodec);
-        transcoder->setOutputVideoCodecPreset(codec.VideoCodecPreset);
-		transcoder->setOutputAudioCodecName(codec.AudioCodec);
-		transcoder->setOutputAudioCodecPreset(codec.AudioCodecPreset);
+	    VideoPreset codec =
+		ui->cbxPresets->currentData().value<VideoPreset>();
+	    transcoder->setOutputVideoCodecName(codec.VideoCodec);
+	    transcoder->setOutputVideoCodecPreset(codec.VideoCodecPreset);
+	    transcoder->setOutputAudioCodecName(codec.AudioCodec);
+	    transcoder->setOutputAudioCodecPreset(codec.AudioCodecPreset);
 
-        transcoder->setMetadata("encoder", QString("%1").arg(PROJECT_VERSION_STRING_FULL));
-        transcoder->setMetadata("comment", QString("Processed with %1").arg(PROJECT_VERSION_STRING_FULL));
+	    transcoder->setMetadata(
+		"encoder", QString("%1").arg(PROJECT_VERSION_STRING_FULL));
+	    transcoder->setMetadata(
+		"comment",
+		QString("Processed with %1").arg(PROJECT_VERSION_STRING_FULL));
 
-        if (ui->grpScaling->isChecked())
-        {
-			transcoder->setOutputResolution(ui->valScaleWidth->value(), ui->valScaleHeight->value());
-            transcoder->setOutputScalingFilter(ui->cbxScalingFlags->currentIndex());
-        }
-
-        if (theVideoPlayer->getCropEnabled())
-        {
-            QRect cropRect = theVideoPlayer->getCropWindow();
-            QRect newRect = Tools::makeRectYUVCompliant(cropRect, AV_PIX_FMT_YUV420P, true, false);
-
-            if (newRect != cropRect)
-            {
-                QMessageBox::information(this, tr("Crop rectangle adjusted"),
-                    tr("Crop rectangle doesn't follow YUV constraints.\n"
-                        "Crop rectangle adjusted to %1x%2, w=%3, h=%4.")
-                    .arg(newRect.x()).arg(newRect.y()).arg(newRect.width()).arg(newRect.height()));
-
-                cropRect = newRect;
-				theVideoPlayer->setCropWindow(cropRect);
-
-                QSignalBlocker b1(ui->valCropPosX);
-                QSignalBlocker b2(ui->valCropPosY);
-                QSignalBlocker b3(ui->valCropWidth);
-                QSignalBlocker b4(ui->valCropHeight);
-                ui->valCropPosX->setValue(cropRect.topLeft().x());
-                ui->valCropPosY->setValue(cropRect.topLeft().y());
-                ui->valCropWidth->setValue(cropRect.width());
-                ui->valCropHeight->setValue(cropRect.height());
-            }
-
-			// set crop rectangle and output resolution
-            transcoder->setCropWindow(cropRect);
-            if (!ui->grpScaling->isChecked())
-                transcoder->setOutputResolution(cropRect.width(), cropRect.height());
+	    if (ui->grpScaling->isChecked())
+		{
+		    transcoder->setOutputResolution(
+			ui->valScaleWidth->value(),
+			ui->valScaleHeight->value());
+		    transcoder->setOutputScalingFilter(
+			ui->cbxScalingFlags->currentIndex());
 		}
-        else
-			transcoder->setCropWindow(QRect(0, 0, 0, 0));
 
-        connect(transcoder.get(), &VideoTranscoder::transcodingProgress, this, [=](int progress)
-            {
-                ui->statusbar->showMessage(tr("Transcoding progress: %1%").arg(progress));
+	    if (theVideoPlayer->getCropEnabled())
+		{
+		    QRect cropRect = theVideoPlayer->getCropWindow();
+		    QRect newRect = Tools::makeRectYUVCompliant(
+			cropRect, AV_PIX_FMT_YUV420P, true, false);
+
+		    if (newRect != cropRect)
+			{
+			    QMessageBox::information(
+				this, tr("Crop rectangle adjusted"),
+				tr("Crop rectangle doesn't follow YUV "
+				   "constraints.\n"
+				   "Crop rectangle adjusted to %1x%2, w=%3, "
+				   "h=%4.")
+				    .arg(newRect.x())
+				    .arg(newRect.y())
+				    .arg(newRect.width())
+				    .arg(newRect.height()));
+
+			    cropRect = newRect;
+			    theVideoPlayer->setCropWindow(cropRect);
+
+			    QSignalBlocker b1(ui->valCropPosX);
+			    QSignalBlocker b2(ui->valCropPosY);
+			    QSignalBlocker b3(ui->valCropWidth);
+			    QSignalBlocker b4(ui->valCropHeight);
+			    ui->valCropPosX->setValue(cropRect.topLeft().x());
+			    ui->valCropPosY->setValue(cropRect.topLeft().y());
+			    ui->valCropWidth->setValue(cropRect.width());
+			    ui->valCropHeight->setValue(cropRect.height());
+			}
+
+		    // set crop rectangle and output resolution
+		    transcoder->setCropWindow(cropRect);
+		    if (!ui->grpScaling->isChecked())
+			transcoder->setOutputResolution(cropRect.width(),
+							cropRect.height());
+		}
+	    else
+		transcoder->setCropWindow(QRect(0, 0, 0, 0));
+
+	    connect(transcoder.get(), &VideoTranscoder::transcodingProgress,
+		    this, [=](int progress) {
+			ui->statusbar->showMessage(
+			    tr("Transcoding progress: %1%").arg(progress));
+		    });
+	    connect(transcoder.get(), &VideoTranscoder::transcodingFinished,
+		    this, [=]() {
+			ui->statusbar->showMessage(tr("Transcoding finished"));
+			QTimer::singleShot(2000, this, [=]() {
+			    ui->statusbar->showMessage(
+				QString("%1").arg(PROJECT_VERSION_STRING_FULL));
 			});
-        connect(transcoder.get(), &VideoTranscoder::transcodingFinished, this, [=]()
-            {
-                ui->statusbar->showMessage(tr("Transcoding finished"));
-                QTimer::singleShot(2000, this, [=]()
-                    {
-                        ui->statusbar->showMessage(QString("%1").arg(PROJECT_VERSION_STRING_FULL));
-                    });
-            });
-        connect(transcoder.get(), &VideoTranscoder::transcodingError, this, [=](const QString& errorMessage)
-            {
-				QMessageBox::warning(this, tr("Transcoding error"), tr("Error during transcoding: %1").arg(errorMessage));
-                ui->statusbar->showMessage(tr("Error during transcoding: %1").arg(errorMessage));
-                QTimer::singleShot(2000, this, [=]()
-                    {
-                        ui->statusbar->showMessage(QString("%1").arg(PROJECT_VERSION_STRING_FULL));
-                    });
-			});
+		    });
+	    connect(
+		transcoder.get(), &VideoTranscoder::transcodingError, this,
+		[=](const QString &errorMessage) {
+		    QMessageBox::warning(
+			this, tr("Transcoding error"),
+			tr("Error during transcoding: %1").arg(errorMessage));
+		    ui->statusbar->showMessage(
+			tr("Error during transcoding: %1").arg(errorMessage));
+		    QTimer::singleShot(2000, this, [=]() {
+			ui->statusbar->showMessage(
+			    QString("%1").arg(PROJECT_VERSION_STRING_FULL));
+		    });
+		});
 
-        theVideoPlayer->pause();
-        transcoder->transcode();
-        theVideoPlayer->play();
-    }
-
+	    theVideoPlayer->pause();
+	    transcoder->transcode();
+	    theVideoPlayer->play();
+	}
 }

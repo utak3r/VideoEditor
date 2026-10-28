@@ -1,28 +1,31 @@
 #ifndef VEMAINWINDOW_H
 #define VEMAINWINDOW_H
 
-#include <QMainWindow>
-#include <Settings.h>
 #include <QFileInfo>
-#include <QMediaPlayer>
+#include <QMainWindow>
 #include <QMediaMetaData>
+#include <QMediaPlayer>
+#include <Settings.h>
 #include <TimelineMarks.h>
-#include <VideoPreset.h>
 #include <VideoPlayer.h>
+#include <VideoPreset.h>
 
 QT_BEGIN_NAMESPACE
-namespace Ui { class VEMainWindow; }
+namespace Ui
+{
+class VEMainWindow;
+}
 QT_END_NAMESPACE
 
 class VEMainWindow : public QMainWindow
 {
     Q_OBJECT
 
-public:
+  public:
     VEMainWindow(QWidget *parent = nullptr);
     ~VEMainWindow();
 
-private slots:
+  private slots:
     void ExitApp();
     void ReloadSettings();
     void OpenVideo();
@@ -37,16 +40,16 @@ private slots:
     void SetMarkIn();
     void SetMarkOut();
     void ResetMarks();
-	void CropWindowChanged(const QRect& cropRect);
+    void CropWindowChanged(const QRect &cropRect);
     void CropValueChanged(int value);
 
-private:
+  private:
     Ui::VEMainWindow *ui;
     Settings theSettings;
     QFileInfo currentVideoFile;
     QString theLastDir;
-    QMediaPlayer* theMediaPlayer;
-	VideoPlayer* theVideoPlayer;
+    QMediaPlayer *theMediaPlayer;
+    VideoPlayer *theVideoPlayer;
     TimelineMarks theMarks;
     QList<VideoPreset> theVideoPresets;
 };
