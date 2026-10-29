@@ -1,11 +1,22 @@
 #include "Settings.h"
+#include <QDir>
 
 Settings::Settings()
     : theSettings(nullptr), theLastDir("."),
       theMainWndGeometry(QRect(640, 250, 960, 600)), theScalingEnabled(false),
       theScalingWidth(-1), theScalingHeight(720), theScalingFilter(4)
 {
-    theSettings = new QSettings("VideoEditor.ini", QSettings::IniFormat);
+    theSettings = new QSettings(settingsFilePath(), QSettings::IniFormat);
+}
+
+QString &Settings::settingsFilePath() const
+{
+    QString configDir = QDir::homePath() + "/.VideoEditor";
+    QDir dir(configDir);
+    if (!dir.exists()) dir.mkpath(configDir);
+
+    QString filename = configDir + "/VideoEditor.ini";
+    return filename;
 }
 
 void Settings::ReadSettings()

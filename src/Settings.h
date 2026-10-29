@@ -5,7 +5,6 @@
 #include <QSettings>
 #include <VideoPreset.h>
 
-
 /*!
  * \class Settings
  * \brief This class is for storing all the app's settings
@@ -17,6 +16,7 @@ class Settings
 
     void ReadSettings();
     void WriteSettings();
+    QString &settingsFilePath() const;
 
     QString lastDir();
     void setLastDir(QString dir);
