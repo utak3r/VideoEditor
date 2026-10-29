@@ -16,7 +16,7 @@ class Settings
 
     void ReadSettings();
     void WriteSettings();
-    QString &settingsFilePath() const;
+    QString settingsFilePath() const;
 
     QString lastDir();
     void setLastDir(QString dir);

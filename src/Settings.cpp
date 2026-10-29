@@ -9,14 +9,13 @@ Settings::Settings()
     theSettings = new QSettings(settingsFilePath(), QSettings::IniFormat);
 }
 
-QString &Settings::settingsFilePath() const
+QString Settings::settingsFilePath() const
 {
     QString configDir = QDir::homePath() + "/.VideoEditor";
     QDir dir(configDir);
     if (!dir.exists()) dir.mkpath(configDir);
 
-    QString filename = configDir + "/VideoEditor.ini";
-    return filename;
+    return configDir + "/VideoEditor.ini";
 }
 
 void Settings::ReadSettings()
