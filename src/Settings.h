@@ -1,9 +1,10 @@
 #ifndef SETTINGS_H
 #define SETTINGS_H
 
-#include <QSettings>
 #include <QRect>
+#include <QSettings>
 #include <VideoPreset.h>
+
 
 /*!
  * \class Settings
@@ -11,7 +12,7 @@
  */
 class Settings
 {
-public:
+  public:
     Settings();
 
     void ReadSettings();
@@ -21,8 +22,8 @@ public:
     void setLastDir(QString dir);
     QRect mainWndGeometry();
     void setMainWndGeometry(QRect rect);
-    QList<VideoPreset>* videoPresets();
-    void setVideoPresets(QList<VideoPreset>& list);
+    QList<VideoPreset> *videoPresets();
+    void setVideoPresets(QList<VideoPreset> &list);
     bool scalingEnabled();
     void setScalingEnabled(bool enabled);
     int scalingWidth();
@@ -32,8 +33,8 @@ public:
     int scalingFilter();
     void setScalingFilter(int filter);
 
-private:
-    QSettings* theSettings;
+  private:
+    QSettings *theSettings;
     QString theLastDir;
     QRect theMainWndGeometry;
     QList<VideoPreset> theVideoPresets;
